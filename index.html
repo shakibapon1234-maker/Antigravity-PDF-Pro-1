@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity PDF Editor | Premium Office Tool</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Hind+Siliguri:wght@400;600&family=Noto+Sans+Bengali:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Lucide Icons -->
+    <!-- (script moved to end of body for proper DOM loading) -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-mode">
+    <!-- App Lock Screen -->
+    <div id="appLockScreen" style="position: fixed; inset: 0; background: rgba(10,10,18,0.95); z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(20px);">
+        <div style="background: var(--bg-surface); border: 1px solid var(--primary-glow); padding: 50px 40px; border-radius: 20px; box-shadow: 0 0 50px rgba(184,41,249,0.2), inset 0 0 30px rgba(0,212,255,0.05); text-align: center; max-width: 400px; width: 90%;">
+            <div class="logo-icon" style="margin: 0 auto 20px; width: 60px; height: 60px;">
+                <i data-lucide="lock" style="width: 30px; height: 30px; color: #fff;"></i>
+            </div>
+            <h2 style="color: #fff; margin-bottom: 30px; font-size: 22px; font-weight: 700;">Admin Access Required</h2>
+            <div style="position: relative; margin-bottom: 20px;">
+                <input type="password" id="lockPassword" placeholder="Enter Password" style="width: 100%; padding: 15px 20px; border-radius: 12px; background: var(--bg-raised); border: 1px solid var(--border); color: #fff; font-size: 16px; outline: none; transition: all 0.3s; text-align: center; letter-spacing: 2px;">
+            </div>
+            <button id="btnUnlock" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 16px; justify-content: center; border-radius: 12px;">
+                Unlock Antigravity
+            </button>
+            <p id="lockError" style="color: var(--accent-pink); font-size: 13px; margin-top: 15px; display: none;">Incorrect password. Please try again.</p>
+        </div>
+    </div>
+    
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <i data-lucide="layers" class="icon-gradient"></i>
+                </div>
+                <h2>Antigravity<span>PDF</span></h2>
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="dashboard">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-tab="editor">
+                    <i data-lucide="edit-3"></i>
+                    <span>Text Editor</span>
+                </button>
+                <button class="nav-item" data-tab="converter">
+                    <i data-lucide="file-output"></i>
+                    <span>PDF to Word</span>
+                </button>
+                <button class="nav-item" data-tab="merge">
+                    <i data-lucide="combine"></i>
+                    <span>Merge PDF</span>
+                </button>
+                <button class="nav-item" data-tab="split">
+                    <i data-lucide="scissors"></i>
+                    <span>Split PDF</span>
+                </button>
+                <button class="nav-item" data-tab="compress">
+                    <i data-lucide="archive"></i>
+                    <span>Compress PDF</span>
+                </button>
+                <button class="nav-item" data-tab="rotate">
+                    <i data-lucide="rotate-cw"></i>
+                    <span>Rotate PDF Pages</span>
+                </button>
+                <button class="nav-item" data-tab="pdf-to-image">
+                    <i data-lucide="image"></i>
+                    <span>PDF to Image</span>
+                </button>
+                <button class="nav-item" data-tab="image-to-pdf">
+                    <i data-lucide="images"></i>
+                    <span>Image to PDF</span>
+                </button>
+                <button class="nav-item" data-tab="image-converter">
+                    <i data-lucide="arrow-right-left"></i>
+                    <span>Image Converter</span>
+                </button>
+                <button class="nav-item" data-tab="organize-pdf">
+                    <i data-lucide="layers"></i>
+                    <span>Organize PDF</span>
+                </button>
+                <button class="nav-item" data-tab="crop-pdf">
+                    <i data-lucide="crop"></i>
+                    <span>Crop PDF</span>
+                </button>
+                <button class="nav-item" data-tab="excel-to-word">
+                    <i data-lucide="file-output"></i>
+                    <span>Excel to Word</span>
+                </button>
+                <button class="nav-item" data-tab="word-to-excel">
+                    <i data-lucide="file-spreadsheet"></i>
+                    <span>Word to Excel</span>
+                </button>
+                <button class="nav-item" data-tab="unlock-pdf">
+                    <i data-lucide="unlock"></i>
+                    <span>Unlock PDF</span>
+                </button>
+                <button class="nav-item" data-tab="watermark-pdf">
+                    <i data-lucide="stamp"></i>
+                    <span>Add Watermark</span>
+                </button>
+                <button class="nav-item" data-tab="page-numbers-pdf">
+                    <i data-lucide="hash"></i>
+                    <span>Page Numbers</span>
+                </button>
+                <button class="nav-item" data-tab="html-to-pdf">
+                    <i data-lucide="globe"></i>
+                    <span>HTML to PDF</span>
+                </button>
+                <button class="nav-item" data-tab="protect-pdf">
+                    <i data-lucide="lock"></i>
+                    <span>Protect PDF</span>
+                </button>
+                <button class="nav-item" data-tab="protect-pdf">
+                    <i data-lucide="lock"></i>
+                    <span>Protect PDF</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="status-card">
+                    <p>Local Mode</p>
+                    <small>100% Private & Secure</small>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="search-bar">
+                    <i data-lucide="search"></i>
+                    <input type="text" placeholder="Search tools or files...">
+                </div>
+                <div class="user-actions">
+                    <button class="btn-icon" id="btnOpenArchive" title="Open Archive"><i data-lucide="inbox"></i></button>
+                    <button class="btn-icon"><i data-lucide="bell"></i></button>
+                    <button class="btn-icon"><i data-lucide="settings"></i></button>
+                    <div class="profile-avatar">AG</div>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <!-- Dashboard Section -->
+                <section id="dashboard" class="tab-content active">
+                    <div class="welcome-banner" style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
+                        <div class="banner-text" style="flex: 1; min-width: 300px;">
+                            <h1>Hello, Shakib 👋</h1>
+                            <p>What would you like to do with your PDF today?</p>
+                            <div class="custom-shakib-text" style="margin-top: 20px; padding: 15px; background: rgba(0, 212, 255, 0.05); border: 1px solid rgba(0,212,255,0.3); border-left: 4px solid var(--accent-cyan); border-radius: 8px; font-style: italic; max-width: 500px; box-shadow: 0 0 15px rgba(0,212,255,0.1);">
+                                <span style="background: linear-gradient(90deg, #00ffe5, #00ff88); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 600; font-size: 15px;">প্রিমিয়াম অভিজ্ঞতা ও দ্রুত পারফরম্যান্সের সাথে আপনার সব ধরনের কাজ এখন আরও সহজ ও প্রাণবন্ত।</span>
+                            </div>
+                        </div>
+                            <div class="banner-image" style="flex-shrink: 0; text-align: right; position: relative; z-index: 1;">
+                            <div class="premium-banner-image">
+                                <!-- Spinning Light Effect -->
+                                <div class="spin-border"></div>
+                                
+                                <div class="img-inner">
+                                    <img src="best.png" alt="Antigravity PDF Dashboard">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="quick-tools-grid">
+                        <div class="tool-card purple" onclick="switchTab('editor')" >
+                            <div class="card-icon"><i data-lucide="edit-3"></i></div>
+                            <h3>Edit Text</h3>
+                            <p>Modify existing content directly inside your PDF.</p>
+                            <span class="tool-tag">Priority</span>
+                        </div>
+                        <div class="tool-card blue" onclick="switchTab('converter')">
+                            <div class="card-icon"><i data-lucide="file-text"></i></div>
+                            <h3>PDF to Word</h3>
+                            <p>Convert PDF documents to editable DOCX format.</p>
+                            <span class="tool-tag">Popular</span>
+                        </div>
+                        <div class="tool-card green" onclick="switchTab('merge')">
+                            <div class="card-icon"><i data-lucide="combine"></i></div>
+                            <h3>Merge Files</h3>
+                            <p>Combine multiple PDFs into one document.</p>
+                        </div>
+                        <div class="tool-card orange" onclick="switchTab('split')">
+                            <div class="card-icon"><i data-lucide="scissors"></i></div>
+                            <h3>Split Pages</h3>
+                            <p>Extract specific pages from a PDF file.</p>
+                        </div>
+                        <div class="tool-card cyan" onclick="switchTab('compress')">
+                            <div class="card-icon"><i data-lucide="archive"></i></div>
+                            <h3>Compress PDF</h3>
+                            <p>Reduce PDF file size while keeping quality.</p>
+                        </div>
+                        <div class="tool-card pink" onclick="switchTab('rotate')">
+                            <div class="card-icon"><i data-lucide="rotate-cw"></i></div>
+                            <h3>Rotate PDF Pages</h3>
+                            <p>Rotate pages to correct orientation.</p>
+                        </div>
+                        <div class="tool-card yellow" onclick="switchTab('pdf-to-image')">
+                            <div class="card-icon"><i data-lucide="image"></i></div>
+                            <h3>PDF to Image</h3>
+                            <p>Convert PDF pages into high-quality images.</p>
+                        </div>
+                        <div class="tool-card red" onclick="switchTab('image-to-pdf')">
+                            <div class="card-icon"><i data-lucide="images"></i></div>
+                            <h3>Image to PDF</h3>
+                            <p>Convert your JPG or PNG images into a PDF document.</p>
+                        </div>
+                        <div class="tool-card teal" onclick="switchTab('image-converter')">
+                            <div class="card-icon"><i data-lucide="arrow-right-left"></i></div>
+                            <h3>Image Converter</h3>
+                            <p>Convert images between PNG, JPG, and other formats.</p>
+                        </div>
+                        <div class="tool-card indigo" onclick="switchTab('organize-pdf')">
+                            <div class="card-icon"><i data-lucide="layers"></i></div>
+                            <h3>Organize PDF</h3>
+                            <p>Reorder, rotate, or delete pages from a PDF document.</p>
+                        </div>
+                        <div class="tool-card orange" onclick="switchTab('crop-pdf')">
+                            <div class="card-icon"><i data-lucide="crop"></i></div>
+                            <h3>Crop PDF</h3>
+                            <p>Trim the margins or select a specific area of your PDF pages.</p>
+                        </div>
+                        
+                        <!-- New Featured Tools -->
+                        <div class="tool-card red" onclick="switchTab('protect-pdf')">
+                            <div class="card-icon"><i data-lucide="lock"></i></div>
+                            <h3>Protect PDF</h3>
+                            <p>Add a password to your PDF to secure your content.</p>
+                            <span class="tool-tag">Security</span>
+                        </div>
+                        <div class="tool-card teal" onclick="switchTab('word-to-excel')">
+                            <div class="card-icon"><i data-lucide="file-spreadsheet"></i></div>
+                            <h3>Word to Excel</h3>
+                            <p>Extract all tables from your Word document into a clean Excel sheet.</p>
+                            <span class="tool-tag">New</span>
+                        </div>
+                        <div class="tool-card teal" onclick="switchTab('word-to-excel')">
+                            <div class="card-icon"><i data-lucide="file-spreadsheet"></i></div>
+                            <h3>Word to Excel</h3>
+                            <p>Extract all tables from your Word document into a clean Excel sheet.</p>
+                            <span class="tool-tag">New</span>
+                        </div>
+                        <div class="tool-card green" onclick="switchTab('unlock-pdf')">
+                            <div class="card-icon"><i data-lucide="unlock"></i></div>
+                            <h3>Unlock PDF</h3>
+                            <p>Remove passwords and restrictions from your PDF files.</p>
+                        </div>
+                        <div class="tool-card blue" onclick="switchTab('watermark-pdf')">
+                            <div class="card-icon"><i data-lucide="stamp"></i></div>
+                            <h3>Add Watermark</h3>
+                            <p>Apply image or text watermarks to your PDF documents.</p>
+                        </div>
+                        <div class="tool-card orange" onclick="switchTab('page-numbers-pdf')">
+                            <div class="card-icon"><i data-lucide="hash"></i></div>
+                            <h3>Page Numbers</h3>
+                            <p>Insert page numbers into your PDF automatically.</p>
+                        </div>
+                        <div class="tool-card purple" onclick="switchTab('html-to-pdf')">
+                            <div class="card-icon"><i data-lucide="globe"></i></div>
+                            <h3>HTML to PDF</h3>
+                            <p>Convert any web page or HTML file into a PDF document.</p>
+                            <span class="tool-tag">New</span>
+                        </div>
+                        <div class="tool-card green" onclick="switchTab('excel-to-pdf')">
+                            <div class="card-icon"><i data-lucide="sheet"></i></div>
+                            <h3>Excel to PDF</h3>
+                            <p>Convert Excel spreadsheets (XLSX, CSV) to high-quality PDF docs.</p>
+                            <span class="tool-tag">New</span>
+                        </div>
+                        <div class="tool-card blue" onclick="switchTab('excel-to-word')">
+                            <div class="card-icon"><i data-lucide="file-output"></i></div>
+                            <h3>Excel to Word</h3>
+                            <p>Convert Excel spreadsheets perfectly into editable Word tables.</p>
+                            <span class="tool-tag">New</span>
+                        </div>
+                        <div class="tool-card teal" onclick="switchTab('word-to-excel')">
+                            <div class="card-icon"><i data-lucide="file-spreadsheet"></i></div>
+                            <h3>Word to Excel</h3>
+                            <p>Extract all tables from your Word document into a clean Excel sheet.</p>
+                            <span class="tool-tag">New</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Editor Section -->
+                <section id="editor" class="tab-content">
+                    <div class="section-header">
+                        <h2>Advanced PDF Text Editor</h2>
+                        <button class="btn btn-primary" id="btnUploadEditor">
+                            <i data-lucide="upload-cloud"></i> Upload PDF
+                        </button>
+                    </div>
+                    
+                    <div class="editor-workspace">
+                        <div class="no-file-state" id="editorEmptyState">
+                            <!-- Nebula Aurora Background -->
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-tri); top: 40%; left: 30%; width: 400px; height: 400px; animation-delay: -10s;"></div>
+                            </div>
+                            <i data-lucide="file-plus" class="large-icon"></i>
+                            <h3>No File Selected</h3>
+                            <p>Upload a PDF to start editing text and elements.</p>
+                        </div>
+                                <div id="pdfEditorContainer" class="d-none flex-column w-100">
+                            <div class="toolbar-editor mb-4">
+                                <div class="pagination-controls d-flex align-items-center gap-2">
+                                    <button class="btn btn-icon" id="prevPage" title="Previous Page"><i data-lucide="chevron-left"></i></button>
+                                    <span id="pageIndicator" class="fw-600">Page 1 of 1</span>
+                                    <button class="btn btn-icon" id="nextPage" title="Next Page"><i data-lucide="chevron-right"></i></button>
+                                </div>
+                                
+                                <div class="formatting-toolbar">
+                                    <select id="fontFamily" class="editor-select" style="min-width: 140px;" title="Font Family">
+                                        <optgroup label="Standard Fonts">
+                                            <option value="Helvetica">Helvetica</option>
+                                            <option value="Times-Roman">Times New Roman</option>
+                                            <option value="Courier">Courier</option>
+                                            <option value="Arial">Arial</option>
+                                            <option value="Roboto">Roboto</option>
+                                            <option value="Open Sans">Open Sans</option>
+                                        </optgroup>
+                                        <optgroup label="Bengali Fonts">
+                                            <option value="Hind Siliguri">Hind Siliguri</option>
+                                            <option value="Noto Sans Bengali">Noto Sans Bengali</option>
+                                        </optgroup>
+                                    </select>
+                                    <div class="v-separator"></div>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <button class="btn-tool btn-font-size tool-orange" id="btnDecreaseFont" title="Decrease Size (A-)"><i data-lucide="minus"></i></button>
+                                        <input type="number" id="fontSize" class="editor-input" value="14" min="1" max="100">
+                                        <button class="btn-tool btn-font-size tool-orange" id="btnIncreaseFont" title="Increase Size (A+)"><i data-lucide="plus"></i></button>
+                                    </div>
+                                    <div class="v-separator"></div>
+                                    <button class="btn-tool tool-purple" id="btnBold" title="Bold (Ctrl+B)">
+                                        <i data-lucide="bold"></i>
+                                        <span class="tool-label">Bold</span>
+                                    </button>
+                                    <button class="btn-tool tool-blue" id="btnItalic" title="Italic (Ctrl+I)">
+                                        <i data-lucide="italic"></i>
+                                        <span class="tool-label">Italic</span>
+                                    </button>
+                                    <button class="btn-tool tool-pink" id="btnUnderline" title="Underline (Ctrl+U)">
+                                        <i data-lucide="underline"></i>
+                                        <span class="tool-label">Underline</span>
+                                    </button>
+                                    <div class="v-separator"></div>
+                                    <button class="btn-tool tool-cyan" id="btnUppercase" title="Uppercase">
+                                        <i data-lucide="arrow-up-to-line"></i>
+                                        <span class="tool-label">UPPER</span>
+                                    </button>
+                                    <button class="btn-tool tool-cyan" id="btnLowercase" title="Lowercase">
+                                        <i data-lucide="arrow-down-to-line"></i>
+                                        <span class="tool-label">lower</span>
+                                    </button>
+                                    <div class="v-separator"></div>
+                                    <div class="color-picker-wrapper" title="টেক্সট কালার — অক্ষরের রঙ পরিবর্তন করুন">
+                                        <input type="color" id="textColor" value="#000000">
+                                        <i data-lucide="palette"></i>
+                                    </div>
+                                    <!-- Eyedropper: Text Color -->
+                                    <button class="btn-tool tool-cyan" id="btnEyedropperText" title="Color Picker — স্ক্রিনের যেকোনো জায়গা থেকে Text Color পিক করুন (Eyedropper)" style="position:relative;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8"/>
+                                        </svg>
+                                        <span class="tool-label">টেক্সট</span>
+                                    </button>
+                                    <div class="color-picker-wrapper" title="ব্যাকগ্রাউন্ড কালার — টেক্সট বক্সের পেছনের রঙ (whiteout/fill)">
+                                        <input type="color" id="bgColor" value="#ffffff">
+                                        <i data-lucide="paint-bucket"></i>
+                                    </div>
+                                    <!-- Eyedropper: BG Color -->
+                                    <button class="btn-tool tool-orange" id="btnEyedropperBg" title="Color Picker — স্ক্রিনের যেকোনো জায়গা থেকে BG Color পিক করুন (Eyedropper)" style="position:relative;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8"/>
+                                        </svg>
+                                        <span class="tool-label">বিজি</span>
+                                    </button>
+                                    <div class="v-separator"></div>
+                                    <button class="btn-tool tool-red" id="btnClearEdits" title="Clear All Edits">
+                                        <i data-lucide="rotate-ccw"></i>
+                                        <span class="tool-label">Reset</span>
+                                    </button>
+                                    <button class="btn-tool tool-orange" id="btnUndo" title="Undo (Ctrl+Z)" disabled>
+                                        <i data-lucide="undo-2"></i>
+                                        <span class="tool-label">Undo</span>
+                                    </button>
+                                    <button class="btn-tool tool-pink" id="btnRedo" title="Redo (Ctrl+Y)" disabled>
+                                        <i data-lucide="redo-2"></i>
+                                        <span class="tool-label">Redo</span>
+                                    </button>
+                                    <div class="v-separator"></div>
+                                    <button class="btn-tool tool-green" id="btnSelect" title="Select & Move (V)">
+                                        <i data-lucide="move"></i>
+                                        <span class="tool-label">Select</span>
+                                    </button>
+                                    <button class="btn-tool tool-purple active" id="btnTypeText" title="Add New Text (T)">
+                                        <i data-lucide="type"></i>
+                                        <span class="tool-label">Type</span>
+                                    </button>
+                                    <button class="btn-tool tool-highlight-pink" id="btnClearText" title="Clear Text Only" style="min-width: 120px;">
+                                        <i data-lucide="erase"></i>
+                                        <span class="tool-label" style="font-size: 13px;">CLEAR TEXT</span>
+                                    </button>
+                                    <!-- White Eraser Tool -->
+                                    <button class="btn-tool" id="btnWhiteEraser" title="White Eraser — Drag করে যেটুকু জায়গায় যাবে সেটুকু একদম সাদা হয়ে যাবে" style="background: linear-gradient(135deg, #e0e0e0, #ffffff); color: #333; border: 2px solid #ccc; min-width: 120px;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/>
+                                            <path d="M22 21H7"/><path d="m5 11 9 9"/>
+                                        </svg>
+                                        <span class="tool-label" style="font-size: 13px;">WHITE ERASE</span>
+                                    </button>
+                                    <button class="btn-tool tool-cyan" id="btnInsertImage" title="Insert Image">
+                                        <i data-lucide="image"></i>
+                                        <span class="tool-label">Image</span>
+                                    </button>
+                                    <div class="v-separator"></div>
+                                    <button class="btn-tool" id="btnLayerToFront" title="Bring to Front" style="display:none;"><i data-lucide="chevrons-up"></i></button>
+                                    <button class="btn-tool" id="btnLayerUp"      title="Bring Forward"  style="display:none;"><i data-lucide="chevron-up"></i></button>
+                                    <button class="btn-tool" id="btnLayerDown"    title="Send Backward"  style="display:none;"><i data-lucide="chevron-down"></i></button>
+                                    <button class="btn-tool" id="btnLayerToBack"  title="Send to Back"   style="display:none;"><i data-lucide="chevrons-down"></i></button>
+                                    <div class="v-separator" id="vSepLayer" style="display:none;"></div>
+                                    <div class="dropdown-wrapper" style="position: relative; display: inline-block;">
+                                        <button class="btn-tool tool-orange" id="btnShapeMenu" style="width: auto; padding: 0 10px; gap: 4px;" title="Shapes">
+                                            <i data-lucide="shapes"></i> <span style="font-size: 13px; font-weight: 500; font-family: 'Outfit';">Shapes</span>
+                                        </button>
+                                        <div id="shapeDropdownMenu" style="display: none; position: absolute; z-index: 1000; top: 100%; left: 0; background: #1e1e1e; border: 1px solid #333; border-radius: 4px; padding: 5px; flex-direction: column; width: 140px; box-shadow: 0 5px 20px rgba(0,0,0,0.5);">
+                                            <button id="btnShapeMenuRect" style="display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px; background: transparent; border: none; color: #fff; border-radius: 4px; cursor: pointer; text-align: left; font-family: 'Outfit';"><i data-lucide="square" style="width: 14px;"></i> Rectangle</button>
+                                            <button id="btnShapeMenuRoundRect" style="display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px; background: transparent; border: none; color: #fff; border-radius: 4px; cursor: pointer; text-align: left; font-family: 'Outfit';"><i data-lucide="box-select" style="width: 14px;"></i> Round Rect</button>
+                                            <button id="btnShapeMenuCircle" style="display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px; background: transparent; border: none; color: #fff; border-radius: 4px; cursor: pointer; text-align: left; font-family: 'Outfit';"><i data-lucide="circle" style="width: 14px;"></i> Circle</button>
+                                            <button id="btnShapeMenuTriangle" style="display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px; background: transparent; border: none; color: #fff; border-radius: 4px; cursor: pointer; text-align: left; font-family: 'Outfit';"><i data-lucide="triangle" style="width: 14px;"></i> Triangle</button>
+                                            <button id="btnShapeMenuStar" style="display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px; background: transparent; border: none; color: #fff; border-radius: 4px; cursor: pointer; text-align: left; font-family: 'Outfit';"><i data-lucide="star" style="width: 14px;"></i> Star</button>
+                                            <button id="btnShapeMenuLine" style="display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px; background: transparent; border: none; color: #fff; border-radius: 4px; cursor: pointer; text-align: left; font-family: 'Outfit';"><i data-lucide="minus" style="width: 14px;"></i> Line</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="action-controls d-flex gap-2">
+                                    <button id="btnZoomFit" class="btn btn-outline btn-icon" title="Fit to Width"><i data-lucide="maximize-2"></i></button>
+                                    <button class="btn btn-outline btn-icon" id="btnZoomOut" title="Zoom Out"><i data-lucide="zoom-out"></i></button>
+                                    <span id="zoomIndicator" class="align-self-center px-1" style="min-width: 50px; text-align: center; font-size: 0.9rem; color: var(--text-dim);">150%</span>
+                                    <button class="btn btn-outline btn-icon" id="btnZoomIn" title="Zoom In"><i data-lucide="zoom-in"></i></button>
+                                    <button class="btn btn-primary px-4" id="btnSavePdf" title="Save and Download PDF">
+                                        <i data-lucide="save"></i>
+                                        <span>Download PDF</span>
+                                    </button>
+                                    <button class="btn btn-outline" id="btnArchiveCurrent" title="Archive current PDF">
+                                        <i data-lucide="archive"></i>
+                                        <span>Archive</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="canvasWrapper"></div>
+                        </div>
+                    </div>
+                </section>
+
+                        <!-- Archive Modal (shared) -->
+                        <div id="archiveModal" class="archive-modal" style="display:none;">
+                            <div class="archive-panel">
+                                <div class="archive-header">
+                                    <h3>Archive</h3>
+                                    <div class="archive-actions">
+                                        <button id="btnRefreshArchive" class="btn btn-outline">Refresh</button>
+                                        <button id="btnCloseArchive" class="btn btn-link">Close</button>
+                                    </div>
+                                </div>
+
+                                <div class="archive-body">
+                                    <div class="archive-left">
+                                        <label>Archive a file</label>
+                                        <input type="file" id="archiveFileInput">
+                                        <div style="margin-top:8px; display:flex; gap:8px;">
+                                            <input id="archiveSourceTool" placeholder="Source tool (optional)" class="form-input">
+                                        </div>
+                                        <div style="margin-top:8px; display:flex; gap:8px;">
+                                            <input id="archiveTagsInput" placeholder="Tags (comma separated)" class="form-input">
+                                            <button id="btnUploadToArchive" class="btn btn-primary">Archive File</button>
+                                        </div>
+
+                                        <hr style="margin:12px 0; border-color: rgba(255,255,255,0.04)">
+
+                                        <label>Search</label>
+                                        <input id="archiveSearch" class="form-input" placeholder="Search archived filenames or tags">
+
+                                        <label style="margin-top:8px; display:block;">Filter Tags (comma separated)</label>
+                                        <input id="archiveTagFilter" class="form-input" placeholder="e.g. invoice, projectX">
+                                    </div>
+
+                                    <div class="archive-right">
+                                        <div class="archive-toolbar">
+                                            <div id="archiveStats" style="color:var(--text-dim)">0 items</div>
+                                            <div style="display:flex; gap:8px; align-items:center">
+                                                <select id="archivePageSize" class="form-input" style="width:90px;">
+                                                    <option value="5">5 / page</option>
+                                                    <option value="10" selected>10 / page</option>
+                                                    <option value="20">20 / page</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div id="archiveList" class="archive-list"></div>
+                                        <div class="archive-pagination" id="archivePagination"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                <!-- Converter Section -->
+                <section id="converter" class="tab-content">
+                    <div class="section-header">
+                        <h2>Convert PDF to Word</h2>
+                    </div>
+                    <div class="converter-box">
+                        <div class="drop-zone" id="converterDropZone">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="file-up"></i>
+                            <p>Drag & drop your PDF file here or <span>browse</span></p>
+                            <input type="file" id="converterInput" accept=".pdf" hidden>
+                        </div>
+                        <div id="conversionStatus" class="conversion-status d-none">
+                            <div class="file-info">
+                                <i data-lucide="file-check"></i>
+                                <span id="fileNameDisplay">document.pdf</span>
+                            </div>
+                            <div class="progress-bar-wrapper">
+                                <div class="progress-bar" id="convProgress"></div>
+                            </div>
+                            <button class="btn btn-success w-100 mt-3" id="btnDownloadWord">
+                                <i data-lucide="download"></i> Download .docx
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Compress PDF Section -->
+                <section id="compress" class="tab-content">
+                    <div class="section-header">
+                        <h2>Compress PDF</h2>
+                        <button class="btn btn-primary" id="btnUploadCompress">
+                            <i data-lucide="upload-cloud"></i> Upload PDF
+                        </button>
+                    </div>
+                    <div class="compress-container">
+                        <div class="no-file-state" id="compressEmptyState">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="archive" class="large-icon"></i>
+                            <h3>No File Selected</h3>
+                            <p>Upload a PDF to compress its file size</p>
+                        </div>
+                        <div class="compress-workspace d-none" id="compressWorkspace">
+                            <div class="compress-info" id="compressFileInfo">
+                                <i data-lucide="file-text"></i>
+                                <span id="compressFileName">document.pdf</span>
+                                <span id="compressFileSize" class="file-size-display">0 MB</span>
+                            </div>
+                            <div class="compress-options">
+                                <label>Compression Level:</label>
+                                <div class="compression-levels">
+                                    <label class="radio-label">
+                                        <input type="radio" name="compressLevel" value="0.1" checked>
+                                        <span>Low</span>
+                                        <small>Best quality, less compression</small>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="compressLevel" value="0.5">
+                                        <span>Medium</span>
+                                        <small>Balanced</small>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="compressLevel" value="0.9">
+                                        <span>High</span>
+                                        <small>Maximum compression</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" id="btnCompressPdf">
+                                <i data-lucide="archive"></i> Compress & Download
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Rotate PDF Section -->
+                <section id="rotate" class="tab-content">
+                    <div class="section-header">
+                        <h2>Rotate PDF Pages</h2>
+                        <button class="btn btn-primary" id="btnUploadRotate">
+                            <i data-lucide="upload-cloud"></i> Upload PDF
+                        </button>
+                    </div>
+                    <div class="rotate-container">
+                        <div class="no-file-state" id="rotateEmptyState">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="rotate-cw" class="large-icon"></i>
+                            <h3>No File Selected</h3>
+                            <p>Upload a PDF to rotate its pages</p>
+                        </div>
+                        <div class="rotate-workspace d-none" id="rotateWorkspace">
+                            <div class="rotate-preview" id="rotatePreview"></div>
+                            <div class="rotate-controls">
+                                <label>Rotation Angle:</label>
+                                <div class="rotation-options">
+                                    <label class="radio-label">
+                                        <input type="radio" name="rotateAngle" value="90" checked> 90°
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="rotateAngle" value="180"> 180°
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="rotateAngle" value="270"> 270°
+                                    </label>
+                                </div>
+                                <div class="rotate-range-input">
+                                    <label>Page Range:</label>
+                                    <input type="text" id="rotatePageRangeInput" placeholder="e.g., 1-3, 5, 7-10 or leave empty for all">
+                                </div>
+                                <div class="rotation-direction">
+                                    <label class="radio-label">
+                                        <input type="radio" name="rotateDirection" value="clockwise" checked> Clockwise
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="rotateDirection" value="counterclockwise"> Counter-clockwise
+                                    </label>
+                                </div>
+                                <button class="btn btn-primary" id="btnRotatePdf">
+                                    <i data-lucide="rotate-cw"></i> Rotate & Download
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Merge PDF Section -->
+                <section id="merge" class="tab-content">
+                    <div class="section-header">
+                        <h2>Merge PDF Files</h2>
+                        <button class="btn btn-primary" id="btnAddMergeFile">
+                            <i data-lucide="plus"></i> Add Files
+                        </button>
+                    </div>
+                    <div class="merge-container">
+                        <div class="file-list-container" id="mergeFileList">
+                            <div class="empty-state-merge">
+                                <div class="nebula-glow">
+                                    <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                    <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                                </div>
+                                <i data-lucide="files" class="large-icon"></i>
+                                <h3>No Files Added</h3>
+                                <p>Add PDF files to merge them into one document</p>
+                            </div>
+                        </div>
+                        <div class="merge-actions d-none" id="mergeActions">
+                            <button class="btn btn-primary" id="btnMergeFiles">
+                                <i data-lucide="combine"></i> Merge & Download
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Split PDF Section -->
+                <section id="split" class="tab-content">
+                    <div class="section-header">
+                        <h2>Split PDF Pages</h2>
+                        <button class="btn btn-primary" id="btnUploadSplit">
+                            <i data-lucide="upload-cloud"></i> Upload PDF
+                        </button>
+                    </div>
+                    <div class="split-container">
+                        <div class="no-file-state" id="splitEmptyState">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="scissors" class="large-icon"></i>
+                            <h3>No File Selected</h3>
+                            <p>Upload a PDF to extract specific pages</p>
+                        </div>
+                        <div class="split-workspace d-none" id="splitWorkspace">
+                            <div class="split-preview" id="splitPreview"></div>
+                            <div class="split-controls">
+                                <div class="page-range-input">
+                                    <label>Page Range:</label>
+                                    <input type="text" id="pageRangeInput" placeholder="e.g., 1-3, 5, 7-10">
+                                    <button class="btn btn-outline" id="btnSelectRange">Select</button>
+                                </div>
+                                <div class="split-options">
+                                    <label class="radio-label">
+                                        <input type="radio" name="splitMode" value="extract" checked> Extract pages
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="splitMode" value="remove"> Remove pages
+                                    </label>
+                                </div>
+                                <div class="selection-actions">
+                                    <button class="btn btn-outline" id="btnSelectAllSplit">Select All</button>
+                                    <button class="btn btn-outline" id="btnClearSelectionSplit">Clear Selection</button>
+                                </div>
+                                <div class="selected-pages" id="selectedPagesDisplay">
+                                    <span>Selected: None</span>
+                                </div>
+                                <button class="btn btn-primary" id="btnDownloadSplit">
+                                    <i data-lucide="download"></i> Download Split PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PDF to Image Section -->
+                <section id="pdf-to-image" class="tab-content">
+                    <div class="section-header">
+                        <h2>Convert PDF to Image</h2>
+                        <button class="btn btn-primary" id="btnUploadPdfToImage">
+                            <i data-lucide="upload-cloud"></i> Upload PDF
+                        </button>
+                        <input type="file" id="ptiFileInput" accept=".pdf" hidden>
+                    </div>
+                    <div class="pdf-to-image-container">
+                        <div class="no-file-state" id="ptiEmptyState">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="image" class="large-icon"></i>
+                            <h3>No File Selected</h3>
+                            <p>Upload a PDF to convert its pages to images.</p>
+                        </div>
+                        <div class="pti-workspace d-none" id="ptiWorkspace" style="padding: 20px;">
+                            <div class="pti-options" style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px; background: #2a2a2a; padding: 15px; border-radius: 8px;">
+                                <label style="font-weight: 500;">Image Format:</label>
+                                <div class="format-options" style="display: flex; gap: 15px;">
+                                    <label class="radio-label" style="display: flex; align-items: center; gap: 5px;">
+                                        <input type="radio" name="ptiFormat" value="png" checked> PNG
+                                    </label>
+                                    <label class="radio-label" style="display: flex; align-items: center; gap: 5px;">
+                                        <input type="radio" name="ptiFormat" value="jpeg"> JPEG
+                                    </label>
+                                </div>
+                                <button class="btn btn-primary" id="btnConvertPdfToImage" style="margin-left: auto;">
+                                    <i data-lucide="download"></i> Download as ZIP
+                                </button>
+                            </div>
+                            <div id="ptiPreview" class="pti-preview-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Image to PDF Section -->
+                <section id="image-to-pdf" class="tab-content">
+                    <div class="section-header">
+                        <h2>Convert Image to PDF</h2>
+                        <button class="btn btn-primary" id="btnUploadImageToPdf">
+                            <i data-lucide="upload-cloud"></i> Upload Images
+                        </button>
+                        <input type="file" id="itpFileInput" accept="image/png, image/jpeg, image/jpg" multiple hidden>
+                    </div>
+                    <div class="image-to-pdf-container">
+                        <div class="no-file-state" id="itpEmptyState">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="images" class="large-icon"></i>
+                            <h3>No Images Selected</h3>
+                            <p>Upload JPG or PNG images to merge them into a single PDF document.</p>
+                        </div>
+                        <div class="itp-workspace d-none" id="itpWorkspace" style="padding: 20px;">
+                            <div class="itp-options" style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px; background: #2a2a2a; padding: 15px; border-radius: 8px;">
+                                <label style="font-weight: 500;">Settings:</label>
+                                <div class="format-options" style="display: flex; gap: 15px;">
+                                    <label class="radio-label" style="display: flex; align-items: center; gap: 5px;" title="Match PDF page size with image size">
+                                        <input type="radio" name="itpFit" value="original" checked> Original Size
+                                    </label>
+                                    <label class="radio-label" style="display: flex; align-items: center; gap: 5px;" title="Scale images to A4 format">
+                                        <input type="radio" name="itpFit" value="a4"> A4 Paper
+                                    </label>
+                                </div>
+                                <button class="btn btn-primary" id="btnConvertImageToPdf" style="margin-left: auto;">
+                                    <i data-lucide="combine"></i> Create PDF
+                                </button>
+                            </div>
+                            <div id="itpPreview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Image Converter Section -->
+                <section id="image-converter" class="tab-content">
+                    <div class="section-header">
+                        <h2>Image Format Converter</h2>
+                        <button class="btn btn-primary" id="btnUploadImageConv">
+                            <i data-lucide="upload-cloud"></i> Upload Images
+                        </button>
+                        <input type="file" id="icFileInput" accept="image/*" multiple hidden>
+                    </div>
+                    <div class="image-converter-container">
+                        <div class="no-file-state" id="icEmptyState">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="arrow-right-left" class="large-icon"></i>
+                            <h3>No Images Selected</h3>
+                            <p>Upload images to convert them to PNG, JPG, or WEBP.</p>
+                        </div>
+                        <div class="ic-workspace d-none" id="icWorkspace" style="padding: 20px;">
+                            <div class="ic-options" style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px; background: #2a2a2a; padding: 15px; border-radius: 8px;">
+                                <label style="font-weight: 500;">Convert To:</label>
+                                <div class="format-options" style="display: flex; gap: 15px;">
+                                    <label class="radio-label" style="display: flex; align-items: center; gap: 5px;"><input type="radio" name="icFormat" value="image/png" checked> PNG</label>
+                                    <label class="radio-label" style="display: flex; align-items: center; gap: 5px;"><input type="radio" name="icFormat" value="image/jpeg"> JPG</label>
+                                    <label class="radio-label" style="display: flex; align-items: center; gap: 5px;"><input type="radio" name="icFormat" value="image/webp"> WEBP</label>
+                                </div>
+                                <button class="btn btn-primary" id="btnDownloadConverted" style="margin-left: auto;">
+                                    <i data-lucide="download"></i> Convert & Download
+                                </button>
+                            </div>
+                            <div id="icPreview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Organize PDF Section -->
+                <section id="organize-pdf" class="tab-content">
+                    <div class="section-header">
+                        <h2>Organize & Delete Pages</h2>
+                        <button class="btn btn-primary" id="btnUploadOrganize">
+                            <i data-lucide="upload-cloud"></i> Upload PDF
+                        </button>
+                        <input type="file" id="orgFileInput" accept=".pdf" hidden>
+                    </div>
+                    <div class="organize-pdf-container">
+                        <div class="no-file-state" id="orgEmptyState">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="layers" class="large-icon"></i>
+                            <h3>No File Selected</h3>
+                            <p>Upload a PDF to reorder, delete or rotate specific pages.</p>
+                        </div>
+                        <div class="org-workspace d-none" id="orgWorkspace" style="padding: 20px;">
+                            <div class="org-options" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #2a2a2a; padding: 15px; border-radius: 8px;">
+                                <span style="font-weight: 500;" id="orgPageCount">0 pages</span>
+                                <div style="display: flex; align-items: center;">
+                                    <small style="color: var(--text-dim); margin-right: 15px;">Drag to reorder. Click icons to rotate or delete.</small>
+                                    <button class="btn btn-primary" id="btnSaveOrganizedPdf">
+                                        <i data-lucide="save"></i> Save Changes
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="orgPreview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; padding-bottom: 30px;">
+                                <!-- Thumbnails will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Crop PDF Section -->
+                <section id="crop-pdf" class="tab-content">
+                    <div class="section-header">
+                        <h2>Crop PDF Pages</h2>
+                        <button class="btn btn-primary" id="btnUploadCropPdf">
+                            <i data-lucide="upload-cloud"></i> Upload PDF
+                        </button>
+                        <input type="file" id="cropFileInput" accept=".pdf" hidden>
+                    </div>
+                    <div class="crop-pdf-container">
+                        <div class="no-file-state" id="cropEmptyState">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="crop" class="large-icon"></i>
+                            <h3>No File Selected</h3>
+                            <p>Upload a PDF to select the area you want to crop.</p>
+                        </div>
+                        <div class="crop-workspace d-none" id="cropWorkspace" style="padding: 20px; display: flex; flex-direction: column; align-items: center;">
+                            <div class="crop-options" style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #2a2a2a; padding: 15px; border-radius: 8px;">
+                                <div style="display: flex; gap: 15px; align-items: center;">
+                                    <label class="radio-label" style="display: flex; align-items: center; gap: 5px; color: var(--text);">
+                                        <input type="radio" name="cropMode" value="all" checked> Crop All Pages
+                                    </label>
+                                    <label class="radio-label" style="display: flex; align-items: center; gap: 5px; color: var(--text);">
+                                        <input type="radio" name="cropMode" value="current"> Crop First Page Only
+                                    </label>
+                                </div>
+                                <div style="display: flex; align-items: center;">
+                                    <small style="color: var(--text-dim); margin-right: 15px;">Draw a rectangle on the preview to select crop area</small>
+                                    <button class="btn btn-primary" id="btnApplyCrop">
+                                        <i data-lucide="crop"></i> Apply Crop & Download
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="cropPreviewContainer" style="position: relative; border: 1px solid var(--border); background: #1a1a2e; padding: 5px; border-radius: 6px; box-shadow: 0 5px 25px rgba(0,0,0,0.5); user-select: none; display: inline-block;">
+                                <!-- Canvas will be injected here -->
+                                <canvas id="cropCanvas" style="display: block; max-width: 100%; cursor: crosshair;"></canvas>
+                                <!-- Interactive Crop Box overlay -->
+                                <div id="cropSelectionBox" style="position: absolute; border: 2px dashed #00ffe5; background: rgba(0, 255, 229, 0.1); display: none; pointer-events: none; z-index: 10;">
+                                    <div style="position: absolute; padding: 2px 6px; background: #00ffe5; color: #000; font-size: 10px; font-weight: bold; top: -20px; left: -2px; border-radius: 2px;">CROP AREA</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Excel to PDF Section -->
+                <section id="excel-to-pdf" class="tab-content">
+                    <div class="section-header">
+                        <h2>Convert Excel to PDF</h2>
+                        <button class="btn btn-primary" id="btnUploadExcel">
+                            <i data-lucide="upload-cloud"></i> Upload Spreadsheet
+                        </button>
+                        <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" hidden>
+                    </div>
+                    <div class="excel-to-pdf-container">
+                        <div class="no-file-state" id="excelEmptyState">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="sheet" class="large-icon"></i>
+                            <h3>No Spreadsheet Selected</h3>
+                            <p>Upload an Excel (.xlsx) or CSV file to convert it into a high-quality PDF document.</p>
+                        </div>
+                        <div class="excel-workspace d-none" id="excelWorkspace" style="padding: 20px;">
+                            <div id="excelPreview" class="excel-preview-table" style="background: var(--bg-surface); border-radius: 8px; overflow: auto; max-height: 500px; margin-bottom: 20px; border: 1px solid var(--border);">
+                                <!-- Table preview will be here -->
+                            </div>
+                            <div class="excel-options" style="background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 20px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <label style="font-weight: 500;">Page Size:</label>
+                                    <select id="excelPageSize" class="form-input" style="width: auto;">
+                                        <option value="fit">Fit to Data (Dynamic)</option>
+                                        <option value="a4">A4</option>
+                                        <option value="letter">Letter</option>
+                                        <option value="legal">Legal</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <label style="font-weight: 500;">Orientation:</label>
+                                    <select id="excelOrientation" class="form-input" style="width: auto;">
+                                        <option value="portrait">Portrait</option>
+                                        <option value="landscape">Landscape</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <label style="font-weight: 500;" title="Leave empty for all data">Area Select:</label>
+                                    <input type="text" id="excelAreaSelect" class="form-input" placeholder="e.g. A1:D10" style="width: 120px;" title="Specific range e.g., A1:D10">
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px; margin-left: auto;">
+                                    <label class="radio-label" style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                        <input type="checkbox" id="excelShowGridlines" checked> Show Gridlines
+                                    </label>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" id="btnConvertExcelToPdf">
+                                <i data-lucide="file-check"></i> Convert & Download PDF
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Excel to Word Section -->
+                <section id="excel-to-word" class="tab-content">
+                    <div class="section-header">
+                        <h2>Convert Excel to Word</h2>
+                        <button class="btn btn-primary" id="btnUploadExcelToWord">
+                            <i data-lucide="upload-cloud"></i> Upload Excel
+                        </button>
+                        <input type="file" id="e2wFileInput" accept=".xlsx, .xls, .csv" hidden>
+                    </div>
+                    <div class="excel-to-word-container">
+                        <div class="no-file-state" id="e2wEmptyState" style="cursor: pointer;">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="sheet" class="large-icon"></i>
+                            <h3>No Spreadsheet Selected</h3>
+                            <p>Upload an Excel (.xlsx) file to perfectly convert it into a Word table (.docx).</p>
+                        </div>
+                        <div class="e2w-workspace d-none" id="e2wWorkspace" style="padding: 20px;">
+                            <div id="e2wPreview" class="excel-preview-table" style="background: var(--bg-surface); border-radius: 8px; overflow: auto; max-height: 500px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
+                                <!-- Table preview will be here -->
+                            </div>
+                            <div class="e2w-options" style="background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 20px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <label style="font-weight: 500;">Page Size (Word):</label>
+                                    <select id="e2wPageSize" class="form-input" style="width: auto;">
+                                        <option value="fit">Fit to Data (Dynamic)</option>
+                                        <option value="a4" selected>A4</option>
+                                        <option value="letter">Letter</option>
+                                        <option value="legal">Legal</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <label style="font-weight: 500;">Orientation:</label>
+                                    <select id="e2wOrientation" class="form-input" style="width: auto;">
+                                        <option value="portrait">Portrait</option>
+                                        <option value="landscape" selected>Landscape</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <label style="font-weight: 500;" title="Leave empty for all data">Area Select:</label>
+                                    <input type="text" id="e2wAreaSelect" class="form-input" placeholder="e.g. A1:D10" style="width: 120px;" title="Specific range e.g., A1:D10">
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px; margin-left: auto;">
+                                    <label class="radio-label" style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                        <input type="checkbox" id="e2wShowGridlines" checked> Export Gridlines
+                                    </label>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" id="btnConvertExcelToWord">
+                                <i data-lucide="file-output"></i> Convert & Download Word Document
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Word to Excel Section -->
+                <section id="word-to-excel" class="tab-content">
+                    <div class="section-header">
+                        <h2>Convert Word to Excel</h2>
+                        <button class="btn btn-primary" id="btnUploadWordToExcel">
+                            <i data-lucide="upload-cloud"></i> Upload Word Document
+                        </button>
+                        <input type="file" id="w2eFileInput" accept=".docx, .doc, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/msword" hidden>
+                    </div>
+                    <div class="word-to-excel-container" style="padding: 30px;">
+                        <div class="no-file-state" id="w2eEmptyState" style="cursor: pointer; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; background: var(--bg-surface); border: 2px dashed rgba(46, 196, 182, 0.3); border-radius: 20px; transition: all 0.3s ease;">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <div style="position: relative; z-index: 10; text-align: center;">
+                                <i data-lucide="file-spreadsheet" class="large-icon" style="width: 80px; height: 80px; color: var(--tab-theme); margin-bottom: 20px; filter: drop-shadow(0 0 15px rgba(46, 196, 182, 0.5));"></i>
+                                <h3 style="font-size: 24px; margin-bottom: 10px; color: #fff;">No Document Selected</h3>
+                                <p style="color: var(--text-dim); max-width: 400px; margin: 0 auto;">Upload a Word (.docx) document to extract tables into a clean Excel (.xlsx) file.</p>
+                            </div>
+                        </div>
+                        <div class="w2e-workspace d-none" id="w2eWorkspace">
+                            <div id="w2ePreview" class="word-preview-area" style="background: white; color: black; border-radius: 12px; overflow: auto; max-height: 550px; margin-bottom: 25px; border: 1px solid var(--border); padding: 40px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+                                <!-- Word content preview will be here -->
+                            </div>
+                            <div class="w2e-options" style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; margin-bottom: 25px; display: flex; flex-wrap: wrap; align-items: center; gap: 20px; border: 1px solid rgba(255,255,255,0.05);">
+                                <div style="display: flex; align-items: center; gap: 12px; color: var(--tab-theme);">
+                                    <i data-lucide="info" style="width: 20px; height: 20px;"></i>
+                                    <p style="font-size: 15px; margin: 0; font-weight: 500;">Found tables will be exported as separate sheets in Excel.</p>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 15px;">
+                                <button class="btn btn-primary" id="btnConvertWordToExcel" style="padding: 12px 25px; font-size: 16px; box-shadow: 0 0 20px rgba(46, 196, 182, 0.3);">
+                                    <i data-lucide="file-spreadsheet"></i> Extract Tables to Excel
+                                </button>
+                                <button class="btn btn-outline" id="btnW2EReset" style="padding: 12px 20px;">
+                                    <i data-lucide="rotate-ccw"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Unlock PDF Section -->
+                <section id="unlock-pdf" class="tab-content">
+                    <div class="section-header">
+                        <h2>Unlock PDF (Remove Passwords)</h2>
+                        <button class="btn btn-primary" id="btnUploadUnlock">
+                            <i data-lucide="upload-cloud"></i> Upload PDF
+                        </button>
+                        <input type="file" id="unlockFileInput" accept=".pdf" hidden>
+                    </div>
+                    <div class="unlock-pdf-container">
+                        <div class="no-file-state" id="unlockEmptyState">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="unlock" class="large-icon"></i>
+                            <h3>No File Selected</h3>
+                            <p>Upload a password-protected PDF to remove its security and restrictions.</p>
+                        </div>
+                        <div class="unlock-workspace d-none" id="unlockWorkspace" style="padding: 40px; text-align: center;">
+                            <div class="file-info-card" style="background: var(--bg-surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: inline-block; min-width: 300px; margin-bottom: 30px;">
+                                <i data-lucide="file-lock" style="width: 40px; height: 40px; color: var(--accent-orange); margin-bottom: 10px;"></i>
+                                <h4 id="unlockFileName" style="margin-bottom: 5px;">document.pdf</h4>
+                                <p id="unlockFileSize" style="font-size: 12px; color: var(--text-dim);">0 KB</p>
+                            </div>
+                            <div class="password-box" style="max-width: 400px; margin: 0 auto;">
+                                <label style="display: block; margin-bottom: 15px; font-weight: 500;">Enter the PDF password to unlock:</label>
+                                <input type="password" id="unlockPasswordInput" class="form-input" style="text-align: center; font-size: 16px; letter-spacing: 3px; padding: 15px; margin-bottom: 20px;" placeholder="PDF Password">
+                                <button class="btn btn-primary w-100" id="btnApplyUnlock" style="padding: 15px;">
+                                    <i data-lucide="unlock"></i> Remove Password & Download
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Watermark PDF Section -->
+                <section id="watermark-pdf" class="tab-content">
+                    <div class="section-header">
+                        <h2>Add Watermark to PDF</h2>
+                        <button class="btn btn-primary" id="btnUploadWatermark">
+                            <i data-lucide="upload-cloud"></i> Upload PDF
+                        </button>
+                        <input type="file" id="watermarkFileInput" accept=".pdf" hidden>
+                    </div>
+                    <div class="watermark-pdf-container">
+                        <div class="no-file-state" id="watermarkEmptyState">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="stamp" class="large-icon"></i>
+                            <h3>No File Selected</h3>
+                            <p>Upload a PDF to add custom text or image watermarks to all pages.</p>
+                        </div>
+                        <div class="watermark-workspace d-none" id="watermarkWorkspace" style="display: flex; gap: 30px; padding: 20px;">
+                            <div class="watermark-preview" id="watermarkPreview" style="flex: 1; min-height: 400px; background: #000; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                                <!-- Canvas Preview -->
+                            </div>
+                            <div class="watermark-controls" style="width: 350px; background: var(--bg-surface); padding: 25px; border-radius: 12px; border: 1px solid var(--border);">
+                                <div class="tabs" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                                    <button class="btn btn-outline active" style="flex: 1;" onclick="toggleWatermarkType('text')">Text</button>
+                                    <button class="btn btn-outline" style="flex: 1;" onclick="toggleWatermarkType('image')">Image</button>
+                                </div>
+                                
+                                <div id="txtWatermarkOptions">
+                                    <label class="form-label">Watermark Text</label>
+                                    <input type="text" id="wmText" class="form-input" value="CONFIDENTIAL" style="margin-bottom: 15px;">
+                                    
+                                    <label class="form-label">Font Size</label>
+                                    <input type="range" id="wmSize" min="10" max="150" value="50" class="w-100" style="margin-bottom: 15px;">
+                                    
+                                    <label class="form-label">Color</label>
+                                    <input type="color" id="wmColor" value="#ff0000" class="w-100" style="height: 40px; border-radius: 8px; margin-bottom: 15px;">
+                                </div>
+                                
+                                <div id="imgWatermarkOptions" style="display: none;">
+                                    <label class="form-label">Watermark Image</label>
+                                    <input type="file" id="wmImageInput" accept="image/*" class="form-input" style="margin-bottom: 15px;">
+                                </div>
+                                
+                                <div class="row" style="display: flex; gap: 15px; margin-bottom: 15px;">
+                                    <div style="flex: 1;">
+                                        <label class="form-label">Position X (%)</label>
+                                        <input type="range" id="wmPosX" min="0" max="100" value="50" class="w-100">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label class="form-label">Position Y (%)</label>
+                                        <input type="range" id="wmPosY" min="0" max="100" value="50" class="w-100">
+                                    </div>
+                                </div>
+
+                                <div class="row" style="display: flex; gap: 15px; margin-bottom: 15px;">
+                                    <div style="flex: 1;">
+                                        <label class="form-label">Scale/Size</label>
+                                        <input type="range" id="wmScale" min="0.1" max="5.0" step="0.1" value="1.0" class="w-100">
+                                    </div>
+                                    <div style="flex: 1;" id="wmFontOption">
+                                        <label class="form-label">Font</label>
+                                        <select id="wmFont" class="form-input" style="height: 38px; padding: 4px 10px;">
+                                            <option value="Helvetica-Bold">Helvetica (English)</option>
+                                            <option value="HindSiliguri">Hind Siliguri (Bengali)</option>
+                                            <option value="NotoSansBengali">Noto Sans (Bengali)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <label class="form-label">Opacity</label>
+                                <input type="range" id="wmOpacity" min="0" max="1" step="0.1" value="0.5" class="w-100" style="margin-bottom: 15px;">
+                                
+                                <label class="form-label">Rotation</label>
+                                <input type="range" id="wmRotation" min="0" max="360" value="45" class="w-100" style="margin-bottom: 15px;">
+                                
+                                <div class="row" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px;">
+                                    <button class="btn btn-outline" id="btnResetWatermark" style="flex: 1;" title="Reset all watermark settings">
+                                        <i data-lucide="rotate-ccw"></i> Reset
+                                    </button>
+                                    <button class="btn btn-outline" id="btnUndoWatermark" style="flex: 1;" title="Undo last change" disabled>
+                                        <i data-lucide="undo-2"></i> Undo
+                                    </button>
+                                </div>
+                                
+                                <button class="btn btn-success w-100 mt-2" id="btnApplyWatermark">
+                                    <i data-lucide="zap"></i> Apply Watermark
+                                </button>
+                                <button class="btn btn-primary w-100 mt-3" id="btnDownloadWatermark" disabled>
+                                    <i data-lucide="download"></i> Download PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Page Numbers PDF Section -->
+                <section id="page-numbers-pdf" class="tab-content">
+                    <div class="section-header">
+                        <h2>Add Page Numbers to PDF</h2>
+                        <button class="btn btn-primary" id="btnUploadPageNumbers">
+                            <i data-lucide="upload-cloud"></i> Upload PDF
+                        </button>
+                        <input type="file" id="pageNumbersFileInput" accept=".pdf" hidden>
+                    </div>
+                    <div class="page-numbers-pdf-container">
+                        <div class="no-file-state" id="pageNumbersEmptyState">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="hash" class="large-icon"></i>
+                            <h3>No File Selected</h3>
+                            <p>Upload a PDF to automatically insert page numbers in your preferred position.</p>
+                        </div>
+                        <div class="pn-workspace d-none" id="pageNumbersWorkspace" style="display: flex; gap: 30px; padding: 20px;">
+                            <div class="pn-preview" id="pageNumbersPreview" style="flex: 1; min-height: 400px; background: #000; border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative;">
+                                <!-- PDF Canvas Preview -->
+                            </div>
+                            <div class="pn-controls" style="width: 350px; background: var(--bg-surface); padding: 25px; border-radius: 12px; border: 1px solid var(--border);">
+                                <label class="form-label">Text Format</label>
+                                <input type="text" id="pnFormat" class="form-input" value="Page {n} of {total}" style="margin-bottom: 20px;">
+                                
+                                <label class="form-label">Position</label>
+                                <div class="pos-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                                    <button class="btn btn-outline" data-pos="TL">Top Left</button>
+                                    <button class="btn btn-outline" data-pos="TC">Top Center</button>
+                                    <button class="btn btn-outline" data-pos="TR">Top Right</button>
+                                    <button class="btn btn-outline" data-pos="BL" class="active">Bottom Left</button>
+                                    <button class="btn btn-outline" data-pos="BC">Bottom Center</button>
+                                    <button class="btn btn-outline" data-pos="BR">Bottom Right</button>
+                                </div>
+                                
+                                <label class="form-label">Font Size</label>
+                                <input type="range" id="pnSize" min="8" max="24" value="12" class="w-100" style="margin-bottom: 20px;">
+                                
+                                <label class="form-label">Color</label>
+                                <input type="color" id="pnColor" value="#000000" class="w-100" style="height: 40px; border-radius: 8px; margin-bottom: 25px;">
+                                
+                                <button class="btn btn-primary w-100" id="btnApplyPageNumbers">
+                                    <i data-lucide="hash"></i> Add Numbers & Download
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Protect PDF Section -->
+                <section id="protect-pdf" class="tab-content">
+                    <div class="section-header">
+                        <h2>Protect PDF with Password</h2>
+                        <button class="btn btn-primary" id="btnUploadProtect">
+                            <i data-lucide="upload-cloud"></i> Upload PDF
+                        </button>
+                        <input type="file" id="protectFileInput" accept=".pdf" hidden>
+                    </div>
+                    <div class="protect-pdf-container">
+                        <div class="no-file-state" id="protectEmptyState">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="lock" class="large-icon"></i>
+                            <h3>No File Selected</h3>
+                            <p>Upload a PDF to add password protection and secure your document.</p>
+                        </div>
+                        <div class="protect-workspace d-none" id="protectWorkspace" style="padding: 40px; text-align: center;">
+                            <div class="file-info-card" style="background: var(--bg-surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: inline-block; min-width: 300px; margin-bottom: 30px;">
+                                <i data-lucide="file-lock" style="width: 40px; height: 40px; color: var(--accent-cyan); margin-bottom: 10px;"></i>
+                                <h4 id="protectFileName" style="margin-bottom: 5px;">document.pdf</h4>
+                                <p id="protectFileSize" style="font-size: 12px; color: var(--text-dim);">0 KB</p>
+                            </div>
+                            <div class="password-box" style="max-width: 400px; margin: 0 auto;">
+                                <label style="display: block; margin-bottom: 15px; font-weight: 500;">Set a Password:</label>
+                                <input type="password" id="protectPassword" class="form-input" style="text-align: center; font-size: 16px; letter-spacing: 3px; padding: 15px; margin-bottom: 20px;" placeholder="Enter Password">
+                                <label style="display: block; margin-bottom: 15px; font-weight: 500;">Confirm Password:</label>
+                                <input type="password" id="protectConfirmPassword" class="form-input" style="text-align: center; font-size: 16px; letter-spacing: 3px; padding: 15px; margin-bottom: 20px;" placeholder="Confirm Password">
+                                <button class="btn btn-primary w-100" id="btnApplyProtect" style="padding: 15px;">
+                                    <i data-lucide="lock"></i> Protect & Download
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- HTML to PDF Section -->
+                <section id="html-to-pdf" class="tab-content">
+                    <div class="section-header">
+                        <h2>Convert HTML to PDF</h2>
+                        <button class="btn btn-primary" id="btnUploadHtml">
+                            <i data-lucide="file-code"></i> Upload HTML File
+                        </button>
+                        <input type="file" id="htmlFileInput" accept=".html, .htm" hidden>
+                    </div>
+                    <div class="html-to-pdf-container">
+                        <div class="no-file-state" id="htmlEmptyState" style="padding: 60px 40px; display: none;">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="globe" class="large-icon"></i>
+                            <h3>Convert HTML Directly</h3>
+                            <p>Type or paste your HTML code below and convert it instantly into a PDF document.</p>
+                        </div>
+                        <div class="html-workspace" style="padding: 20px;">
+                            <div class="editor-box" style="margin-bottom: 20px;">
+                                <label class="form-label" style="display: block; margin-bottom: 10px;">Paste HTML Content:</label>
+                                <textarea id="htmlContentInput" class="form-input" style="width: 100%; height: 350px; font-family: monospace; font-size: 14px; background: #1e1e1e; border: 1px solid var(--border); padding: 15px; resize: vertical;" placeholder="<!DOCTYPE html>
+<html>
+<body>
+  <h1>Hello Antigravity!</h1>
+  <p>Convert this text to PDF.</p>
+</body>
+</html>"></textarea>
+                            </div>
+                            <div class="html-options" style="background: var(--bg-surface); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; display: flex; align-items: center; gap: 20px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <label>Page Size:</label>
+                                    <select id="htmlPageSize" class="form-input" style="width: auto;">
+                                        <option value="a4">A4</option>
+                                        <option value="letter">Letter</option>
+                                        <option value="legal">Legal</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <label>Margin (mm):</label>
+                                    <input type="number" id="htmlMargin" class="form-input" value="10" style="width: 60px;">
+                                </div>
+                                <button class="btn btn-primary" id="btnConvertHtmlToPdf" style="margin-left: auto;">
+                                    <i data-lucide="file-check"></i> Convert & Download PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Hidden Inputs -->
+    <input type="file" id="generalFileInput" hidden>
+
+    <!-- Scripts -->
+    <!-- Libraries -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/@pdf-lib/fontkit@0.0.4/dist/fontkit.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@7.1.0/build/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- Lucide Icons — loaded AFTER DOM so createIcons() finds all elements -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- New Premium Integration Libs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- App Logic — নতুন ফোল্ডার স্ট্রাকচার               -->
+    <!-- লোড অর্ডার: core → editor → tools → converters → ui -->
+    <!-- ═══════════════════════════════════════════════════ -->
+
+    <!-- core/ : গ্লোবাল স্টেট ও ইঞ্জিন (সবার আগে লোড) -->
+    <script src="core/state.js"></script>
+    <script src="core/undo.js"></script>
+    <script src="core/renderer.js"></script>
+    <script src="core/utils.js"></script>
+
+    <!-- editor/ : PDF এডিটিং -->
+    <script src="editor/text-editor.js"></script>
+    <script src="editor/shapes.js"></script>
+    <script src="editor/image-toolbar.js"></script>
+    <script src="editor/eraser.js"></script>
+    <script src="editor/save-pdf.js"></script>
+    <script src="editor/init.js"></script>
+
+    <!-- tools/ : PDF টুলসমূহ -->
+    <script src="tools/merge-pdf.js"></script>
+    <script src="tools/split-pdf.js"></script>
+    <script src="tools/compress-pdf.js"></script>
+    <script src="tools/rotate-pdf.js"></script>
+    <script src="tools/watermark-pdf.js"></script>
+    <script src="tools/protect-pdf.js"></script>
+    <script src="tools/organize-pdf.js"></script>
+    <script src="tools/crop-pdf.js"></script>
+    <script src="tools/unlock-pdf.js"></script>
+
+    <!-- converters/ : ফরম্যাট কনভার্টার -->
+    <script src="converters/pdf-to-word.js"></script>
+    <script src="converters/pdf-to-image.js"></script>
+    <script src="converters/image-to-pdf.js"></script>
+    <script src="converters/excel-to-pdf.js"></script>
+    <script src="converters/excel-to-word.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="converters/word-to-excel.js"></script>
+    <script src="converters/image-converter.js"></script>
+    <script src="converters/html-to-pdf.js"></script>
+
+    <!-- ui/ : ইন্টারফেস -->
+    <script src="ui/toolbar.js"></script>
+    <script src="ui/page-numbers.js"></script>
+
+
+    
+    <!-- Lock Screen Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const lockScreen = document.getElementById('appLockScreen');
+            const passInput = document.getElementById('lockPassword');
+            const unlockBtn = document.getElementById('btnUnlock');
+            const errorMsg = document.getElementById('lockError');
+
+            if (!lockScreen) return;
+            
+            if (sessionStorage.getItem('antigravity_unlocked') === 'true') {
+                lockScreen.style.display = 'none';
+            } else {
+                lockScreen.style.display = 'flex';
+            }
+
+            function renderPaginationControls(totalPages) {
+                const pager = document.getElementById('archivePagination');
+                if (!pager) return; // Guard
+                pager.innerHTML = '';
+                const maxButtons = 7;
+                const current = window.archiveCurrentPage || 1;
+
+                function makeBtn(label, cls, onClick) {
+                    const b = document.createElement('button');
+                    b.textContent = label;
+                    if (cls) b.className = cls;
+                    b.addEventListener('click', onClick);
+                    return b;
+                }
+
+                // Prev
+                pager.appendChild(makeBtn('Prev', '', () => { if (window.archiveCurrentPage>1) { window.archiveCurrentPage--; if (window.renderListWithFilters) window.renderListWithFilters(); } }));
+
+                // Simple pagination window
+                let start = Math.max(1, current - Math.floor(maxButtons/2));
+                let end = Math.min(totalPages, start + maxButtons - 1);
+                if (end - start < maxButtons - 1) start = Math.max(1, end - maxButtons + 1);
+
+                for (let i = start; i <= end; i++) {
+                    const cls = (i === current) ? 'active' : '';
+                    pager.appendChild(makeBtn(i, cls, () => { window.archiveCurrentPage = i; if (window.renderListWithFilters) window.renderListWithFilters(); }));
+                }
+
+                // Next
+                pager.appendChild(makeBtn('Next', '', () => { if (window.archiveCurrentPage<totalPages) { window.archiveCurrentPage++; if (window.renderListWithFilters) window.renderListWithFilters(); } }));
+            }
+            window.renderPaginationControls = renderPaginationControls;
+
+            function attemptUnlock() {
+                // Change 'admin123' to any password you want
+                if (passInput.value === 'admin123') {
+                    sessionStorage.setItem('antigravity_unlocked', 'true');
+                    lockScreen.style.display = 'none';
+                } else {
+                    errorMsg.style.display = 'block';
+                    passInput.classList.add('error-shake');
+                    setTimeout(() => passInput.classList.remove('error-shake'), 400);
+                }
+            }
+
+            unlockBtn.addEventListener('click', attemptUnlock);
+            passInput.addEventListener('keypress', (e) => {
+                errorMsg.style.display = 'none';
+                if (e.key === 'Enter') attemptUnlock();
+            });
+        });
+    </script>
+
+    <script>
+        // Archive modal & client API
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnOpen = document.getElementById('btnOpenArchive');
+            const modal = document.getElementById('archiveModal');
+            const btnClose = document.getElementById('btnCloseArchive');
+            const uploadBtn = document.getElementById('btnUploadToArchive');
+            const fileInput = document.getElementById('archiveFileInput');
+            const srcInput = document.getElementById('archiveSourceTool');
+            const listEl = document.getElementById('archiveList');
+            const btnRefresh = document.getElementById('btnRefreshArchive');
+            // Determine archive base URL. When using Live Server (different port), default to Express on 3000.
+            const ARCHIVE_BASE = (location.port === '3000' || location.protocol === 'http:') ? '' : 'http://localhost:3000';
+            console.log('Archive System: Detected Base URL ->', ARCHIVE_BASE || 'Relative (Current Server)');
+
+            function openModal() { modal.style.display = 'flex'; fetchList(); }
+            function closeModal() { modal.style.display = 'none'; }
+
+            btnOpen && btnOpen.addEventListener('click', openModal);
+            btnClose && btnClose.addEventListener('click', closeModal);
+            btnRefresh && btnRefresh.addEventListener('click', fetchList);
+
+            uploadBtn && uploadBtn.addEventListener('click', async () => {
+                const f = fileInput.files && fileInput.files[0];
+                if (!f) return alert('Choose a file to archive');
+                const fd = new FormData();
+                fd.append('file', f);
+                fd.append('sourceTool', srcInput.value || 'unknown');
+                const tagsInput = document.getElementById('archiveTagsInput');
+                if (tagsInput && tagsInput.value) fd.append('tags', tagsInput.value);
+
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = 'Archiving...';
+                try {
+                    const res = await fetch((ARCHIVE_BASE || '') + '/archive', { method: 'POST', body: fd });
+                    let j = null;
+                    try { j = await res.json(); } catch(parseErr) { console.error('Invalid JSON response', parseErr); }
+                    if (j && j.success) {
+                        fileInput.value = '';
+                        srcInput.value = '';
+                        fetchList();
+                    } else {
+                        // If archive failed and server is likely not running, give helpful hint
+                        const msg = j && j.error ? j.error : 'Archive failed. Ensure the archive server is running (npm start) and you opened the app via the server at http://localhost:3000.';
+                        alert(msg);
+                    }
+                } catch (err) {
+                    console.error(err); alert('Upload error');
+                } finally {
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = 'Archive File';
+                }
+            });
+
+            window.archiveItemsCache = [];
+            window.archiveCurrentPage = 1;
+
+            async function fetchList() {
+                try {
+                    const res = await fetch((ARCHIVE_BASE || '') + '/archive');
+                    let items = null;
+                    try { items = await res.json(); } catch (e) { console.error('Failed to parse archive list JSON', e); }
+                    archiveItemsCache = items || [];
+                    archiveCurrentPage = 1;
+                    renderListWithFilters();
+                } catch (err) { 
+                    console.error('Archive Fetch Error:', err); 
+                    listEl.innerHTML = `<div style="color:var(--accent-pink)">Error loading: ${err.message}. <br><small>নিশ্চিত করুন server.js চলছে এবং আপনি পেজটি রিফ্রেশ করেছেন।</small></div>`; 
+                }
+            }
+
+            function renderListWithFilters() {
+                const q = document.getElementById('archiveSearch').value.trim().toLowerCase();
+                const tagFilter = document.getElementById('archiveTagFilter').value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+                const pageSize = parseInt(document.getElementById('archivePageSize').value, 10) || 10;
+
+                let filtered = archiveItemsCache.slice();
+                if (q) filtered = filtered.filter(it => (it.originalName && it.originalName.toLowerCase().includes(q)) || (it.sourceTool && it.sourceTool.toLowerCase().includes(q)) || (it.tags && it.tags.join(' ').toLowerCase().includes(q)) );
+                if (tagFilter.length > 0) {
+                    filtered = filtered.filter(it => {
+                        if (!it.tags || it.tags.length === 0) return false;
+                        const lowerTags = it.tags.map(t => t.toLowerCase());
+                        return tagFilter.every(tf => lowerTags.some(t => t.includes(tf)));
+                    });
+                }
+
+                const total = filtered.length;
+                document.getElementById('archiveStats').textContent = `${total} items`;
+
+                const totalPages = Math.max(1, Math.ceil(total / pageSize));
+                if (archiveCurrentPage > totalPages) archiveCurrentPage = totalPages;
+
+                const start = (archiveCurrentPage - 1) * pageSize;
+                const pageItems = filtered.slice(start, start + pageSize);
+
+                renderList(pageItems);
+            window.renderPaginationControls(totalPages);
+            }
+            window.renderListWithFilters = renderListWithFilters;
+
+            function renderList(items) {
+                if (!items || items.length === 0) { listEl.innerHTML = '<div style="color:var(--text-dim)">No items found.</div>'; return; }
+                listEl.innerHTML = '';
+                items.forEach(it => {
+                    const row = document.createElement('div');
+                    row.style.display = 'flex'; row.style.justifyContent = 'space-between'; row.style.alignItems = 'center'; row.style.padding = '6px 4px';
+                    row.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+
+                    const left = document.createElement('div');
+                    left.innerHTML = `<div style="font-weight:600">${escapeHtml(it.originalName)}</div><div style="font-size:12px;color:var(--text-dim)">${new Date(it.createdAt).toLocaleString()} • ${it.sourceTool || ''}</div>`;
+
+                    const actions = document.createElement('div');
+                    actions.style.display = 'flex'; actions.style.gap = '6px';
+
+                    const btnPull = document.createElement('button'); btnPull.className = 'btn btn-outline'; btnPull.textContent = 'Pull';
+                    btnPull.addEventListener('click', async () => {
+                        try {
+                            const url = (ARCHIVE_BASE || '') + '/archive/' + it.id;
+                            const res = await fetch(url);
+                            if (!res.ok) {
+                                const text = await res.text().catch(() => '');
+                                alert('Pull failed: server responded with ' + res.status + '\n' + (text ? text.substring(0,200) : ''));
+                                console.error('Archive pull non-OK response', res.status, text);
+                                return;
+                            }
+
+                            const ct = res.headers.get('content-type') || '';
+                            if (ct.includes('application/json') || ct.includes('text/html') || ct.includes('text/plain')) {
+                                const text = await res.text().catch(() => '');
+                                try { const j = JSON.parse(text); alert('Pull failed: ' + (j.error || JSON.stringify(j))); }
+                                catch (e) { alert('Pull returned unexpected content:\n' + (text.substring(0,800) || '[no content]')); }
+                                console.error('Archive pull unexpected content-type', ct, text);
+                                return;
+                            }
+
+                            const ab = await res.arrayBuffer();
+                            if (!ab || ab.byteLength < 4) { alert('Pulled file is empty or too small. Inspect server logs.'); console.error('Pulled file empty', ab); return; }
+                            const header = Array.from(new Uint8Array(ab.slice(0,4))).map(b => b.toString(16).padStart(2,'0')).join(' ');
+                            if (!header.startsWith('25 50 44 46')) {
+                                const blobRaw = new Blob([ab], { type: 'application/octet-stream' });
+                                const downloadUrl = URL.createObjectURL(blobRaw);
+                                const inspect = confirm('Pulled item is not a valid PDF (header: ' + header + ').\nDownload raw response for inspection?');
+                                if (inspect) window.open(downloadUrl, '_blank');
+                                console.error('Pulled item missing PDF header, first bytes:', header);
+                                return;
+                            }
+
+                            const blob = new Blob([ab], { type: it.mimeType || 'application/pdf' });
+                            const file = new File([blob], it.originalName, { type: it.mimeType || 'application/pdf' });
+                            const activeTab = document.querySelector('.tab-content.active');
+                            const tabId = activeTab ? activeTab.id : null;
+
+                            if (tabId === 'editor') {
+                                if (window.loadAndRenderPDF) window.loadAndRenderPDF(file);
+                                closeModal();
+                            } else if (tabId === 'converter') {
+                                if (window.convertToWord) window.convertToWord(file);
+                                closeModal();
+                            } else if (tabId === 'merge') {
+                                if (window.loadMergePdfs) window.loadMergePdfs([file]);
+                                closeModal();
+                            } else if (tabId === 'split') {
+                                if (window.loadSplitPdf) window.loadSplitPdf(file);
+                                closeModal();
+                            } else if (tabId === 'compress') {
+                                if (window.loadCompressPdf) window.loadCompressPdf(file);
+                                closeModal();
+                            } else if (tabId === 'rotate') {
+                                if (window.loadRotatePdf) window.loadRotatePdf(file);
+                                closeModal();
+                            } else if (tabId === 'crop-pdf') {
+                                if (window.loadCropPdf) window.loadCropPdf(file);
+                                closeModal();
+                            } else if (tabId === 'organize-pdf') {
+                                if (window.loadOrganizePdf) window.loadOrganizePdf(file);
+                                closeModal();
+                            } else {
+                                window.open(url, '_blank');
+                                closeModal();
+                            }
+                        } catch (e) { alert('Failed to pull item: ' + (e && e.message ? e.message : e)); console.error(e); }
+                    });
+
+                    const btnDownload = document.createElement('button'); btnDownload.className = 'btn btn-outline'; btnDownload.textContent = 'Download';
+                    btnDownload.addEventListener('click', () => { window.open((ARCHIVE_BASE || '') + '/archive/'+it.id, '_blank'); });
+
+                    const btnDelete = document.createElement('button'); btnDelete.className = 'btn btn-danger'; btnDelete.textContent = 'Delete';
+                    btnDelete.addEventListener('click', async () => {
+                        if (!confirm('Delete this archived item?')) return;
+                        try {
+                            await fetch((ARCHIVE_BASE || '') + '/archive/'+it.id, { method: 'DELETE' });
+                            fetchList();
+                        } catch (e) { alert('Delete failed'); console.error(e); }
+                    });
+
+                    actions.appendChild(btnPull); actions.appendChild(btnDownload); actions.appendChild(btnDelete);
+
+                    row.appendChild(left); row.appendChild(actions);
+                    listEl.appendChild(row);
+                });
+            }
+
+            function escapeHtml(s){ return (s+'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+        });
+    </script>
+
+    <script>
+        // wire archive controls: search, tags, pagination
+        document.addEventListener('DOMContentLoaded', () => {
+            const search = document.getElementById('archiveSearch');
+            const tagFilter = document.getElementById('archiveTagFilter');
+            const pageSize = document.getElementById('archivePageSize');
+            const btnRefresh = document.getElementById('btnRefreshArchive');
+
+            function debounce(fn, ms=250){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+
+            const refresh = debounce(() => {
+                // call fetchList defined in previous script by clicking refresh
+                btnRefresh && btnRefresh.click();
+            }, 200);
+
+            if (search) search.addEventListener('input', refresh);
+            if (tagFilter) tagFilter.addEventListener('input', refresh);
+            if (pageSize) pageSize.addEventListener('change', refresh);
+        });
+    </script>
+
+    <!-- eyedropper-eraser.js → editor/eraser.js তে সরানো হয়েছে -->
+    <!-- toolbar-layout-toggle.js → ui/toolbar.js তে সরানো হয়েছে -->
+</body>
+</html>

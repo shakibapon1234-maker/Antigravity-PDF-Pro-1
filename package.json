@@ -1,0 +1,14 @@
+{
+  "name": "antigravity-pdf-pro",
+  "version": "0.1.0",
+  "description": "Local tools for PDF operations with archive server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test-archive": "node test-archive.js"
+  },
+  "dependencies": {
+    "express": "^4.22.1",
+    "multer": "^1.4.5-lts.1"
+  }
+}
