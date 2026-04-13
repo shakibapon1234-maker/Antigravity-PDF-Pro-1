@@ -310,22 +310,21 @@ function attachImageLayerToolbar(wrap, imageId) {
         e.stopPropagation();
         e.preventDefault();
 
+        const cont = wrap.closest('.pdf-page-wrapper');
+        if (!cont) return;
+
         // Switch to text tool
         const btnTypeText = document.getElementById('btnTypeText');
         if (btnTypeText) btnTypeText.click();
 
-        // Calculate center of image relative to the page wrapper
-        const cont = wrap.closest('.pdf-page-wrapper');
-        if (!cont) return;
+        // Place text at top-left of image (inside it), not center
+        const imgLeft = parseFloat(wrap.style.left) + 8;
+        const imgTop  = parseFloat(wrap.style.top)  + (currentStyle ? currentStyle.fontSize * pdfScale + 8 : 24);
 
-        const imgCenterX = parseFloat(wrap.style.left) + wrap.offsetWidth  / 2;
-        const imgCenterY = parseFloat(wrap.style.top)  + wrap.offsetHeight / 2;
-
-        // Trigger addNewText at the center of the image with transparent bg
         if (typeof addNewText === 'function' && typeof currentPdfObj !== 'undefined') {
             currentPdfObj.getPage(currentPageNum).then(page => {
                 const viewport = page.getViewport({ scale: pdfScale });
-                addNewText(imgCenterX, imgCenterY, viewport, page, cont, 'transparent');
+                addNewText(imgLeft, imgTop, viewport, page, cont, 'transparent');
             });
         }
     });

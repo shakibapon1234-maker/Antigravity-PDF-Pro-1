@@ -154,17 +154,31 @@ async function savePdfChanges() {
             const pg = pages[img.page - 1];
             if (!pg) continue;
             try {
-                const embeddedImg = await pdfDoc.embedPng(img.dataUrl);
-                const drawOpts = { x: img.x, y: img.y, width: img.width, height: img.height };
+                // Convert any format (JPEG/WebP/PNG) → PNG via canvas
+                const pngDataUrl = await new Promise((res, rej) => {
+                    const cvs   = document.createElement('canvas');
+                    const image = new Image();
+                    image.onload = () => {
+                        cvs.width  = image.naturalWidth  || 200;
+                        cvs.height = image.naturalHeight || 200;
+                        cvs.getContext('2d').drawImage(image, 0, 0);
+                        res(cvs.toDataURL('image/png'));
+                    };
+                    image.onerror = rej;
+                    image.src = img.dataUrl;
+                });
+                const embeddedImg = await pdfDoc.embedPng(pngDataUrl);
+                const drawOpts = {
+                    x: img.x, y: img.y,
+                    width: img.width, height: img.height,
+                    opacity: img.opacity ?? 1
+                };
                 if (img.rotation && img.rotation !== 0) {
                     drawOpts.rotate = PDFLib.degrees(img.rotation);
-                    drawOpts.x = img.x + img.width  / 2 - img.width  / 2;
-                    drawOpts.y = img.y + img.height / 2 - img.height / 2;
                 }
                 pg.drawImage(embeddedImg, drawOpts);
             } catch (e) {
                 console.error('Image embed error:', e);
-                alert('Warning: একটি ইমেজ এম্বেড করা যায়নি।');
             }
         }
 

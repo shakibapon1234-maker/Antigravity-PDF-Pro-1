@@ -532,7 +532,7 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
     });
     // Place drag handle as a sibling wrapper so it doesn't interfere with contentEditable caret
     const editorWrap = document.createElement('div');
-    editorWrap.style.cssText = 'position:absolute;z-index:100;';
+    editorWrap.style.cssText = 'position:absolute;z-index:500;';
     editorWrap.style.left = input.style.left;
     editorWrap.style.top  = input.style.top;
     // Remove position from input since wrapper handles it
@@ -640,8 +640,10 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         textItem.style.backgroundImage = 'none';
         textItem.style.display         = 'inline-block';
         textItem.style.pointerEvents   = 'auto';
-        textItem.style.overflow        = 'visible';
-        textItem.style.whiteSpace      = 'pre';
+        textItem.style.overflow        = 'hidden';
+        textItem.style.whiteSpace      = 'pre-wrap';
+        textItem.style.wordBreak       = 'break-word';
+        textItem.style.maxWidth        = '80vw';
         textItem.style.minWidth        = `${editData.width  * pdfScale}px`;
         textItem.style.minHeight       = `${editData.height * pdfScale}px`;
         textItem.dataset.editId        = editData.id;

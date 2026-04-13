@@ -197,9 +197,12 @@ async function setupTextLayer(page, viewport, container) {
 
         const textItem = document.createElement('span');
         textItem.textContent    = item.str;
+        textItem.style.position = 'absolute';
         textItem.style.left     = `${tx[4]}px`;
         textItem.style.top      = `${tx[5] - item.height * viewport.scale}px`;
         textItem.style.fontSize = `${item.height * viewport.scale}px`;
+        textItem.style.whiteSpace = 'pre';
+        textItem.style.transformOrigin = 'left bottom';
 
         let fontName = item.fontName || 'Helvetica';
         if (fontName && fontName.includes(' ') && !fontName.includes("'")) fontName = `'${fontName}'`;
