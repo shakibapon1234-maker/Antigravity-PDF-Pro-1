@@ -1059,11 +1059,6 @@ function endClearStroke(container) {
 }
 
 // â”€â”€ Clear Text Only (rect drag â€” no background change) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-let clearTextRectEl   = null;
-let clearTextRectStart = { x: 0, y: 0 };
-let clearTextContainer = null;
-let _clearTextDocMouseMove = null;
-let _clearTextDocMouseUp   = null;
 
 function startClearTextStroke(x, y, container) {
     clearTextContainer = container;
@@ -1114,7 +1109,7 @@ function continueClearTextStroke(x, y) {
 // We keep a "clean" render of the current page (no text layer manipulation needed
 // because PDF.js renders text INTO the canvas — we re-render on a hidden canvas
 // that we keep as a background-only reference).
-let _bgCanvasCache = null;      // { pageNum, canvas }
+// _bgCanvasCache → core/renderer.js
 let _bgRenderPromise = null;    // prevent concurrent renders
 
 async function ensureBgCanvas() {

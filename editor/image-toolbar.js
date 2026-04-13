@@ -1,123 +1,10 @@
-// ─── image-toolbar.js — Antigravity PDF Editor ───────────────────────────────
-// 1. attachImageLayerToolbar()  — shape-like toolbar for every inserted image
-//    Buttons: ↻ Rotate | ⬆▲▼⬇ Z-order | α: opacity | T: text-color | ✕ Delete
-//    Plus a bottom-right resize handle (drag to resize)
-//
-// 2. Redo system  — redoHistory stack mirrors undoHistory
-//    performRedo() restores next snapshot
-//    Ctrl+Y / Ctrl+Shift+Z shortcut wired here
-//    #btnRedo button state kept in sync
-//
-// 3. Text-color inside floating editor
-//    #textColor picker applies foreColor to current selection OR whole editor
+// ─────────────────────────────────────────────
+// editor/image-toolbar.js — Antigravity PDF Pro
+// ইমেজ লেয়ার টুলবার ও টেক্সট কালার
+// Redo system → core/undo.js এ সরানো হয়েছে
+// নির্ভর করে: core/state.js, core/undo.js
+// ─────────────────────────────────────────────
 
-'use strict';
-
-// ════════════════════════════════════════════════════════════════════════════
-// SECTION A — REDO SYSTEM
-// ════════════════════════════════════════════════════════════════════════════
-
-// We keep a parallel redo stack.  When performUndo() is called (in app.js /
-// text-editor.js), the snapshot that was just popped off undoHistory should
-// land on redoHistory so we can replay it.
-// To avoid patching app.js we monkey-patch performUndo here after DOMContentLoaded.
-
-let redoHistory = [];
-const REDO_LIMIT = 10;
-
-function _pushRedo(snapshot) {
-    redoHistory.push(snapshot);
-    if (redoHistory.length > REDO_LIMIT) redoHistory.shift();
-    _updateRedoBtn();
-}
-
-function _updateRedoBtn() {
-    const btn = document.getElementById('btnRedo');
-    if (!btn) return;
-    btn.disabled = redoHistory.length === 0;
-    btn.title = redoHistory.length > 0
-        ? `Redo (${redoHistory.length} step${redoHistory.length > 1 ? 's' : ''})`
-        : 'Nothing to redo (Ctrl+Y)';
-}
-
-function performRedo() {
-    if (redoHistory.length === 0) return;
-    const snapshot = redoHistory.pop();
-    _updateRedoBtn();
-
-    // Save current state to undoHistory before re-applying
-    if (typeof captureUndoSnapshot === 'function') {
-        captureUndoSnapshot('Redo');
-    }
-
-    // Use _applySnapshot (defined in app.js/text-editor.js) which has
-    // scope access to the let-declared state variables
-    if (typeof _applySnapshot === 'function') {
-        _applySnapshot(snapshot);
-    } else {
-        // Fallback: direct assignment (may not work with let-scoped vars)
-        if (typeof textEdits  !== 'undefined') textEdits  = JSON.parse(JSON.stringify(snapshot.textEdits  || []));
-        if (typeof shapeEdits !== 'undefined') shapeEdits = JSON.parse(JSON.stringify(snapshot.shapeEdits || []));
-        if (typeof clearStrokes !== 'undefined') clearStrokes = JSON.parse(JSON.stringify(snapshot.clearStrokes || []));
-        if (typeof renderPage === 'function' && typeof currentPdfObj !== 'undefined' && currentPdfObj) {
-            renderPage(currentPdfObj, currentPageNum);
-        }
-    }
-}
-
-// ── Monkey-patch performUndo to capture the snapshot onto redoHistory ─────
-document.addEventListener('DOMContentLoaded', () => {
-    // Wait a tick to ensure app.js has defined performUndo
-    setTimeout(() => {
-        const _origUndo = window.performUndo;
-        if (typeof _origUndo === 'function') {
-            window.performUndo = function () {
-                // Capture current state BEFORE undo so redo can replay it
-                const currentSnap = {
-                    textEdits:    JSON.parse(JSON.stringify(typeof textEdits    !== 'undefined' ? textEdits    : [])),
-                    shapeEdits:   JSON.parse(JSON.stringify(typeof shapeEdits   !== 'undefined' ? shapeEdits   : [])),
-                    clearStrokes: JSON.parse(JSON.stringify(typeof clearStrokes !== 'undefined' ? clearStrokes : []))
-                };
-                _pushRedo(currentSnap);
-                _origUndo();
-            };
-        }
-
-        // Wire #btnRedo
-        const btnRedo = document.getElementById('btnRedo');
-        if (btnRedo) {
-            btnRedo.addEventListener('click', () => performRedo());
-            // Prevent stealing focus / selection from the editor
-            btnRedo.addEventListener('mousedown', (e) => e.preventDefault());
-        }
-
-        _updateRedoBtn();
-
-        // ── Also fix: clear redoHistory whenever a NEW action is captured ────
-        // Monkey-patch captureUndoSnapshot so typing/adding text clears redo
-        const _origCapture = window.captureUndoSnapshot;
-        if (typeof _origCapture === 'function') {
-            window.captureUndoSnapshot = function (description) {
-                // Clear redo stack on new action (unless we're in the middle of a redo)
-                if (description !== 'Redo') {
-                    redoHistory = [];
-                    _updateRedoBtn();
-                }
-                return _origCapture(description);
-            };
-        }
-    }, 200);
-});
-
-// ── Keyboard shortcut Ctrl+Y / Ctrl+Shift+Z ──────────────────────────────
-document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') return;
-    const k = e.key.toLowerCase();
-    if ((e.ctrlKey && k === 'y') || (e.ctrlKey && e.shiftKey && k === 'z')) {
-        e.preventDefault();
-        performRedo();
-    }
-});
 
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -173,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // SECTION C — IMAGE TOOLBAR  (attachImageLayerToolbar)
 // ════════════════════════════════════════════════════════════════════════════
 
-let _imgZCounter = 65;
+// _imgZCounter → core/state.js
 
 /**
  * Attach a floating toolbar + resize handle to a .pdf-image-wrapper element.

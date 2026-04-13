@@ -7,7 +7,7 @@
 //   5. Z-order (bring forward/back) buttons work correctly
 //   6. Text tool works ON TOP of shapes (click shape → type text over it)
 
-let _shapeZCounter = 60;
+// _shapeZCounter → core/state.js
 
 // ─── Helper: capture undo snapshot safely (avoid double-capture) ──────────────
 function _shapeCaptureUndo(label) {

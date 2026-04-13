@@ -14,22 +14,10 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 /* ─── Eyedropper State ───────────────────────────────────────────────────────── */
-let _eyeMode        = 'idle';    // 'idle' | 'picking' | 'picked'
-let _eyePickedColor = null;      // picked hex string, e.g. '#ff0000'
-let _eyeTarget      = 'text';    // 'text' | 'bg'  (কোন বাটনে ক্লিক করা হয়েছিল)
 
 // Fallback listener refs (cleanup এর জন্য)
-let _eyeMoveListener  = null;
-let _eyeClickListener = null;
-let _eyeKeyListener   = null;
 
 /* ─── Eraser State ───────────────────────────────────────────────────────────── */
-let whiteEraserActive = false;
-let _weIsDrawing      = false;
-let _weStartX         = 0;
-let _weStartY         = 0;
-let _weContainer      = null;
-let _weRectEl         = null;
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  EYEDROPPER — PICK PHASE
@@ -175,8 +163,6 @@ function _startFallbackPicker(targetField) {
 //  কালার picked হওয়ার পরে, color input এ ক্লিক করলে সেখানে paste হয়
 // ══════════════════════════════════════════════════════════════════════════════
 
-let _eyePasteClickListener = null;
-let _eyePasteKeyListener   = null;
 
 /**
  * _installPasteListeners()
