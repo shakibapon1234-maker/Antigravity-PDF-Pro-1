@@ -25,6 +25,9 @@ const upload = multer({ storage });
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// Suppress favicon 404
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Allow CORS so Live Server (different origin) can call the API during development
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');

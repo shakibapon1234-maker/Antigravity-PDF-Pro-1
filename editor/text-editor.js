@@ -1494,9 +1494,9 @@ function endClearTextStroke(container) {
     // 6. Async upgrade: once background canvas is ready, replace patch with pixel-perfect copy
     const _capturedPage = currentPageNum;
     const _capturedScale = pdfScale;
-    const _mainCanvas2 = container.querySelector('canvas');
-    const _csx2u = _mainCanvas2 ? (_mainCanvas2.width  / container.offsetWidth)  : 1;
-    const _csy2u = _mainCanvas2 ? (_mainCanvas2.height / container.offsetHeight) : 1;
+    const _mainCanvas2u = container.querySelector('canvas');
+    const _csx2u = _mainCanvas2u ? (_mainCanvas2u.width  / container.offsetWidth)  : 1;
+    const _csy2u = _mainCanvas2u ? (_mainCanvas2u.height / container.offsetHeight) : 1;
 
     ensureBgCanvas().then(bgCv => {
         if (!bgCv) return;

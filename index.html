@@ -163,7 +163,16 @@
                                 <div class="spin-border"></div>
                                 
                                 <div class="img-inner">
-                                    <img src="best.png" alt="Antigravity PDF Dashboard">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" alt="Antigravity PDF Dashboard">
+                                      <defs>
+                                        <linearGradient id="agGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                          <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:1" />
+                                          <stop offset="100%" style="stop-color:#b829f9;stop-opacity:1" />
+                                        </linearGradient>
+                                      </defs>
+                                      <rect width="120" height="120" rx="24" fill="url(#agGrad)" opacity="0.15"/>
+                                      <text x="60" y="72" text-anchor="middle" font-size="56" font-family="sans-serif" fill="url(#agGrad)">📄</text>
+                                    </svg>
                                 </div>
                             </div>
                         </div>
@@ -409,7 +418,7 @@
                                         <span class="tool-label">Type</span>
                                     </button>
                                     <button class="btn-tool tool-highlight-pink" id="btnClearText" title="Clear Text Only" style="min-width: 120px;">
-                                        <i data-lucide="erase"></i>
+                                        <i data-lucide="eraser"></i>
                                         <span class="tool-label" style="font-size: 13px;">CLEAR TEXT</span>
                                     </button>
                                     <!-- White Eraser Tool -->
