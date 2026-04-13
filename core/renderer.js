@@ -39,6 +39,8 @@ async function loadAndRenderPDF(file) {
 
 async function renderPage(pdf, pageNum) {
     try {
+        // Invalidate bg canvas cache — new page means new background
+        if (typeof invalidateBgCanvas === 'function') invalidateBgCanvas();
         const page     = await pdf.getPage(pageNum);
         const viewport = page.getViewport({ scale: pdfScale });
 

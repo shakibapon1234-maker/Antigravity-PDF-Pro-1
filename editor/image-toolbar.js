@@ -8,6 +8,76 @@
 
 
 // ════════════════════════════════════════════════════════════════════════════
+// SECTION A — addImageToPdf  (Insert image into PDF page)
+// ════════════════════════════════════════════════════════════════════════════
+
+function addImageToPdf(dataUrl, fileName) {
+    if (!currentPdfObj) { alert('আগে একটি PDF ফাইল খুলুন।'); return; }
+    const container = document.querySelector('.pdf-page-wrapper');
+    if (!container) return;
+
+    captureUndoSnapshot('Insert image');
+
+    const defW = Math.min(200, container.offsetWidth  * 0.4);
+    const defH = defW;
+    const defL = (container.offsetWidth  - defW) / 2;
+    const defT = (container.offsetHeight - defH) / 2;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'pdf-image-wrapper';
+    wrap.style.cssText = `position:absolute;left:${defL}px;top:${defT}px;
+        width:${defW}px;height:${defH}px;cursor:move;
+        z-index:${++_imgZCounter};user-select:none;box-sizing:border-box;`;
+
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.draggable = false;
+    img.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;';
+    wrap.appendChild(img);
+    container.appendChild(wrap);
+
+    const imageId = `img-${Date.now()}`;
+    wrap.dataset.imageId = imageId;
+    imageEdits.push({
+        id: imageId, page: currentPageNum, dataUrl, name: fileName || 'image',
+        x: defL / pdfScale,
+        y: (container.offsetHeight - defT - defH) / pdfScale,
+        width: defW / pdfScale, height: defH / pdfScale,
+        rotation: 0, opacity: 1, zIndex: _imgZCounter
+    });
+
+    // ── Drag to move ─────────────────────────────────────────────────────────
+    let _iDrag = false, _iSX = 0, _iSY = 0, _iOL = 0, _iOT = 0;
+    wrap.addEventListener('mousedown', (e) => {
+        const tb = wrap.querySelector('.image-toolbar');
+        if (e.target.classList.contains('image-resize-handle')) return;
+        if (tb && tb.contains(e.target)) return;
+        _iDrag = true; _iSX = e.clientX; _iSY = e.clientY;
+        _iOL = parseFloat(wrap.style.left) || 0;
+        _iOT = parseFloat(wrap.style.top)  || 0;
+        e.stopPropagation();
+    });
+    document.addEventListener('mousemove', (e) => {
+        if (!_iDrag) return;
+        wrap.style.left = `${_iOL + (e.clientX - _iSX)}px`;
+        wrap.style.top  = `${_iOT + (e.clientY - _iSY)}px`;
+    });
+    document.addEventListener('mouseup', () => {
+        if (!_iDrag) return; _iDrag = false;
+        const cont = wrap.closest('.pdf-page-wrapper');
+        if (cont) {
+            const ed = imageEdits.find(s => s.id === imageId);
+            if (ed) {
+                ed.x = parseFloat(wrap.style.left) / pdfScale;
+                ed.y = (cont.offsetHeight - parseFloat(wrap.style.top) - wrap.offsetHeight) / pdfScale;
+            }
+        }
+    });
+
+    attachImageLayerToolbar(wrap, imageId);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // SECTION B — TEXT COLOR  (applies to floating editor + committed spans)
 // ════════════════════════════════════════════════════════════════════════════
 

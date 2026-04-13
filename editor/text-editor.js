@@ -350,10 +350,12 @@ function handlePageMouseDown(e, container, viewport, page) {
     }
 
     if (activeTool === 'text') {
-        // Check if target is NOT an editable text unit or floating editor (blank area)
-        if (!e.target.classList.contains('editable-text-unit') && 
-            !e.target.classList.contains('floating-editor') &&
-            !e.target.closest('.text-layer')) {
+        // Do NOT open another floating-editor if one is already open
+        const openEditor = document.querySelector('.floating-editor');
+        if (openEditor) return; // already committed above; if still open, user clicked inside it
+
+        if (!e.target.classList.contains('editable-text-unit') &&
+            !e.target.classList.contains('floating-editor')) {
             deselectTextItem();
             addNewText(x, y, viewport, page, container);
         }
@@ -1411,42 +1413,60 @@ function endClearTextStroke(container) {
     const bgSample = sampleBackgroundColor(l + w / 2, t + h / 2);
 
     let clearedCount = 0;
-    // 3. Disable underlying text interactions
-    container.querySelectorAll('.editable-text-unit').forEach(span => {
+
+    // 3a. Hide ALL text spans in the selection area — both PDF native text layer
+    //     AND our own editable-text-unit spans.
+    //     PDF.js text layer spans sit inside a .textLayer div.
+    const allTextSpans = container.querySelectorAll(
+        '.textLayer span, .text-layer span, .editable-text-unit'
+    );
+    allTextSpans.forEach(span => {
         if (span.classList.contains('floating-editor')) return;
 
-        const sl = parseFloat(span.style.left) || 0;
-        const st = parseFloat(span.style.top)  || 0;
-        const sw = span.offsetWidth  || parseFloat(span.style.minWidth)  || 20;
-        const sh = span.offsetHeight || parseFloat(span.style.minHeight) || 10;
+        // Get position relative to container
+        const spanRect = span.getBoundingClientRect();
+        const contRect = container.getBoundingClientRect();
+        const sl = spanRect.left - contRect.left;
+        const st = spanRect.top  - contRect.top;
+        const sw = spanRect.width  || 10;
+        const sh = spanRect.height || 10;
 
+        // Check overlap with clear rect
         if (sl < l + w && sl + sw > l && st < t + h && st + sh > t) {
             clearedCount++;
-            span._cleared = true;
-            span._textCleared = true;
-            span.textContent = '';
-            span.style.color = 'transparent';
-            span.style.backgroundColor = 'transparent';
-            span.style.backgroundImage = 'none';
-            // Keep pointer-events auto so text tool clicks on this area
-            // still reach the page wrapper (handlePageMouseDown) for new text entry.
-            // The patch div below has pointer-events:none so it won't intercept clicks.
-            span.style.pointerEvents = 'auto';
+            span._cleared      = true;
+            span._textCleared  = true;
+            // Make text invisible — do NOT remove so PDF layout is preserved
+            span.style.color           = 'transparent';
+            span.style.opacity         = '0';
+            span.style.pointerEvents   = 'none';
+            // For our own editable spans, also clear content
+            if (span.classList.contains('editable-text-unit')) {
+                span.textContent        = '';
+                span.style.backgroundColor = 'transparent';
+                span.style.backgroundImage = 'none';
+                span.style.pointerEvents   = 'auto';
 
-            const editId = span.dataset.editId || `ct-${currentPageNum}-${Math.round(sl)}-${Math.round(st)}`;
-            const existingIdx = textEdits.findIndex(ed => ed.id === editId || `${ed.page}-${ed.originalX}-${ed.originalY}` === editId);
-            const clearEntry = {
-                id: editId, page: currentPageNum, isNew: false,
-                originalX: sl / pdfScale, originalY: (container.offsetHeight - st - sh) / pdfScale,
-                x: sl / pdfScale, y: (container.offsetHeight - st - sh) / pdfScale,
-                text: '', size: parseFloat(span.style.fontSize) / pdfScale || 12,
-                color: 'transparent', bgHex: 'transparent',
-                bgR: 1, bgG: 1, bgB: 1,
-                font: 'Helvetica', isBold: false, isItalic: false, isUnderline: false,
-                width: sw / pdfScale, height: sh / pdfScale
-            };
-            if (existingIdx > -1) textEdits[existingIdx] = clearEntry;
-            else textEdits.push(clearEntry);
+                const editId = span.dataset.editId ||
+                    `ct-${currentPageNum}-${Math.round(sl)}-${Math.round(st)}`;
+                const existingIdx = textEdits.findIndex(ed =>
+                    ed.id === editId ||
+                    `${ed.page}-${ed.originalX}-${ed.originalY}` === editId);
+                const clearEntry = {
+                    id: editId, page: currentPageNum, isNew: false,
+                    originalX: sl / pdfScale,
+                    originalY: (container.offsetHeight - st - sh) / pdfScale,
+                    x: sl / pdfScale,
+                    y: (container.offsetHeight - st - sh) / pdfScale,
+                    text: '', size: parseFloat(span.style.fontSize) / pdfScale || 12,
+                    color: 'transparent', bgHex: 'transparent',
+                    bgR: 1, bgG: 1, bgB: 1,
+                    font: 'Helvetica', isBold: false, isItalic: false, isUnderline: false,
+                    width: sw / pdfScale, height: sh / pdfScale
+                };
+                if (existingIdx > -1) textEdits[existingIdx] = clearEntry;
+                else textEdits.push(clearEntry);
+            }
         }
     });
 
@@ -1483,7 +1503,7 @@ function endClearTextStroke(container) {
     `;
     container.appendChild(patchEl);
 
-    if (clearedCount === 0 && w < 10 && h < 10) {
+    if (w < 10 && h < 10) {
         undoHistory.pop();
         patchEl.remove();
         pe.rects.pop();
