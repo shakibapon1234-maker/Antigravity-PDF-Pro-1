@@ -350,13 +350,18 @@ function handlePageMouseDown(e, container, viewport, page) {
     }
 
     if (activeTool === 'text') {
-        // Do NOT open another floating-editor if one is already open
-        const openEditor = document.querySelector('.floating-editor');
-        if (openEditor) return; // already committed above; if still open, user clicked inside it
-
-        if (!e.target.classList.contains('editable-text-unit') &&
-            !e.target.classList.contains('floating-editor')) {
+        // Check if target is NOT an editable text unit or floating editor (blank area)
+        if (!e.target.classList.contains('editable-text-unit') && 
+            !e.target.classList.contains('floating-editor') &&
+            !e.target.closest('.floating-editor') &&
+            !e.target.closest('.floating-editor-handle') &&
+            !e.target.closest('.text-layer')) {
             deselectTextItem();
+            // FIX: যেকোনো open floating-editor আগে commit করো
+            // শুধু এই container নয়, পুরো document-এ
+            document.querySelectorAll('.floating-editor').forEach(fe => {
+                if (fe._commit) fe._commit();
+            });
             addNewText(x, y, viewport, page, container);
         }
     } else if (activeTool === 'select') {
@@ -532,7 +537,7 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
     });
     // Place drag handle as a sibling wrapper so it doesn't interfere with contentEditable caret
     const editorWrap = document.createElement('div');
-    editorWrap.style.cssText = 'position:absolute;z-index:500;';
+    editorWrap.style.cssText = 'position:absolute;z-index:200;';
     editorWrap.style.left = input.style.left;
     editorWrap.style.top  = input.style.top;
     // Remove position from input since wrapper handles it
@@ -640,16 +645,14 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         textItem.style.backgroundImage = 'none';
         textItem.style.display         = 'inline-block';
         textItem.style.pointerEvents   = 'auto';
-        textItem.style.overflow        = 'hidden';
-        textItem.style.whiteSpace      = 'pre-wrap';
-        textItem.style.wordBreak       = 'break-word';
-        textItem.style.maxWidth        = '80vw';
-        textItem.style.zIndex          = '200'; // above images (z ~60-100) and shapes
+        textItem.style.overflow        = 'visible';
+        textItem.style.whiteSpace      = 'pre';
         textItem.style.minWidth        = `${editData.width  * pdfScale}px`;
         textItem.style.minHeight       = `${editData.height * pdfScale}px`;
         textItem.dataset.editId        = editData.id;
         textItem.dataset.isOriginal    = 'false';
         textItem.style.cursor          = 'move';
+        textItem.style.zIndex          = '200';
 
         // â”€â”€ Drag handle badge (visible on hover, works in any tool mode) â”€â”€
         // ── Drag handle ─────────────────────────────────────────────────────
@@ -783,8 +786,10 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         textItem.addEventListener('click', (ev) => {
             if (activeTool === 'text') {
                 deselectTextItem();
-                const existingEditor = container.querySelector('.floating-editor');
-                if (existingEditor && existingEditor._commit) existingEditor._commit();
+                // FIX: সব open floating-editor commit করো আগে
+                document.querySelectorAll('.floating-editor').forEach(fe => {
+                    if (fe._commit) fe._commit();
+                });
                 startEditing(ev, editData, null, viewport, page);
                 ev.stopPropagation();
                 return;
@@ -794,8 +799,10 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         });
         textItem.addEventListener('dblclick', (ev) => {
             deselectTextItem();
-            const existingEditor = container.querySelector('.floating-editor');
-            if (existingEditor && existingEditor._commit) existingEditor._commit();
+            // FIX: সব open floating-editor commit করো
+            document.querySelectorAll('.floating-editor').forEach(fe => {
+                if (fe._commit) fe._commit();
+            });
             startEditing(ev, editData, null, viewport, page);
             ev.stopPropagation();
         });
@@ -1400,88 +1407,124 @@ function endClearTextStroke(container) {
 
     captureUndoSnapshot('Clear text area');
 
-    // Step 1: Hide all text spans inside the drawn rectangle
-    const allTextSpans = container.querySelectorAll(
-        '.textLayer span, .text-layer span, .editable-text-unit'
+    // 1. Generate seamlessly in-painted patch to perfectly blend gradients
+    // generateInpaintedPatch expects CANVAS pixel coordinates, not CSS coordinates.
+    // The PDF canvas is rendered at pdfScale resolution so we must scale up.
+    const _mainCanvas2 = container.querySelector('canvas');
+    const _csx = _mainCanvas2 ? (_mainCanvas2.width  / container.offsetWidth)  : 1;
+    const _csy = _mainCanvas2 ? (_mainCanvas2.height / container.offsetHeight) : 1;
+    const patchDataUrl = generateInpaintedPatch(
+        Math.round(l * _csx),
+        Math.round(t * _csy),
+        Math.round(w * _csx),
+        Math.round(h * _csy)
     );
-    allTextSpans.forEach(span => {
+    // 2. Fallback solid color
+    const bgSample = sampleBackgroundColor(l + w / 2, t + h / 2);
+
+    let clearedCount = 0;
+    const contRect = container.getBoundingClientRect();
+    // 3. Disable underlying text interactions
+    container.querySelectorAll('.editable-text-unit').forEach(span => {
         if (span.classList.contains('floating-editor')) return;
-        const spanRect = span.getBoundingClientRect();
-        const contRect = container.getBoundingClientRect();
-        const sl = spanRect.left - contRect.left;
-        const st = spanRect.top  - contRect.top;
-        const sw = spanRect.width  || 10;
-        const sh = spanRect.height || 10;
+
+        // FIX: getBoundingClientRect ব্যবহার করো — original PDF spans-এর
+        // style.left/top সঠিক নাও হতে পারে (text-layer transform এ থাকে)
+        const sr   = span.getBoundingClientRect();
+        const sl   = sr.left - contRect.left;
+        const st   = sr.top  - contRect.top;
+        const sw   = sr.width  || span.offsetWidth  || 20;
+        const sh   = sr.height || span.offsetHeight || 10;
+
         if (sl < l + w && sl + sw > l && st < t + h && st + sh > t) {
+            clearedCount++;
             span._cleared = true;
             span._textCleared = true;
-            span.style.color         = 'transparent';
-            span.style.opacity       = '0';
-            span.style.pointerEvents = 'none';
-            if (span.classList.contains('editable-text-unit')) {
-                span.textContent           = '';
-                span.style.backgroundColor = 'transparent';
-                span.style.backgroundImage = 'none';
-                span.style.pointerEvents   = 'auto';
-                const editId = span.dataset.editId ||
-                    `ct-${currentPageNum}-${Math.round(sl)}-${Math.round(st)}`;
-                const existingIdx = textEdits.findIndex(ed =>
-                    ed.id === editId ||
-                    `${ed.page}-${ed.originalX}-${ed.originalY}` === editId);
-                const clearEntry = {
-                    id: editId, page: currentPageNum, isNew: false,
-                    originalX: sl / pdfScale,
-                    originalY: (container.offsetHeight - st - sh) / pdfScale,
-                    x: sl / pdfScale, y: (container.offsetHeight - st - sh) / pdfScale,
-                    text: '', size: parseFloat(span.style.fontSize) / pdfScale || 12,
-                    color: 'transparent', bgHex: 'transparent',
-                    bgR: 1, bgG: 1, bgB: 1, font: 'Helvetica',
-                    isBold: false, isItalic: false, isUnderline: false,
-                    width: sw / pdfScale, height: sh / pdfScale
-                };
-                if (existingIdx > -1) textEdits[existingIdx] = clearEntry;
-                else textEdits.push(clearEntry);
-            }
+            span.textContent = '';
+            span.style.color = 'transparent';
+            span.style.backgroundColor = 'transparent';
+            span.style.backgroundImage = 'none';
+            // Keep pointer-events auto so text tool clicks on this area
+            // still reach the page wrapper (handlePageMouseDown) for new text entry.
+            // The patch div below has pointer-events:none so it won't intercept clicks.
+            span.style.pointerEvents = 'auto';
+
+            const editId = span.dataset.editId || `ct-${currentPageNum}-${Math.round(sl)}-${Math.round(st)}`;
+            const existingIdx = textEdits.findIndex(ed => ed.id === editId || `${ed.page}-${ed.originalX}-${ed.originalY}` === editId);
+            const clearEntry = {
+                id: editId, page: currentPageNum, isNew: false,
+                originalX: sl / pdfScale, originalY: (container.offsetHeight - st - sh) / pdfScale,
+                x: sl / pdfScale, y: (container.offsetHeight - st - sh) / pdfScale,
+                text: '', size: parseFloat(span.style.fontSize) / pdfScale || 12,
+                color: 'transparent', bgHex: 'transparent',
+                bgR: 1, bgG: 1, bgB: 1,
+                font: 'Helvetica', isBold: false, isItalic: false, isUnderline: false,
+                width: sw / pdfScale, height: sh / pdfScale
+            };
+            if (existingIdx > -1) textEdits[existingIdx] = clearEntry;
+            else textEdits.push(clearEntry);
         }
     });
 
-    if (w < 10 && h < 10) { undoHistory.pop(); clearTextContainer = null; return; }
-
-    // Step 2: Store for PDF export
+    // 4. Store drawing info for PDF rendering
     let pe = clearStrokes.find(s => s.page === currentPageNum);
     if (!pe) { pe = { page: currentPageNum, rects: [] }; clearStrokes.push(pe); }
-    const rectEntry = {
-        x: l / pdfScale, y: (container.offsetHeight - t - h) / pdfScale,
-        w: w / pdfScale, h: h / pdfScale,
-        r: 1, g: 1, b: 1, patch: null
-    };
-    pe.rects.push(rectEntry);
 
-    // Step 3: Place white placeholder immediately so area looks cleared
+    pe.rects.push({
+        x: l / pdfScale,
+        y: (container.offsetHeight - t - h) / pdfScale,
+        w: w / pdfScale,
+        h: h / pdfScale,
+        r: bgSample.r,
+        g: bgSample.g,
+        b: bgSample.b,
+        patch: patchDataUrl
+    });
+
+    // 5. Draw the gradient patch — show immediately, then upgrade once bg canvas is ready
     const patchEl = document.createElement('div');
     patchEl.className = 'clear-patch';
+    // z-index: 5 — sits above the PDF canvas but BELOW the text-layer (z-index ~10+)
+    // and floating-editor. This ensures new text clicks pass through to the page.
     patchEl.style.cssText = `
-        position:absolute; left:${l}px; top:${t}px;
-        width:${w}px; height:${h}px;
-        background-color:#fff;
-        pointer-events:none; z-index:15;
+        position: absolute;
+        left: ${l}px; top: ${t}px;
+        width: ${w}px; height: ${h}px;
+        background-color: ${bgSample.hex};
+        background-image: ${patchDataUrl ? `url(${patchDataUrl})` : 'none'};
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+        pointer-events: none;
+        z-index: 5;
     `;
     container.appendChild(patchEl);
 
-    // Step 4: Upgrade to pixel-perfect background once bg canvas is ready
-    const _capturedPage  = currentPageNum;
+    if (clearedCount === 0 && w < 10 && h < 10) {
+        undoHistory.pop();
+        patchEl.remove();
+        pe.rects.pop();
+        clearTextContainer = null;
+        return;
+    }
+
+    // 6. Async upgrade: once background canvas is ready, replace patch with pixel-perfect copy
+    const _capturedPage = currentPageNum;
     const _capturedScale = pdfScale;
-    const _mc = container.querySelector('canvas');
-    const _csx = _mc ? _mc.width  / container.offsetWidth  : 1;
-    const _csy = _mc ? _mc.height / container.offsetHeight : 1;
+    const _mainCanvas2u = container.querySelector('canvas');
+    const _csx2u = _mainCanvas2u ? (_mainCanvas2u.width  / container.offsetWidth)  : 1;
+    const _csy2u = _mainCanvas2u ? (_mainCanvas2u.height / container.offsetHeight) : 1;
 
     ensureBgCanvas().then(bgCv => {
-        if (!bgCv || _capturedPage !== currentPageNum || _capturedScale !== pdfScale) return;
-        if (!patchEl.isConnected) return;
-        const bpx = Math.max(0, Math.round(l * _csx));
-        const bpy = Math.max(0, Math.round(t * _csy));
-        const bpw = Math.max(1, Math.round(w * _csx));
-        const bph = Math.max(1, Math.round(h * _csy));
+        if (!bgCv) return;
+        if (_capturedPage !== currentPageNum || _capturedScale !== pdfScale) return; // page changed
+        if (!patchEl.isConnected) return; // already removed (undo etc.)
+
+        // Extract the exact region from the clean bg canvas
+        const bpx = Math.round(l * _csx2u);
+        const bpy = Math.round(t * _csy2u);
+        const bpw = Math.max(1, Math.round(w * _csx2u));
+        const bph = Math.max(1, Math.round(h * _csy2u));
+
         const bCv = document.createElement('canvas');
         bCv.width = bpw; bCv.height = bph;
         const bCtx = bCv.getContext('2d');
@@ -1489,14 +1532,14 @@ function endClearTextStroke(container) {
             bCtx.drawImage(bgCv, bpx, bpy, bpw, bph, 0, 0, bpw, bph);
             const check = bCtx.getImageData(0, 0, 1, 1).data;
             if (check[3] > 0) {
-                const url = bCv.toDataURL('image/png');
-                patchEl.style.backgroundImage  = `url(${url})`;
-                patchEl.style.backgroundSize   = '100% 100%';
-                patchEl.style.backgroundRepeat = 'no-repeat';
-                patchEl.style.backgroundColor  = 'transparent';
-                rectEntry.patch = url;
+                const upgradedUrl = bCv.toDataURL('image/png');
+                patchEl.style.backgroundImage = `url(${upgradedUrl})`;
+                patchEl.style.backgroundColor = 'transparent';
+                // Also update the stored rect patch for PDF export
+                const lastRect = pe.rects[pe.rects.length - 1];
+                if (lastRect) lastRect.patch = upgradedUrl;
             }
-        } catch(e) { /* keep white */ }
+        } catch(e) { /* keep Coons patch as-is */ }
     }).catch(() => {});
 
     clearTextContainer = null;
