@@ -188,7 +188,8 @@ async function setupTextLayer(page, viewport, container) {
     textLayerDiv.style.top           = '0';
     textLayerDiv.style.left          = '0';
     textLayerDiv.style.overflow      = 'visible';
-    textLayerDiv.style.pointerEvents = 'none';
+    textLayerDiv.style.pointerEvents = 'none'; // div itself doesn't catch events
+    textLayerDiv.style.zIndex        = '10';
 
     textContent.items.forEach(item => {
         if (!item.str || !item.str.trim()) return;
@@ -201,8 +202,18 @@ async function setupTextLayer(page, viewport, container) {
         textItem.style.left     = `${tx[4]}px`;
         textItem.style.top      = `${tx[5] - item.height * viewport.scale}px`;
         textItem.style.fontSize = `${item.height * viewport.scale}px`;
-        textItem.style.whiteSpace = 'pre';
+        textItem.style.whiteSpace      = 'pre';
         textItem.style.transformOrigin = 'left bottom';
+        textItem.style.color           = 'transparent'; // invisible but selectable
+        textItem.style.backgroundColor = 'transparent';
+        textItem.style.lineHeight      = '1';
+        textItem.style.zIndex          = '10';
+
+        // Apply horizontal scale from the PDF transform matrix
+        const scaleX = tx[0] / item.height;
+        if (scaleX && Math.abs(scaleX - 1) > 0.01) {
+            textItem.style.transform = `scaleX(${scaleX})`;
+        }
 
         let fontName = item.fontName || 'Helvetica';
         if (fontName && fontName.includes(' ') && !fontName.includes("'")) fontName = `'${fontName}'`;
