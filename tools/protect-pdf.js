@@ -49,34 +49,21 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
 
         try {
-            const arrayBuffer = await currentFile.arrayBuffer();
-            const { PDFDocument } = PDFLib;
-            
-            // Load the PDF. ignoreEncryption: true helps if the file has some existing metadata restrictions
-            // or if it was previously saved with a library that adds minor encryption flags.
-            let pdfDoc;
-            try {
-                pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
-            } catch (loadErr) {
-                console.error("Load error:", loadErr);
-                throw new Error("Could not load PDF. It might be corrupted or heavily restricted.");
-            }
-            
-            const encryptedPdfBytes = await pdfDoc.encrypt({
-                userPassword: password,
-                ownerPassword: password,
-                permissions: {
-                    printing: 'highResolution',
-                    modifying: false,
-                    copying: false,
-                    annotating: false,
-                    fillingForms: false,
-                    contentAccessibility: false,
-                    documentAssembly: false,
-                },
+            const formData = new FormData();
+            formData.append('file', currentFile);
+            formData.append('password', password);
+
+            const response = await fetch('/api/tools/protect-pdf', {
+                method: 'POST',
+                body: formData
             });
 
-            const blob = new Blob([encryptedPdfBytes], { type: 'application/pdf' });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Server error occurred');
+            }
+
+            const blob = await response.blob();
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = `protected_${currentFile.name}`;

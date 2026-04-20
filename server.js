@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const { exec } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -120,6 +121,41 @@ app.delete('/archive/:id', (req, res) => {
   index = index.filter(i => i.id !== id);
   writeIndex(index);
   res.json({ success: true });
+});
+
+// PDF Protecting via qpdf
+app.post('/api/tools/protect-pdf', upload.single('file'), (req, res) => {
+  const file = req.file;
+  const password = req.body.password;
+
+  if (!file || !password) {
+    return res.status(400).json({ error: 'Missing file or password' });
+  }
+
+  const inputPath = file.path;
+  const outputPath = path.join(ARCHIVE_DIR, `protected_${Date.now()}.pdf`);
+
+  // Path to local qpdf binary
+  const qpdfPath = path.join(__dirname, 'bin', 'qpdf.exe');
+
+  // qpdf --encrypt user-password owner-password key-length [restrictions] -- input-file output-file
+  // Using 256-bit encryption which is industry standard
+  const command = `"${qpdfPath}" --encrypt "${password}" "${password}" 256 -- "${inputPath}" "${outputPath}"`;
+
+  exec(command, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`qpdf error: ${stderr}`);
+      // Cleanup input file
+      if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+      return res.status(500).json({ error: 'Encryption failed. Ensure qpdf is installed.', details: stderr });
+    }
+
+    res.download(outputPath, `protected_${file.originalname}`, (err) => {
+      // Cleanup both files after download
+      if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+      if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+    });
+  });
 });
 
 app.post('/archive/:id/restore', (req, res) => {
