@@ -1420,29 +1420,13 @@ function endClearTextStroke(container) {
 
     captureUndoSnapshot('Clear text area');
 
-    // 1. Generate seamlessly in-painted patch to perfectly blend gradients
-    // generateInpaintedPatch expects CANVAS pixel coordinates, not CSS coordinates.
-    // The PDF canvas is rendered at pdfScale resolution so we must scale up.
-    const _mainCanvas2 = container.querySelector('canvas');
-    const _csx = _mainCanvas2 ? (_mainCanvas2.width  / container.offsetWidth)  : 1;
-    const _csy = _mainCanvas2 ? (_mainCanvas2.height / container.offsetHeight) : 1;
-    const patchDataUrl = generateInpaintedPatch(
-        Math.round(l * _csx),
-        Math.round(t * _csy),
-        Math.round(w * _csx),
-        Math.round(h * _csy)
-    );
-    // 2. Fallback solid color
-    const bgSample = sampleBackgroundColor(l + w / 2, t + h / 2);
-
     let clearedCount = 0;
     const contRect = container.getBoundingClientRect();
-    // 3. Disable underlying text interactions
+
+    // 1. Clear editable text units (user-added text) — text only, NO background change
     container.querySelectorAll('.editable-text-unit').forEach(span => {
         if (span.classList.contains('floating-editor')) return;
 
-        // FIX: getBoundingClientRect ব্যবহার করো — original PDF spans-এর
-        // style.left/top সঠিক নাও হতে পারে (text-layer transform এ থাকে)
         const sr   = span.getBoundingClientRect();
         const sl   = sr.left - contRect.left;
         const st   = sr.top  - contRect.top;
@@ -1455,11 +1439,7 @@ function endClearTextStroke(container) {
             span._textCleared = true;
             span.textContent = '';
             span.style.color = 'transparent';
-            span.style.backgroundColor = 'transparent';
-            span.style.backgroundImage = 'none';
-            // Keep pointer-events auto so text tool clicks on this area
-            // still reach the page wrapper (handlePageMouseDown) for new text entry.
-            // The patch div below has pointer-events:none so it won't intercept clicks.
+            // ✅ Only make text invisible — do NOT change backgroundColor or backgroundImage
             span.style.pointerEvents = 'auto';
 
             const editId = span.dataset.editId || `ct-${currentPageNum}-${Math.round(sl)}-${Math.round(st)}`;
@@ -1479,8 +1459,7 @@ function endClearTextStroke(container) {
         }
     });
 
-    // 3b. Also clear PDF.js native text spans from .text-layer
-    // These are the original PDF text elements that PDF.js renders
+    // 2. Clear PDF.js native text spans from .text-layer — text only, NO background change
     const textLayer = container.querySelector('.text-layer');
     if (textLayer) {
         textLayer.querySelectorAll('span').forEach(nativeSpan => {
@@ -1495,85 +1474,22 @@ function endClearTextStroke(container) {
                 nativeSpan.style.color = 'transparent';
                 nativeSpan.style.visibility = 'hidden';
                 nativeSpan.textContent = '';
+                // ✅ Do NOT touch background — leave PDF background completely intact
             }
         });
     }
 
-    // 4. Store drawing info for PDF rendering
-    let pe = clearStrokes.find(s => s.page === currentPageNum);
-    if (!pe) { pe = { page: currentPageNum, rects: [] }; clearStrokes.push(pe); }
+    // 3. Store text-clear info for PDF rendering (transparent text, no background rect)
+    // We store these as textEdits entries only — no clearStrokes background rect needed.
+    // This ensures the PDF export only hides the text, not the background.
 
-    pe.rects.push({
-        x: l / pdfScale,
-        y: (container.offsetHeight - t - h) / pdfScale,
-        w: w / pdfScale,
-        h: h / pdfScale,
-        r: bgSample.r,
-        g: bgSample.g,
-        b: bgSample.b,
-        patch: patchDataUrl
-    });
-
-    // 5. Draw the gradient patch — show immediately, then upgrade once bg canvas is ready
-    const patchEl = document.createElement('div');
-    patchEl.className = 'clear-patch';
-    // z-index: 5 — sits above the PDF canvas but BELOW the text-layer (z-index ~10+)
-    // and floating-editor. This ensures new text clicks pass through to the page.
-    patchEl.style.cssText = `
-        position: absolute;
-        left: ${l}px; top: ${t}px;
-        width: ${w}px; height: ${h}px;
-        background-color: ${bgSample.hex};
-        background-image: ${patchDataUrl ? `url(${patchDataUrl})` : 'none'};
-        background-size: 100% 100%;
-        background-repeat: no-repeat;
-        pointer-events: none;
-        z-index: 5;
-    `;
-    container.appendChild(patchEl);
-
-    if (clearedCount === 0 && w < 10 && h < 10) {
+    if (clearedCount === 0) {
+        // Nothing was cleared — pop the undo snapshot we just added
         undoHistory.pop();
-        patchEl.remove();
-        pe.rects.pop();
-        clearTextContainer = null;
-        return;
     }
 
-    // 6. Async upgrade: once background canvas is ready, replace patch with pixel-perfect copy
-    const _capturedPage = currentPageNum;
-    const _capturedScale = pdfScale;
-    const _mainCanvas2u = container.querySelector('canvas');
-    const _csx2u = _mainCanvas2u ? (_mainCanvas2u.width  / container.offsetWidth)  : 1;
-    const _csy2u = _mainCanvas2u ? (_mainCanvas2u.height / container.offsetHeight) : 1;
-
-    ensureBgCanvas().then(bgCv => {
-        if (!bgCv) return;
-        if (_capturedPage !== currentPageNum || _capturedScale !== pdfScale) return; // page changed
-        if (!patchEl.isConnected) return; // already removed (undo etc.)
-
-        // Extract the exact region from the clean bg canvas
-        const bpx = Math.round(l * _csx2u);
-        const bpy = Math.round(t * _csy2u);
-        const bpw = Math.max(1, Math.round(w * _csx2u));
-        const bph = Math.max(1, Math.round(h * _csy2u));
-
-        const bCv = document.createElement('canvas');
-        bCv.width = bpw; bCv.height = bph;
-        const bCtx = bCv.getContext('2d');
-        try {
-            bCtx.drawImage(bgCv, bpx, bpy, bpw, bph, 0, 0, bpw, bph);
-            const check = bCtx.getImageData(0, 0, 1, 1).data;
-            if (check[3] > 0) {
-                const upgradedUrl = bCv.toDataURL('image/png');
-                patchEl.style.backgroundImage = `url(${upgradedUrl})`;
-                patchEl.style.backgroundColor = 'transparent';
-                // Also update the stored rect patch for PDF export
-                const lastRect = pe.rects[pe.rects.length - 1];
-                if (lastRect) lastRect.patch = upgradedUrl;
-            }
-        } catch(e) { /* keep Coons patch as-is */ }
-    }).catch(() => {});
+    // ✅ NO patch div created, NO background color sampled, NO background changed.
+    // The background stays exactly as it was in the original PDF.
 
     clearTextContainer = null;
 }
