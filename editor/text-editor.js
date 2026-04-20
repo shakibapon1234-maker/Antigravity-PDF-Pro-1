@@ -1,4 +1,4 @@
-// ─────────────────────────────────────────────
+﻿// ─────────────────────────────────────────────
 // editor/text-editor.js — Antigravity PDF Pro
 // টেক্সট এডিটিং: startEditing, addNewText,
 // drag, mouse handlers, transformEditorText
@@ -376,6 +376,13 @@ function handlePageMouseDown(e, container, viewport, page) {
         isSelecting = true;
         startClearTextStroke(x, y, container);
         // Note: clearText uses document-level mouseup â€” isSelecting cleared there
+    } else if (activeTool === 'moveArea') {
+        // Move Area টুল - এরিয়া সিলেক্ট করতে শুরু করুন
+        if (!e.target.classList.contains('move-area-selection') &&
+            !e.target.closest('.move-area-selection')) {
+            startMoveAreaSelection(e, container);
+            isSelecting = true;
+        }
     }
 }
 
@@ -386,6 +393,9 @@ function handlePageMouseMove(e, container) {
     } else if (isSelecting && activeTool === 'clearText') {
         const rect = container.getBoundingClientRect();
         continueClearTextStroke(e.clientX - rect.left, e.clientY - rect.top);
+    } else if (isSelecting && activeTool === 'moveArea') {
+        const rect = container.getBoundingClientRect();
+        continueMoveAreaSelection(e, container);
     } else if (isDragging && dragTarget) {
         const rect = container.getBoundingClientRect();
         const cx = e.clientX - rect.left;
@@ -400,6 +410,9 @@ function handlePageMouseMove(e, container) {
 function handlePageMouseUp(e, container) {
     if (isSelecting && activeTool === 'clear') {
         endClearStroke(container);
+        isSelecting = false;
+    } else if (isSelecting && activeTool === 'moveArea') {
+        endMoveAreaSelection(container);
         isSelecting = false;
     }
     // clearText mouseup is handled at document level in startClearTextStroke
@@ -1563,5 +1576,279 @@ function endClearTextStroke(container) {
     }).catch(() => {});
 
     clearTextContainer = null;
+}
+
+// ────────────────────────────────────────────────────────────
+// Move Area - সিলেক্টেড এরিয়া টেক্সট এবং ব্যাকগ্রাউন্ড সহ মুভ করা
+// ────────────────────────────────────────────────────────────
+let moveAreaActive = false;
+let moveAreaStart = null;
+let moveAreaSelection = null;
+let moveAreaRect = null;
+let moveAreaTarget = null;
+let moveAreaOriginalPosition = null;
+let moveAreaDragging = false;
+let moveAreaDragStartX = 0;
+let moveAreaDragStartY = 0;
+let moveAreaOrigLeft = 0;
+let moveAreaOrigTop = 0;
+let activeTableDrag = null;  // টেবিল ড্র্যাগ স্টেট
+let activeCellResize = null; // সেল রিসাইজ স্টেট
+
+function startMoveAreaSelection(e, container) {
+    moveAreaActive = true;
+    const rect = container.getBoundingClientRect();
+    moveAreaStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    
+    moveAreaRect = document.createElement('div');
+    moveAreaRect.className = 'move-area-selection';
+    moveAreaRect.style.cssText = `
+        position: absolute;
+        left: ${moveAreaStart.x}px;
+        top: ${moveAreaStart.y}px;
+        width: 0;
+        height: 0;
+        border: 2px dashed #00d4ff;
+        background: rgba(0, 212, 255, 0.1);
+        z-index: 150;
+        cursor: crosshair;
+    `;
+    container.appendChild(moveAreaRect);
+}
+
+function continueMoveAreaSelection(e, container) {
+    if (!moveAreaActive || !moveAreaStart || !moveAreaRect) return;
+    
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const left = Math.min(moveAreaStart.x, x);
+    const top = Math.min(moveAreaStart.y, y);
+    const width = Math.abs(x - moveAreaStart.x);
+    const height = Math.abs(y - moveAreaStart.y);
+    
+    moveAreaRect.style.left = `${left}px`;
+    moveAreaRect.style.top = `${top}px`;
+    moveAreaRect.style.width = `${width}px`;
+    moveAreaRect.style.height = `${height}px`;
+}
+
+function endMoveAreaSelection(container) {
+    if (!moveAreaActive || !moveAreaStart || !moveAreaRect) return;
+    
+    const left = parseFloat(moveAreaRect.style.left);
+    const top = parseFloat(moveAreaRect.style.top);
+    const width = parseFloat(moveAreaRect.style.width);
+    const height = parseFloat(moveAreaRect.style.height);
+    
+    if (width > 5 && height > 5) {
+        // Store the selected area for dragging
+        moveAreaSelection = { left, top, width, height, container };
+        moveAreaRect.style.cursor = 'grab';
+        moveAreaRect.style.borderColor = '#b829f9';
+        moveAreaRect.style.pointerEvents = 'auto';
+        
+        // mousedown event - drag শুরু করুন
+        moveAreaRect.addEventListener('mousedown', (e) => {
+            moveAreaDragging = true;
+            moveAreaDragStartX = e.clientX;
+            moveAreaDragStartY = e.clientY;
+            moveAreaOrigLeft = parseFloat(moveAreaRect.style.left);
+            moveAreaOrigTop = parseFloat(moveAreaRect.style.top);
+            moveAreaRect.style.cursor = 'grabbing';
+            e.stopPropagation();
+            e.preventDefault();
+        });
+    } else {
+        moveAreaActive = false;
+        if (moveAreaRect && moveAreaRect.parentNode) {
+            moveAreaRect.remove();
+        }
+        moveAreaRect = null;
+        moveAreaStart = null;
+    }
+}
+
+function applyMoveArea(selection, container) {
+    // সব টেক্সট আইটেম খুঁজুন যা সিলেকশনের মধ্যে আছে
+    // Find all text items within the selection
+    const textItems = container.querySelectorAll('.editable-text-unit');
+    let movedItems = [];
+    
+    const selectionBounds = {
+        left: selection.left,
+        top: selection.top,
+        right: selection.left + selection.width,
+        bottom: selection.top + selection.height
+    };
+    
+    textItems.forEach(item => {
+        const itemRect = item.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const itemLeft = itemRect.left - containerRect.left;
+        const itemTop = itemRect.top - containerRect.top;
+        const itemRight = itemLeft + itemRect.width;
+        const itemBottom = itemTop + itemRect.height;
+        
+        // Check if item is within selection
+        if (itemLeft < selectionBounds.right &&
+            itemRight > selectionBounds.left &&
+            itemTop < selectionBounds.bottom &&
+            itemBottom > selectionBounds.top) {
+            movedItems.push({
+                item: item,
+                originalLeft: parseFloat(item.style.left) || itemLeft,
+                originalTop: parseFloat(item.style.top) || itemTop
+            });
+        }
+    });
+    
+    if (movedItems.length > 0) {
+        captureUndoSnapshot('Move area');
+        movedItems.forEach(moved => {
+            const edit = textEdits.find(ed => ed.id === moved.item.dataset.editId);
+            if (edit) {
+                edit.x = parseFloat(moved.item.style.left) / pdfScale;
+                edit.y = (container.offsetHeight - parseFloat(moved.item.style.top)) / pdfScale - edit.size;
+            }
+        });
+    }
+    
+    // পরিষ্কার করুন
+    if (moveAreaRect && moveAreaRect.parentNode) {
+        moveAreaRect.remove();
+    }
+    moveAreaActive = false;
+    moveAreaStart = null;
+    moveAreaSelection = null;
+    moveAreaRect = null;
+    moveAreaDragging = false;
+}
+
+// ────────────────────────────────────────────────────────────
+// Create Table - কাস্টমাইজেবল টেবিল তৈরি করা + রিসাইজ করা যায়
+// ────────────────────────────────────────────────────────────
+
+function createTable(columns, rows, cellWidth, cellHeight, container, viewport, page) {
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'created-table';
+    tableContainer.style.cssText = `
+        position: absolute;
+        background: white;
+        z-index: 100;
+        border: 1px solid #555;
+        box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    `;
+    
+    // টেবিল HTML তৈরি করুন
+    let tableHTML = '<table style="width:100%; border-collapse: collapse; border: 1px solid #333;">';
+    
+    for (let r = 0; r < rows; r++) {
+        tableHTML += '<tr>';
+        for (let c = 0; c < columns; c++) {
+            tableHTML += `<td class="table-cell" style="
+                border: 1px solid #333;
+                padding: 8px;
+                width: ${cellWidth}px;
+                height: ${cellHeight}px;
+                text-align: left;
+                vertical-align: top;
+                background: white;
+                color: #000;
+                font-family: Helvetica;
+                font-size: 12px;
+                position: relative;
+                overflow: hidden;
+            "><div class="cell-content" style="width: 100%; height: 100%; cursor: text;"></div><div class="cell-resize-handle" style="position: absolute; bottom: 0; right: 0; width: 8px; height: 8px; background: #00d4ff; cursor: se-resize; opacity: 0; transition: opacity 0.2s;"></div></td>`;
+        }
+        tableHTML += '</tr>';
+    }
+    tableHTML += '</table>';
+    
+    tableContainer.innerHTML = tableHTML;
+    
+    // টেবিলকে ড্র্যাগযোগ্য করুন
+    const handle = document.createElement('div');
+    handle.style.cssText = `
+        position: absolute;
+        top: -20px;
+        left: 0;
+        background: #7c3aed;
+        color: white;
+        padding: 4px 8px;
+        cursor: grab;
+        border-radius: 4px;
+        font-size: 11px;
+        user-select: none;
+        z-index: 101;
+    `;
+    handle.textContent = '⋮ Drag Table';
+    handle.title = 'Drag to move the table';
+    
+    tableContainer.appendChild(handle);
+    
+    // ড্র্যাগ হ্যান্ডলার সেটআপ (global state ব্যবহার করছি)
+    handle.addEventListener('mousedown', (e) => {
+        activeTableDrag = {
+            element: tableContainer,
+            startX: e.clientX,
+            startY: e.clientY,
+            origLeft: parseFloat(tableContainer.style.left) || 0,
+            origTop: parseFloat(tableContainer.style.top) || 0,
+            handle: handle
+        };
+        handle.style.cursor = 'grabbing';
+        e.preventDefault();
+        e.stopPropagation();
+    });
+    
+    // টেবিল সেল সাথে ইন্টারঅ্যাক্ট করুন
+    const cells = tableContainer.querySelectorAll('td.table-cell');
+    cells.forEach((cell, idx) => {
+        const cellContent = cell.querySelector('.cell-content');
+        const resizeHandle = cell.querySelector('.cell-resize-handle');
+        
+        // সেল এডিটিং
+        cellContent.addEventListener('click', (e) => {
+            e.stopPropagation();
+            cellContent.contentEditable = 'true';
+            cellContent.focus();
+        });
+        
+        cellContent.addEventListener('blur', () => {
+            cellContent.contentEditable = 'false';
+        });
+        
+        cellContent.addEventListener('dblclick', (e) => {
+            cellContent.contentEditable = 'true';
+            cellContent.focus();
+            e.stopPropagation();
+        });
+        
+        // মাউস hover এ রিসাইজ হ্যান্ডেল দেখান
+        cell.addEventListener('mouseenter', () => {
+            resizeHandle.style.opacity = '1';
+        });
+        
+        cell.addEventListener('mouseleave', () => {
+            resizeHandle.style.opacity = '0';
+        });
+        
+        // সেল রিসাইজ হ্যান্ডলার (global state ব্যবহার করছি)
+        resizeHandle.addEventListener('mousedown', (e) => {
+            activeCellResize = {
+                cell: cell,
+                startX: e.clientX,
+                startY: e.clientY,
+                origWidth: cell.offsetWidth,
+                origHeight: cell.offsetHeight
+            };
+            e.stopPropagation();
+            e.preventDefault();
+        });
+    });
+    
+    return tableContainer;
 }
 

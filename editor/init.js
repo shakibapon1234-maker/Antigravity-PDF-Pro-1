@@ -214,6 +214,73 @@ function initEventListeners() {
         inp.click();
     });
 
+    // ── Move Area বাটন ──────────────────────────────────────────────────
+    document.getElementById('btnMoveArea').addEventListener('click', () => {
+        activeTool = 'moveArea';
+        updateToolUI('btnMoveArea');
+        document.body.classList.remove('eraser-active');
+        const w = document.getElementById('canvasWrapper');
+        if (w) w.style.cursor = 'crosshair';
+    });
+
+    // ── Create Table বাটন ──────────────────────────────────────────────
+    document.getElementById('btnCreateTable').addEventListener('click', () => {
+        const modal = document.getElementById('tableModal');
+        if (modal) modal.style.display = 'flex';
+    });
+
+    // ── টেবিল মডাল ইভেন্ট ─────────────────────────────────────────────
+    const tableModal = document.getElementById('tableModal');
+    if (tableModal) {
+        document.getElementById('btnCloseTableModal').addEventListener('click', () => {
+            tableModal.style.display = 'none';
+        });
+
+        document.getElementById('btnCancelTable').addEventListener('click', () => {
+            tableModal.style.display = 'none';
+        });
+
+        document.getElementById('btnCreateTableConfirm').addEventListener('click', () => {
+            const columns = parseInt(document.getElementById('tableColumns').value) || 3;
+            const rows = parseInt(document.getElementById('tableRows').value) || 3;
+            const cellWidth = parseInt(document.getElementById('tableCellWidth').value) || 80;
+            const cellHeight = parseInt(document.getElementById('tableCellHeight').value) || 50;
+
+            const container = document.querySelector('.pdf-page-wrapper');
+            if (!container) {
+                alert('Please load a PDF first');
+                return;
+            }
+
+            // টেবিল তৈরি করুন
+            const tableEl = createTable(columns, rows, cellWidth, cellHeight, container);
+            
+            // টেবিল কন্টেইনারে যোগ করুন
+            tableEl.style.left = '50px';
+            tableEl.style.top = '50px';
+            container.appendChild(tableEl);
+
+            tableModal.style.display = 'none';
+            
+            // স্টাইল আপডেট করুন
+            updateToolUI('btnCreateTable');
+
+            // Table object store করুন (PDF save এর সময় প্রয়োজন হবে)
+            if (!window.createdTables) window.createdTables = [];
+            window.createdTables.push({
+                page: currentPageNum,
+                html: tableEl.innerHTML,
+                x: 50,
+                y: 50
+            });
+        });
+
+        // মডাল বন্ধ করতে ESC কী
+        tableModal.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') tableModal.style.display = 'none';
+        });
+    }
+
     // ── কীবোর্ড শর্টকাট ─────────────────────────────────────────────────
     window.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') return;
@@ -240,7 +307,7 @@ function initEventListeners() {
     document.querySelectorAll('.btn-tool, .color-picker-wrapper, #btnIncreaseFont, #btnDecreaseFont, #fontFamily, #fontSize').forEach(el => {
         el.addEventListener('mousedown', (e) => {
             if (el.tagName === 'SELECT' || el.tagName === 'INPUT') return;
-            const noPreventList = ['btnSelect','btnTypeText','btnClearText','btnInsertImage','btnUndo','btnClearEdits','btnShapeMenu'];
+            const noPreventList = ['btnSelect','btnTypeText','btnClearText','btnInsertImage','btnUndo','btnClearEdits','btnShapeMenu','btnMoveArea','btnCreateTable'];
             if (noPreventList.includes(el.id)) return;
             e.preventDefault();
         });
@@ -256,6 +323,63 @@ function initEventListeners() {
         const inToolbar = toolbar && toolbar.contains(e.target);
         if (!inEditor && !inToolbar) ae._commit();
     }, true);
+
+    // ── Move Area Global Drag Handlers ───────────────────────────────────
+    document.addEventListener('mousemove', (e) => {
+        // Table Drag Handling
+        if (activeTableDrag) {
+            const deltaX = e.clientX - activeTableDrag.startX;
+            const deltaY = e.clientY - activeTableDrag.startY;
+            activeTableDrag.element.style.left = `${activeTableDrag.origLeft + deltaX}px`;
+            activeTableDrag.element.style.top = `${activeTableDrag.origTop + deltaY}px`;
+        }
+        
+        // Cell Resize Handling
+        if (activeCellResize) {
+            const deltaX = e.clientX - activeCellResize.startX;
+            const deltaY = e.clientY - activeCellResize.startY;
+            const newWidth = Math.max(50, activeCellResize.origWidth + deltaX);
+            const newHeight = Math.max(30, activeCellResize.origHeight + deltaY);
+            activeCellResize.cell.style.width = `${newWidth}px`;
+            activeCellResize.cell.style.height = `${newHeight}px`;
+        }
+        
+        // Move Area Handling
+        if (moveAreaDragging && moveAreaRect) {
+            const deltaX = e.clientX - moveAreaDragStartX;
+            const deltaY = e.clientY - moveAreaDragStartY;
+            moveAreaRect.style.left = `${moveAreaOrigLeft + deltaX}px`;
+            moveAreaRect.style.top = `${moveAreaOrigTop + deltaY}px`;
+            if (moveAreaSelection) {
+                moveAreaSelection.left = moveAreaOrigLeft + deltaX;
+                moveAreaSelection.top = moveAreaOrigTop + deltaY;
+            }
+        }
+    });
+    
+    document.addEventListener('mouseup', (e) => {
+        // Table Drag End
+        if (activeTableDrag) {
+            activeTableDrag.handle.style.cursor = 'grab';
+            activeTableDrag = null;
+        }
+        
+        // Cell Resize End
+        if (activeCellResize) {
+            activeCellResize = null;
+        }
+        
+        // Move Area End
+        if (moveAreaDragging) {
+            moveAreaDragging = false;
+            if (moveAreaRect) {
+                moveAreaRect.style.cursor = 'grab';
+            }
+            if (moveAreaSelection) {
+                applyMoveArea(moveAreaSelection, moveAreaSelection.container);
+            }
+        }
+    });
 
     // ── Escape key ───────────────────────────────────────────────────────
     document.addEventListener('keydown', (e) => {

@@ -433,6 +433,14 @@
                                         <i data-lucide="image"></i>
                                         <span class="tool-label">Image</span>
                                     </button>
+                                    <button class="btn-tool tool-purple" id="btnMoveArea" title="Move Area — সিলেক্টেড এরিয়া স্থানান্তর করুন">
+                                        <i data-lucide="move-3d"></i>
+                                        <span class="tool-label">Move Area</span>
+                                    </button>
+                                    <button class="btn-tool tool-pink" id="btnCreateTable" title="Create Table — টেবিল তৈরি করুন">
+                                        <i data-lucide="grid-3x3"></i>
+                                        <span class="tool-label">Table</span>
+                                    </button>
                                     <div class="v-separator"></div>
                                     <button class="btn-tool" id="btnLayerToFront" title="Bring to Front" style="display:none;"><i data-lucide="chevrons-up"></i></button>
                                     <button class="btn-tool" id="btnLayerUp"      title="Bring Forward"  style="display:none;"><i data-lucide="chevron-up"></i></button>
@@ -473,6 +481,43 @@
                         </div>
                     </div>
                 </section>
+
+                        <!-- Create Table Modal -->
+                        <div id="tableModal" class="archive-modal" style="display:none; position: fixed; inset: 0; z-index: 9999;">
+                            <div class="archive-panel" style="background: var(--bg-surface); border: 1px solid var(--primary-glow); border-radius: 12px; padding: 30px; max-width: 500px; width: 90%;">
+                                <div class="archive-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                    <h3 style="color: #fff; font-size: 20px; font-weight: 700; margin: 0;">টেবিল তৈরি করুন (Create Table)</h3>
+                                    <button id="btnCloseTableModal" style="background: transparent; border: none; color: #fff; cursor: pointer; font-size: 24px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">&times;</button>
+                                </div>
+                                
+                                <div style="display: flex; flex-direction: column; gap: 15px;">
+                                    <div>
+                                        <label style="color: #fff; font-weight: 600; margin-bottom: 8px; display: block;">কলামের সংখ্যা (Columns)</label>
+                                        <input type="number" id="tableColumns" value="3" min="1" max="20" class="form-input" style="width: 100%; padding: 10px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: 6px; color: #fff; font-size: 14px;">
+                                    </div>
+                                    
+                                    <div>
+                                        <label style="color: #fff; font-weight: 600; margin-bottom: 8px; display: block;">সারির সংখ্যা (Rows)</label>
+                                        <input type="number" id="tableRows" value="3" min="1" max="20" class="form-input" style="width: 100%; padding: 10px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: 6px; color: #fff; font-size: 14px;">
+                                    </div>
+                                    
+                                    <div>
+                                        <label style="color: #fff; font-weight: 600; margin-bottom: 8px; display: block;">সেল প্রস্থ (Cell Width) - পিক্সেল</label>
+                                        <input type="number" id="tableCellWidth" value="80" min="30" max="300" class="form-input" style="width: 100%; padding: 10px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: 6px; color: #fff; font-size: 14px;">
+                                    </div>
+                                    
+                                    <div>
+                                        <label style="color: #fff; font-weight: 600; margin-bottom: 8px; display: block;">সেল উচ্চতা (Cell Height) - পিক্সেল</label>
+                                        <input type="number" id="tableCellHeight" value="50" min="20" max="200" class="form-input" style="width: 100%; padding: 10px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: 6px; color: #fff; font-size: 14px;">
+                                    </div>
+                                    
+                                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                                        <button id="btnCreateTableConfirm" class="btn btn-primary" style="flex: 1; padding: 12px; border-radius: 6px; font-weight: 600;">টেবিল তৈরি করুন</button>
+                                        <button id="btnCancelTable" class="btn btn-outline" style="flex: 1; padding: 12px; border-radius: 6px; font-weight: 600;">বাতিল</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         <!-- Archive Modal (shared) -->
                         <div id="archiveModal" class="archive-modal" style="display:none;">
