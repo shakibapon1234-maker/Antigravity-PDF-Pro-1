@@ -1091,8 +1091,8 @@ function startClearTextStroke(x, y, container) {
     clearTextRectEl = document.createElement('div');
     clearTextRectEl.style.cssText =
         `position:absolute;left:${x}px;top:${y}px;width:0;height:0;
-         border:2px dashed #7c3aed;background:rgba(124,58,237,0.08);
-         pointer-events:none;z-index:200;box-sizing:border-box;`;
+         border:3px dashed #ff1493;background:rgba(255,20,147,0.15);
+         pointer-events:none;z-index:99999;box-sizing:border-box;`;
     container.appendChild(clearTextRectEl);
 
     // Attach document-level move/up so drag works even outside the page wrapper
@@ -1437,9 +1437,18 @@ function endClearTextStroke(container) {
             clearedCount++;
             span._cleared = true;
             span._textCleared = true;
+            
+            // ✅ CRITICAL: Save original background BEFORE clearing text
+            const originalBgColor = span.style.backgroundColor || 'transparent';
+            const originalBgImage = span.style.backgroundImage || 'none';
+            
+            // Clear only the text content and color
             span.textContent = '';
             span.style.color = 'transparent';
-            // ✅ Only make text invisible — do NOT change backgroundColor or backgroundImage
+            
+            // ✅ PRESERVE background - do NOT change it
+            span.style.backgroundColor = originalBgColor;
+            span.style.backgroundImage = originalBgImage;
             span.style.pointerEvents = 'auto';
 
             const editId = span.dataset.editId || `ct-${currentPageNum}-${Math.round(sl)}-${Math.round(st)}`;
