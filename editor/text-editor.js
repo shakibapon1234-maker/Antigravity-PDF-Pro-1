@@ -1466,6 +1466,26 @@ function endClearTextStroke(container) {
         }
     });
 
+    // 3b. Also clear PDF.js native text spans from .text-layer
+    // These are the original PDF text elements that PDF.js renders
+    const textLayer = container.querySelector('.text-layer');
+    if (textLayer) {
+        textLayer.querySelectorAll('span').forEach(nativeSpan => {
+            const sr   = nativeSpan.getBoundingClientRect();
+            const sl   = sr.left - contRect.left;
+            const st   = sr.top  - contRect.top;
+            const sw   = sr.width  || nativeSpan.offsetWidth  || 20;
+            const sh   = sr.height || nativeSpan.offsetHeight || 10;
+
+            if (sl < l + w && sl + sw > l && st < t + h && st + sh > t) {
+                clearedCount++;
+                nativeSpan.style.color = 'transparent';
+                nativeSpan.style.visibility = 'hidden';
+                nativeSpan.textContent = '';
+            }
+        });
+    }
+
     // 4. Store drawing info for PDF rendering
     let pe = clearStrokes.find(s => s.page === currentPageNum);
     if (!pe) { pe = { page: currentPageNum, rects: [] }; clearStrokes.push(pe); }
