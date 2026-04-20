@@ -1,492 +1,438 @@
-// Antigravity PDF - Excel to Word Logic
+// ═══════════════════════════════════════════════════════════════
+//  Antigravity PDF Pro — Excel to Word Converter (v4 Fixed)
+//  ✔ Page border overlay (A4/Letter/Legal dashed rectangle)
+//  ✔ Portrait/Landscape orientation border updates live
+//  ✔ Selection content placed on proper A4/Letter page
+//  ✔ Mouse drag + manual range input area selection
+//  ✔ Clear selection button
+//  ✔ Gridlines toggle
+// ═══════════════════════════════════════════════════════════════
+
 document.addEventListener('DOMContentLoaded', () => {
-    const fileInput = document.getElementById('e2wFileInput');
-    const uploadBtn = document.getElementById('btnUploadExcelToWord');
-    const convertBtn = document.getElementById('btnConvertExcelToWord');
-    const workspace = document.getElementById('e2wWorkspace');
-    const emptyState = document.getElementById('e2wEmptyState');
-    const previewContainer = document.getElementById('e2wPreview');
+
+    const fileInput         = document.getElementById('e2wFileInput');
+    const uploadBtn         = document.getElementById('btnUploadExcelToWord');
+    const convertBtn        = document.getElementById('btnConvertExcelToWord');
+    const workspace         = document.getElementById('e2wWorkspace');
+    const emptyState        = document.getElementById('e2wEmptyState');
+    const previewContainer  = document.getElementById('e2wPreview');
     const orientationSelect = document.getElementById('e2wOrientation');
-    const pageSizeSelect = document.getElementById('e2wPageSize');
-    const areaSelectInput = document.getElementById('e2wAreaSelect');
-    const showGridlinesInput = document.getElementById('e2wShowGridlines');
+    const pageSizeSelect    = document.getElementById('e2wPageSize');
+    const areaSelectInput   = document.getElementById('e2wAreaSelect');
+    const showGridlinesInput= document.getElementById('e2wShowGridlines');
 
-    let currentFile = null;
+    if(!fileInput)return;
+
+    let currentFile      = null;
     let currentWorksheet = null;
-    let currentWorkbook = null;
-    let colsConfig = [];
+    let currentWorkbook  = null;
+    let colsConfig       = [];
+    let trueRange        = null;
+    let selStart         = null;
+    let selEnd           = null;
+    let isDragging       = false;
 
-    if (!fileInput) return;
+    uploadBtn.addEventListener('click',()=>fileInput.click());
+    fileInput.addEventListener('change',e=>{if(e.target.files[0])handleExcelFile(e.target.files[0]);});
 
-    uploadBtn.addEventListener('click', () => fileInput.click());
+    // ── Page sizes (mm) ──────────────────────────────────────────
+    const PAGE_MM={a4:{w:210,h:297},letter:{w:215.9,h:279.4},legal:{w:215.9,h:355.6}};
+    const MARGIN=10;
+    const MM2PX=96/25.4;
 
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) handleExcelFile(file);
-    });
-
-    function getColName(n) {
-        let s = "";
-        while(n >= 0) {
-            s = String.fromCharCode(n % 26 + 65) + s;
-            n = Math.floor(n / 26) - 1;
-        }
-        return s;
+    function getPrintablePx(){
+        const sz=pageSizeSelect?pageSizeSelect.value:'a4';
+        if(sz==='fit')return null;
+        const or=orientationSelect?orientationSelect.value:'portrait';
+        const d=PAGE_MM[sz]||PAGE_MM.a4;
+        const pw=or==='landscape'?d.h:d.w;
+        const ph=or==='landscape'?d.w:d.h;
+        return{w:(pw-MARGIN*2)*MM2PX, h:(ph-MARGIN*2)*MM2PX};
     }
 
-    function computeTrueRange(worksheet) {
-        let max_r = 0, max_c = 0;
-        let min_r = Infinity, min_c = Infinity;
-        let hasData = false;
-        
-        for (let key in worksheet) {
-            if (key[0] === '!') continue; 
-            let cell = worksheet[key];
-            if (cell.v === undefined && cell.w === undefined) continue;
-            if (cell.v === '' && cell.w === '') continue;
-
-            hasData = true;
-            try {
-                let addr = XLSX.utils.decode_cell(key);
-                if (addr.r > max_r) max_r = addr.r;
-                if (addr.c > max_c) max_c = addr.c;
-                if (addr.r < min_r) min_r = addr.r;
-                if (addr.c < min_c) min_c = addr.c;
-            } catch(e) {}
-        }
-        
-        if (!hasData) return { s: {r:0, c:0}, e: {r:0, c:0} };
-        return { s: {r: min_r, c: min_c}, e: {r: max_r, c: max_c} };
+    function colLetter(n){
+        let s='';while(n>=0){s=String.fromCharCode((n%26)+65)+s;n=Math.floor(n/26)-1;}return s;
     }
 
-    function handleExcelFile(file) {
-        currentFile = file;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            currentWorkbook = XLSX.read(data, { type: 'array' });
-            const firstSheetName = currentWorkbook.SheetNames[0];
-            currentWorksheet = currentWorkbook.Sheets[firstSheetName];
-            currentWorksheet['!true_range'] = computeTrueRange(currentWorksheet);
-            colsConfig = currentWorksheet['!cols'] || [];
-            
+    function computeTrueRange(ws){
+        let maxR=0,maxC=0,minR=Infinity,minC=Infinity,hasData=false;
+        for(const k in ws){
+            if(k[0]==='!')continue;const c=ws[k];
+            if(c.v===undefined&&c.w===undefined)continue;
+            if(c.v===''&&c.w==='')continue;hasData=true;
+            try{const a=XLSX.utils.decode_cell(k);
+                if(a.r>maxR)maxR=a.r;if(a.c>maxC)maxC=a.c;
+                if(a.r<minR)minR=a.r;if(a.c<minC)minC=a.c;}catch(_){}
+        }
+        return hasData?{s:{r:minR,c:minC},e:{r:maxR,c:maxC}}:{s:{r:0,c:0},e:{r:0,c:0}};
+    }
+
+    function cw(c){return Math.max(45,colsConfig[c]?(colsConfig[c].wpx||80):80);}
+
+    function handleExcelFile(file){
+        currentFile=file;
+        const reader=new FileReader();
+        reader.onload=e=>{
+            const data=new Uint8Array(e.target.result);
+            currentWorkbook=XLSX.read(data,{type:'array'});
+            const sn=currentWorkbook.SheetNames[0];
+            currentWorksheet=currentWorkbook.Sheets[sn];
+            trueRange=computeTrueRange(currentWorksheet);
+            colsConfig=currentWorksheet['!cols']||[];
+            selStart=null;selEnd=null;
+            if(areaSelectInput)areaSelectInput.value='';
             renderTablePreview();
-
             emptyState.classList.add('d-none');
             workspace.classList.remove('d-none');
         };
         reader.readAsArrayBuffer(file);
     }
 
-    function renderTablePreview() {
-        if (!currentWorksheet) return;
+    // ── Render preview ───────────────────────────────────────────
+    function renderTablePreview(){
+        if(!currentWorksheet)return;
+        const r=trueRange;
 
-        let range = currentWorksheet['!true_range'];
+        let html=`
+        <div id="e2wNotice" style="margin-bottom:5px;font-size:12px;min-height:18px;"></div>
+        <div style="margin-bottom:8px;font-size:12px;color:#90caf9;background:rgba(0,120,215,0.1);
+             padding:7px 12px;border-radius:6px;border-left:3px solid #0078d7;
+             display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <span>📌 <strong>এরিয়া সিলেক্ট করুন:</strong>
+            মাউস দিয়ে ড্র্যাগ করুন বা রেঞ্জ টাইপ করুন।
+            সিলেক্ট করা অংশ A4 পেপারে Word ডকুমেন্ট হবে।</span>
+          <button id="btnClearE2wSel" style="background:rgba(255,77,77,0.15);border:1px solid #ff4d4d;
+            color:#ff7070;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:12px;">
+            ✕ সিলেকশন মুছুন</button>
+        </div>
+        <div style="position:relative;display:inline-block;">
+          <div id="e2wBorder" style="position:absolute;pointer-events:none;z-index:10;
+               border:2.5px dashed #ff5500;display:none;box-shadow:0 0 0 1px rgba(255,85,0,0.2);
+               background:rgba(255,85,0,0.03);"></div>`;
 
-        let html = '<div style="margin-bottom: 5px; color: #ffeb3b; font-size: 13px;" id="e2wWarningNotice"></div>';
-        html += '<table id="e2w-table-preview" style="width: max-content; border-collapse: collapse; background: #ffffff !important; color: #000000 !important; font-family: Calibri, Arial, sans-serif; user-select: none; table-layout: fixed;">';
-        
-        // Column Headers (A, B, C...)
-        html += '<tr>';
-        html += '<th style="background: #e6e6e6; border: 1px solid #c0c0c0; width: 40px; min-width: 40px; max-width: 40px; height: 25px; position: sticky; top: 0; left: 0; z-index: 3;"></th>';
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-            let colWidth = colsConfig[C] ? colsConfig[C].wpx : 80;
-            html += `<th style="background: #e6e6e6; border: 1px solid #c0c0c0; font-weight: normal; font-size: 13px; text-align: center; min-width: ${colWidth}px; max-width: ${colWidth}px; overflow: hidden; position: sticky; top: 0; z-index: 2;">${getColName(C)}</th>`;
+        html+=`<table id="e2w-table-preview"
+            style="width:max-content;border-collapse:collapse;background:#fff!important;
+                   color:#000!important;font-family:Calibri,Arial,sans-serif;
+                   user-select:none;table-layout:fixed;">`;
+
+        html+='<tr>';
+        html+=`<th id="e2w-corner" style="background:#e6e6e6;border:1px solid #b0b0b0;width:38px;min-width:38px;
+                position:sticky;top:0;left:0;z-index:3;font-size:11px;color:#777;text-align:center;">✂</th>`;
+        for(let C=r.s.c;C<=r.e.c;++C){
+            const w=cw(C);
+            html+=`<th data-ch="${C}" style="background:#e6e6e6;border:1px solid #b0b0b0;font-weight:400;
+                   font-size:12px;text-align:center;min-width:${w}px;max-width:${w}px;overflow:hidden;
+                   position:sticky;top:0;z-index:2;cursor:pointer;padding:2px 4px;">${colLetter(C)}</th>`;
         }
-        html += '</tr>';
+        html+='</tr>';
 
-        // Data Rows with Row Number Headers
-        for (let R = range.s.r; R <= range.e.r; ++R) {
-            html += '<tr>';
-            html += `<th style="background: #e6e6e6; border: 1px solid #c0c0c0; font-weight: normal; font-size: 13px; text-align: center; position: sticky; left: 0; z-index: 2;">${R + 1}</th>`;
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-                const cellAddr = XLSX.utils.encode_cell({c: C, r: R});
-                const cell = currentWorksheet[cellAddr];
-                let cellText = cell && cell.v !== undefined ? XLSX.utils.format_cell(cell) : '';
-                cellText = cellText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                
-                let colWidth = colsConfig[C] ? colsConfig[C].wpx : 80;
-                html += `<td data-row="${R}" data-col="${C}" class="e2w-preview-cell" style="border: 1px solid #d4d4d4; padding: 2px 4px; min-width: ${colWidth}px; max-width: ${colWidth}px; font-size: 14px; overflow: hidden; white-space: nowrap; cursor: crosshair; transition: background 0.1s; vertical-align: bottom;">${cellText}</td>`;
+        for(let R=r.s.r;R<=r.e.r;++R){
+            html+='<tr>';
+            html+=`<th data-rh="${R}" style="background:#e6e6e6;border:1px solid #b0b0b0;font-weight:400;
+                   font-size:12px;text-align:center;position:sticky;left:0;z-index:2;cursor:pointer;padding:2px 6px;">${R+1}</th>`;
+            for(let C=r.s.c;C<=r.e.c;++C){
+                const addr=XLSX.utils.encode_cell({c:C,r:R});
+                const cell=currentWorksheet[addr];
+                let txt=(cell&&cell.v!==undefined)?XLSX.utils.format_cell(cell):'';
+                txt=txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                const w=cw(C);
+                html+=`<td data-row="${R}" data-col="${C}" class="e2w-cell"
+                    style="border:1px solid #d0d0d0;padding:2px 5px;min-width:${w}px;max-width:${w}px;
+                           font-size:13px;overflow:hidden;white-space:nowrap;cursor:crosshair;
+                           vertical-align:bottom;background:#fff;">${txt}</td>`;
             }
-            html += '</tr>';
+            html+='</tr>';
         }
-        html += '</table>';
+        html+=`</table></div>`;
 
-        previewContainer.innerHTML = html;
-        previewContainer.style.background = '#d8d8d8';
-        previewContainer.style.padding = '0px'; 
-        previewContainer.style.overflow = 'auto'; 
-        previewContainer.style.maxHeight = '600px'; 
-        
-        setupDragSelection();
-        updateWordVisuals();
-    }
-    
-    let isDragging = false;
-    let dragStart = null;
-    let dragEnd = null;
+        previewContainer.innerHTML=html;
+        previewContainer.style.cssText='background:#d0d0d0;padding:0;overflow:auto;max-height:520px;';
 
-    function setupDragSelection() {
-        const table = previewContainer.querySelector('table');
-        if (!table) return;
-
-        const handleCellEvents = (e) => {
-            const td = e.target.closest('td.e2w-preview-cell');
-            if (!td) return null;
-            return { r: parseInt(td.dataset.row), c: parseInt(td.dataset.col) };
-        };
-
-        table.addEventListener('mousedown', (e) => {
-            const coords = handleCellEvents(e);
-            if (!coords) return;
-            isDragging = true;
-            dragStart = coords;
-            dragEnd = coords;
-            updateSelectionVisuals();
+        attachEvents();
+        document.getElementById('btnClearE2wSel').addEventListener('click',()=>{
+            selStart=null;selEnd=null;
+            if(areaSelectInput)areaSelectInput.value='';
+            paintSel();updateBorder();
         });
-
-        table.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            const coords = handleCellEvents(e);
-            if (!coords) return;
-            dragEnd = coords;
-            updateSelectionVisuals();
-        });
-
-        window.addEventListener('mouseup', () => {
-            if (isDragging) {
-                isDragging = false;
-                if (dragStart && dragEnd) {
-                    const minC = Math.min(dragStart.c, dragEnd.c);
-                    const minR = Math.min(dragStart.r, dragEnd.r);
-                    const maxC = Math.max(dragStart.c, dragEnd.c);
-                    const maxR = Math.max(dragStart.r, dragEnd.r);
-                    areaSelectInput.value = XLSX.utils.encode_cell({c:minC, r:minR}) + ':' + XLSX.utils.encode_cell({c:maxC, r:maxR});
-                }
-            }
-        });
-        
-        if (areaSelectInput) {
-            areaSelectInput.addEventListener('input', () => {
-                 try {
-                    if(!areaSelectInput.value.trim()) {
-                        dragStart = dragEnd = null;
-                        updateSelectionVisuals();
-                        return;
-                    }
-                    const pRange = XLSX.utils.decode_range(areaSelectInput.value.trim().toUpperCase());
-                    dragStart = { r: pRange.s.r, c: pRange.s.c };
-                    dragEnd = { r: pRange.e.r, c: pRange.e.c };
-                    updateSelectionVisuals();
-                 } catch(e) {}
-            });
-        }
+        updateBorder();
     }
 
-    function updateSelectionVisuals() {
-        const cells = previewContainer.querySelectorAll('td.e2w-preview-cell');
-        if (!dragStart || !dragEnd) {
-            cells.forEach(td => {
-                td.style.background = 'transparent';
-                updateWordVisuals();
-            });
+    // ── Page border overlay ───────────────────────────────────────
+    function updateBorder(){
+        const overlay=document.getElementById('e2wBorder');
+        const notice=document.getElementById('e2wNotice');
+        if(!overlay)return;
+
+        const printable=getPrintablePx();
+        if(!printable||!currentWorksheet){
+            overlay.style.display='none';
+            if(notice)notice.innerHTML='';
             return;
         }
 
-        const minR = Math.min(dragStart.r, dragEnd.r);
-        const maxR = Math.max(dragStart.r, dragEnd.r);
-        const minC = Math.min(dragStart.c, dragEnd.c);
-        const maxC = Math.max(dragStart.c, dragEnd.c);
+        const cornerEl=document.getElementById('e2w-corner');
+        const firstCh=previewContainer.querySelector('th[data-ch]');
+        const cornerW=cornerEl?cornerEl.offsetWidth:38;
+        const headerH=firstCh?firstCh.offsetHeight:25;
 
-        cells.forEach(td => {
-            const r = parseInt(td.dataset.row);
-            const c = parseInt(td.dataset.col);
-            if (r >= minR && r <= maxR && c >= minC && c <= maxC) {
-                td.style.background = 'rgba(0, 212, 255, 0.25)'; // Word selection blue
-            } else {
-                td.style.background = 'transparent';
+        const table=previewContainer.querySelector('table');
+        if(!table){overlay.style.display='none';return;}
+        const dataW=table.scrollWidth-cornerW;
+        const dataH=table.scrollHeight-headerH;
+
+        const bW=Math.min(printable.w,dataW);
+        const bH=Math.min(printable.h,dataH);
+
+        overlay.style.display='block';
+        overlay.style.left  =cornerW+'px';
+        overlay.style.top   =headerH+'px';
+        overlay.style.width =Math.round(bW)+'px';
+        overlay.style.height=Math.round(bH)+'px';
+
+        const overflows=dataW>printable.w||dataH>printable.h;
+        if(notice){
+            const szLabel=pageSizeSelect?pageSizeSelect.value.toUpperCase():'A4';
+            const orLabel=orientationSelect?orientationSelect.value:'portrait';
+            if(overflows){
+                notice.innerHTML=`<span style="color:#ff7744;">⚠ বর্তমান পেজ (${szLabel} ${orLabel}) -এর বাইরে কনটেন্ট আছে। কম এরিয়া সিলেক্ট করুন বা Landscape ব্যবহার করুন।</span>`;
+            }else{
+                notice.innerHTML=`<span style="color:#66cc88;">✔ সব কনটেন্ট ${szLabel} (${orLabel}) পেজে ফিট হবে।</span>`;
             }
-        });
-    }
-
-    function updateWordVisuals() {
-        const cells = previewContainer.querySelectorAll('td.e2w-preview-cell');
-        cells.forEach(td => {
-            td.style.borderRight = '1px solid #d4d4d4';
-            td.style.borderBottom = '1px solid #d4d4d4';
-        });
-
-        const warningDiv = document.getElementById('e2wWarningNotice');
-
-        if (pageSizeSelect && pageSizeSelect.value !== 'fit' && currentWorksheet) {
-            const orientation = orientationSelect ? orientationSelect.value : 'portrait';
-            // Word sizes approximately converted to Word pixel space
-            // Assuming 8.5 x 11 inches at 96 PPI => 816 x 1056 px
-            // A4: 8.27 x 11.69 inches => ~794 x 1122 px
-            let effectiveW = 794;
-            let effectiveH = 1122;
-
-            if (pageSizeSelect.value === 'letter') {
-                effectiveW = 816; effectiveH = 1056;
-            } else if (pageSizeSelect.value === 'legal') {
-                effectiveW = 816; effectiveH = 1344;
-            }
-
-            if (orientation === 'landscape') {
-                let temp = effectiveW;
-                effectiveW = effectiveH;
-                effectiveH = temp;
-            }
-
-            // Margin deductions (default 1 inch = 96px)
-            effectiveW -= 192; // 1" left + 1" right
-            effectiveH -= 192; // 1" top + 1" bottom
-
-            let curW = 40; 
-            let rightBreakCols = new Set();
-            let range = currentWorksheet['!true_range'];
-            
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-                let colWidth = colsConfig[C] ? colsConfig[C].wpx : 80;
-                if (curW + colWidth > effectiveW && curW > 40) {
-                    rightBreakCols.add(C - 1);
-                    curW = 40; 
-                }
-                curW += colWidth;
-            }
-
-            let curH = 25; 
-            let bottomBreakRows = new Set();
-            for (let R = range.s.r; R <= range.e.r; ++R) {
-                let rowH = 22; 
-                if (curH + rowH > effectiveH && curH > 25) {
-                    bottomBreakRows.add(R - 1);
-                    curH = 25;
-                }
-                curH += rowH;
-            }
-
-            cells.forEach(td => {
-                const r = parseInt(td.dataset.row);
-                const c = parseInt(td.dataset.col);
-                if (rightBreakCols.has(c)) td.style.borderRight = '2px dashed #005aff'; // Word Blue
-                if (bottomBreakRows.has(r)) td.style.borderBottom = '2px dashed #005aff';
-            });
-
-            if (warningDiv) {
-                warningDiv.innerHTML = '<i data-lucide="scissors" style="width: 14px; height: 14px;"></i> The blue dashed lines show the Word Document page bounds. Use "Fit to Data" if columns are cutting off!';
-                if (window.lucide) lucide.createIcons();
-            }
-        } else {
-            if (warningDiv) warningDiv.innerHTML = '';
         }
     }
 
-    if (pageSizeSelect) pageSizeSelect.addEventListener('change', updateWordVisuals);
-    if (orientationSelect) orientationSelect.addEventListener('change', updateWordVisuals);
+    if(pageSizeSelect)    pageSizeSelect.addEventListener('change',   ()=>{paintSel();updateBorder();});
+    if(orientationSelect) orientationSelect.addEventListener('change',()=>{paintSel();updateBorder();});
 
-    convertBtn.addEventListener('click', async () => {
-        if (!currentWorksheet) return;
+    // ── Table interaction ────────────────────────────────────────
+    function attachEvents(){
+        const table=previewContainer.querySelector('table');
+        if(!table)return;
 
-        convertBtn.disabled = true;
-        const originalBtnText = convertBtn.innerHTML;
-        convertBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Generating Word Document...';
-        if (window.lucide) lucide.createIcons();
+        const cellOf=e=>{
+            const td=e.target.closest('td.e2w-cell');
+            if(!td)return null;
+            return{r:parseInt(td.dataset.row),c:parseInt(td.dataset.col)};
+        };
 
-        try {
-            let exportRangeStr = areaSelectInput.value.trim().toUpperCase();
+        table.addEventListener('mousedown',e=>{
+            const coord=cellOf(e);if(!coord)return;
+            e.preventDefault();isDragging=true;selStart=coord;selEnd=coord;paintSel();
+        });
+        table.addEventListener('mousemove',e=>{
+            if(!isDragging)return;
+            const coord=cellOf(e);if(!coord)return;
+            selEnd=coord;paintSel();
+        });
+        table.addEventListener('click',e=>{
+            const th=e.target.closest('th[data-ch]');
+            if(th){
+                const C=parseInt(th.dataset.ch);
+                selStart={r:trueRange.s.r,c:C};selEnd={r:trueRange.e.r,c:C};
+                syncInput();paintSel();updateBorder();return;
+            }
+            const rh=e.target.closest('th[data-rh]');
+            if(rh){
+                const R=parseInt(rh.dataset.rh);
+                selStart={r:R,c:trueRange.s.c};selEnd={r:R,c:trueRange.e.c};
+                syncInput();paintSel();updateBorder();
+            }
+        });
+        window.addEventListener('mouseup',()=>{
+            if(isDragging){isDragging=false;syncInput();updateBorder();}
+        });
+        if(areaSelectInput){
+            areaSelectInput.addEventListener('input',()=>{
+                const v=areaSelectInput.value.trim().toUpperCase();
+                if(!v){selStart=null;selEnd=null;paintSel();updateBorder();return;}
+                try{
+                    const p=XLSX.utils.decode_range(v);
+                    selStart={r:p.s.r,c:p.s.c};selEnd={r:p.e.r,c:p.e.c};
+                    paintSel();updateBorder();
+                }catch(_){}
+            });
+        }
+    }
+
+    function syncInput(){
+        if(!areaSelectInput||!selStart||!selEnd)return;
+        const minR=Math.min(selStart.r,selEnd.r),maxR=Math.max(selStart.r,selEnd.r);
+        const minC=Math.min(selStart.c,selEnd.c),maxC=Math.max(selStart.c,selEnd.c);
+        areaSelectInput.value=XLSX.utils.encode_cell({c:minC,r:minR})+':'+XLSX.utils.encode_cell({c:maxC,r:maxR});
+    }
+
+    function paintSel(){
+        const cells=previewContainer.querySelectorAll('td.e2w-cell');
+        cells.forEach(td=>{
+            td.style.background='#fff';
+            td.style.borderTop=td.style.borderBottom=td.style.borderLeft=td.style.borderRight='1px solid #d0d0d0';
+        });
+        previewContainer.querySelectorAll('th[data-ch]').forEach(th=>{
+            th.style.background='#e6e6e6';th.style.color='#333';th.style.fontWeight='400';
+        });
+        previewContainer.querySelectorAll('th[data-rh]').forEach(th=>{
+            th.style.background='#e6e6e6';th.style.color='#333';th.style.fontWeight='400';
+        });
+        if(!selStart||!selEnd)return;
+        const minR=Math.min(selStart.r,selEnd.r),maxR=Math.max(selStart.r,selEnd.r);
+        const minC=Math.min(selStart.c,selEnd.c),maxC=Math.max(selStart.c,selEnd.c);
+        cells.forEach(td=>{
+            const r=parseInt(td.dataset.row),c=parseInt(td.dataset.col);
+            if(r<minR||r>maxR||c<minC||c>maxC)return;
+            td.style.background='rgba(0,120,215,0.18)';
+            td.style.borderTop   =(r===minR)?'2px solid #0078d7':'1px solid rgba(0,120,215,0.3)';
+            td.style.borderBottom=(r===maxR)?'2px solid #0078d7':'1px solid rgba(0,120,215,0.3)';
+            td.style.borderLeft  =(c===minC)?'2px solid #0078d7':'1px solid rgba(0,120,215,0.3)';
+            td.style.borderRight =(c===maxC)?'2px solid #0078d7':'1px solid rgba(0,120,215,0.3)';
+        });
+        previewContainer.querySelectorAll('th[data-ch]').forEach(th=>{
+            const C=parseInt(th.dataset.ch);
+            if(C>=minC&&C<=maxC){th.style.background='#b8d9f5';th.style.color='#003c7a';th.style.fontWeight='600';}
+        });
+        previewContainer.querySelectorAll('th[data-rh]').forEach(th=>{
+            const R=parseInt(th.dataset.rh);
+            if(R>=minR&&R<=maxR){th.style.background='#b8d9f5';th.style.color='#003c7a';th.style.fontWeight='600';}
+        });
+    }
+
+    // ── Convert & Download Word ───────────────────────────────────
+    convertBtn.addEventListener('click', async()=>{
+        if(!currentWorksheet){alert('প্রথমে একটি Excel ফাইল আপলোড করুন।');return;}
+        const origBtn=convertBtn.innerHTML;
+        convertBtn.disabled=true;
+        convertBtn.innerHTML='<i data-lucide="loader-2" class="spin"></i> Converting...';
+        if(window.lucide)lucide.createIcons();
+
+        try{
+            // Determine export range
             let exportRange;
-            try {
-                exportRange = exportRangeStr ? XLSX.utils.decode_range(exportRangeStr) : currentWorksheet['!true_range'];
-            } catch(e) {
-                exportRange = currentWorksheet['!true_range'];
-            }
-
-            const showGridlines = showGridlinesInput ? showGridlinesInput.checked : true;
-            
-            // Construct Document Setup for Page Bounds First
-            const isLandscape = orientationSelect.value === 'landscape';
-            const pageSz = pageSizeSelect.value;
-            
-            const mmToTwip = 56.6929;
-            const inToTwip = 1440;
-            
-            // Default Twips size
-            // Calculate exact Microsoft Word recognised standard twip sizes 
-            // to ensure Word highlights 'A4' or 'Letter' in the layout menu natively.
-            if (pageSz === 'a4') {
-                outWidth = 11906;
-                outHeight = 16838;
-            } else if (pageSz === 'letter') {
-                outWidth = 12240;
-                outHeight = 15840;
-            } else if (pageSz === 'legal') {
-                outWidth = 12240;
-                outHeight = 20160;
-            } else {
-                // 'fit' layout default baseline
-                outWidth = 11906;
-                outHeight = 16838;
-            }
-
-            if (isLandscape && pageSz !== 'fit') {
-                let temp = outWidth;
-                outWidth = outHeight;
-                outHeight = temp;
-            }
-
-            const marginLR = 720; // exactly 0.5 inch (1440 / 2)
-            
-            let rawTableTwips = 0;
-            for (let C = exportRange.s.c; C <= exportRange.e.c; ++C) {
-                let colW = colsConfig[C] ? colsConfig[C].wpx : 80;
-                rawTableTwips += (colW * 15);
-            }
-
-            let availableWidthTwips = outWidth - (marginLR * 2);
-            let scaleFactor = 1.0;
-
-            if (pageSz !== 'fit' && rawTableTwips > availableWidthTwips) {
-                scaleFactor = availableWidthTwips / rawTableTwips;
-            } else if (pageSz === 'fit') {
-                // Only expand Document Bounds if user explicitly selected "Fit to Data"
-                outWidth = Math.max(outWidth, rawTableTwips + (marginLR * 2));
-                availableWidthTwips = rawTableTwips;
-                if (isLandscape && outWidth < outHeight) {
-                    let temp = outWidth; outWidth = outHeight; outHeight = temp;
-                }
-            }
-
-            const tableRows = [];
-            
-            // Microsoft Word table column limit is strictly 63.
-            if (exportRange.e.c - exportRange.s.c + 1 > 63) {
-                 alert('Warning: Word limits tables to 63 columns. Truncating to 63 columns to prevent corruption.');
-                 exportRange.e.c = exportRange.s.c + 62;
-            }
-
-            // Word cell margins defaults
-            let baseMarginTB = 60;
-            let baseMarginLR = 80;
-            
-            // Automatically scale interior margins so they don't consume the A4 page size
-            let scaledMarginTB = Math.floor(baseMarginTB * scaleFactor);
-            let scaledMarginLR = Math.floor(baseMarginLR * scaleFactor);
-
-            // Compute ideal Font Size. Down to size 6 (3pt font) to ensure it doesn't wrap!
-            let fontSize = Math.max(6, Math.round(24 * scaleFactor));
-
-            for (let R = exportRange.s.r; R <= exportRange.e.r; ++R) {
-                const rowCells = [];
-                for (let C = exportRange.s.c; C <= exportRange.e.c; ++C) {
-                    const cellAddr = XLSX.utils.encode_cell({c: C, r: R});
-                    const cell = currentWorksheet[cellAddr];
-                    let cellText = cell && cell.v !== undefined ? XLSX.utils.format_cell(cell) : '';
-                    let strText = String(cellText); 
-                    if (strText === "") strText = " "; 
-
-                    const cellParams = {
-                        children: [new docx.Paragraph({ 
-                            children: [ new docx.TextRun({ text: strText, size: fontSize }) ],
-                            // Prevent paragraph spacing from pushing boundaries
-                            spacing: { before: 0, after: 0, line: 240, lineRule: docx.LineRuleType.AUTO }
-                        })],
-                        // Let Word AUTOFIT compute the precise width based on text
-                        margins: { top: scaledMarginTB, bottom: scaledMarginTB, left: scaledMarginLR, right: scaledMarginLR }
-                    };
-
-                    if (!showGridlines) {
-                        cellParams.borders = {
-                            top: { style: docx.BorderStyle.NONE, size: 0, color: "auto" },
-                            bottom: { style: docx.BorderStyle.NONE, size: 0, color: "auto" },
-                            left: { style: docx.BorderStyle.NONE, size: 0, color: "auto" },
-                            right: { style: docx.BorderStyle.NONE, size: 0, color: "auto" },
-                        };
-                    } else {
-                        cellParams.borders = {
-                            top: { style: docx.BorderStyle.SINGLE, size: 1, color: "000000" },
-                            bottom: { style: docx.BorderStyle.SINGLE, size: 1, color: "000000" },
-                            left: { style: docx.BorderStyle.SINGLE, size: 1, color: "000000" },
-                            right: { style: docx.BorderStyle.SINGLE, size: 1, color: "000000" },
-                        };
-                    }
-                    rowCells.push(new docx.TableCell(cellParams));
-                }
-                tableRows.push(new docx.TableRow({ children: rowCells }));
-            }
-
-            // Word AUTOFIT Engine combined with 100% width cleanly prevents bleed-out
-            const tableParams = { 
-                rows: tableRows, 
-                width: { size: 100, type: docx.WidthType.PERCENTAGE },
-                layout: docx.TableLayoutType.AUTOFIT
-            };
-            
-            if (!showGridlines) {
-                tableParams.borders = {
-                    top: { style: docx.BorderStyle.NONE },
-                    bottom: { style: docx.BorderStyle.NONE },
-                    left: { style: docx.BorderStyle.NONE },
-                    right: { style: docx.BorderStyle.NONE },
-                    insideHorizontal: { style: docx.BorderStyle.NONE },
-                    insideVertical: { style: docx.BorderStyle.NONE },
+            const iv=areaSelectInput?areaSelectInput.value.trim().toUpperCase():'';
+            if(iv){try{exportRange=XLSX.utils.decode_range(iv);}catch(_){exportRange=trueRange;}}
+            else if(selStart&&selEnd){
+                exportRange={
+                    s:{r:Math.min(selStart.r,selEnd.r),c:Math.min(selStart.c,selEnd.c)},
+                    e:{r:Math.max(selStart.r,selEnd.r),c:Math.max(selStart.c,selEnd.c)}
                 };
+            } else exportRange=trueRange;
+
+            // Word col limit
+            if(exportRange.e.c-exportRange.s.c+1>63){
+                alert('Word-এ সর্বোচ্চ ৬৩টি কলাম। বাকিগুলো বাদ দেওয়া হচ্ছে।');
+                exportRange.e.c=exportRange.s.c+62;
             }
 
-            const docTable = new docx.Table(tableParams);
+            const showGridlines=showGridlinesInput?showGridlinesInput.checked:true;
+            const isLandscape  =orientationSelect&&orientationSelect.value==='landscape';
+            const pageSz       =pageSizeSelect?pageSizeSelect.value:'a4';
+            const inToTwip     =1440;
 
-            const sectionProps = {
-                properties: {
-                    page: {
-                        size: {
-                            width: outWidth,
-                            height: outHeight,
-                            orientation: isLandscape ? docx.PageOrientation.LANDSCAPE : docx.PageOrientation.PORTRAIT,
-                        },
-                        margin: {
-                            top: 0.5 * inToTwip, right: 0.5 * inToTwip, bottom: 0.5 * inToTwip, left: 0.5 * inToTwip
+            // Page dimensions in twips
+            let outW,outH;
+            if     (pageSz==='letter'){outW=12240;outH=15840;}
+            else if(pageSz==='legal') {outW=12240;outH=20160;}
+            else                      {outW=11906;outH=16838;} // a4 and fit both → A4
+
+            if(isLandscape&&pageSz!=='fit')[outW,outH]=[outH,outW];
+
+            const marginTwips=720; // 0.5 inch each side
+
+            // Column widths in twips
+            let rawTwips=0;
+            for(let C=exportRange.s.c;C<=exportRange.e.c;++C)rawTwips+=cw(C)*15;
+
+            let availTwips=outW-marginTwips*2;
+            let scale=1.0;
+
+            if(pageSz==='fit'){
+                // Expand page width to fit content
+                outW=Math.max(outW,rawTwips+marginTwips*2);
+                availTwips=rawTwips;
+            } else if(rawTwips>availTwips){
+                // Scale down columns to fit within page margins
+                scale=availTwips/rawTwips;
+            }
+
+            const fontSize  =Math.max(6,Math.round(24*scale));
+            const padTB     =Math.floor(60*scale);
+            const padLR     =Math.floor(80*scale);
+
+            // Build table rows — NO row/col headers
+            const tRows=[];
+            for(let R=exportRange.s.r;R<=exportRange.e.r;++R){
+                const tCells=[];
+                for(let C=exportRange.s.c;C<=exportRange.e.c;++C){
+                    const addr=XLSX.utils.encode_cell({c:C,r:R});
+                    const cell=currentWorksheet[addr];
+                    let txt=(cell&&cell.v!==undefined)?XLSX.utils.format_cell(cell):'';
+                    if(!txt)txt=' ';
+
+                    const cellTwips=Math.round(cw(C)*15*scale);
+
+                    const bd=showGridlines
+                        ?{style:docx.BorderStyle.SINGLE,size:1,color:'000000'}
+                        :{style:docx.BorderStyle.NONE,  size:0,color:'auto'  };
+
+                    tCells.push(new docx.TableCell({
+                        width:   {size:cellTwips,type:docx.WidthType.DXA},
+                        margins: {top:padTB,bottom:padTB,left:padLR,right:padLR},
+                        borders: {top:bd,bottom:bd,left:bd,right:bd},
+                        children:[new docx.Paragraph({
+                            children:[new docx.TextRun({text:txt,size:fontSize})],
+                            spacing:{before:0,after:0,line:240,lineRule:docx.LineRuleType.AUTO}
+                        })]
+                    }));
+                }
+                tRows.push(new docx.TableRow({children:tCells}));
+            }
+
+            const tblBd=showGridlines
+                ?{style:docx.BorderStyle.SINGLE,size:1,color:'000000'}
+                :{style:docx.BorderStyle.NONE};
+
+            const docTable=new docx.Table({
+                rows:   tRows,
+                width:  {size:Math.round(availTwips),type:docx.WidthType.DXA},
+                layout: docx.TableLayoutType.FIXED,
+                borders:{top:tblBd,bottom:tblBd,left:tblBd,right:tblBd,
+                         insideHorizontal:tblBd,insideVertical:tblBd}
+            });
+
+            const doc=new docx.Document({
+                sections:[{
+                    properties:{
+                        page:{
+                            size:{width:outW,height:outH,
+                                  orientation:isLandscape?docx.PageOrientation.LANDSCAPE:docx.PageOrientation.PORTRAIT},
+                            margin:{top:marginTwips,bottom:marginTwips,left:marginTwips,right:marginTwips}
                         }
-                    }
-                },
-                children: [
-                    new docx.Paragraph({
-                        text: `Exported Table from ${currentFile.name}`,
-                        heading: docx.HeadingLevel.HEADING_2,
-                        spacing: { after: 200 }
-                    }),
-                    docTable
-                ],
-            };
+                    },
+                    children:[docTable]
+                }]
+            });
 
-            const doc = new docx.Document({ sections: [sectionProps] });
+            const blob=await docx.Packer.toBlob(doc);
+            saveAs(blob,currentFile.name.replace(/\.[^/.]+$/,'')+'_Word.docx');
 
-            const blob = await docx.Packer.toBlob(doc);
-            
-            const outName = currentFile.name.replace(/\.[^/.]+$/, "") + '_Word.docx';
-            saveAs(blob, outName);
-
-        } catch (err) {
-            console.error('Error in Excel to Word:', err);
-            alert('Failed to generate Word document: ' + err.message);
-        } finally {
-            convertBtn.disabled = false;
-            convertBtn.innerHTML = originalBtnText;
-            if (window.lucide) lucide.createIcons();
+        }catch(err){
+            console.error(err);
+            alert('Word তৈরিতে সমস্যা: '+err.message);
+        }finally{
+            convertBtn.disabled=false;
+            convertBtn.innerHTML=origBtn;
+            if(window.lucide)lucide.createIcons();
         }
     });
 
-    // Dropzone logic
-    if (emptyState) {
-        emptyState.addEventListener('click', () => fileInput.click());
-        emptyState.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            emptyState.style.borderColor = 'var(--primary)';
-        });
-        emptyState.addEventListener('dragleave', () => emptyState.style.borderColor = '');
-        emptyState.addEventListener('drop', (e) => {
-            e.preventDefault();
-            emptyState.style.borderColor = '';
-            if (e.dataTransfer.files[0]) handleExcelFile(e.dataTransfer.files[0]);
+    // ── Dropzone ─────────────────────────────────────────────────
+    if(emptyState){
+        emptyState.style.cursor='pointer';
+        emptyState.addEventListener('click',()=>fileInput.click());
+        emptyState.addEventListener('dragover', e=>{e.preventDefault();emptyState.style.borderColor='var(--primary)';});
+        emptyState.addEventListener('dragleave',()=>{emptyState.style.borderColor='';});
+        emptyState.addEventListener('drop',e=>{
+            e.preventDefault();emptyState.style.borderColor='';
+            if(e.dataTransfer.files[0])handleExcelFile(e.dataTransfer.files[0]);
         });
     }
+
 });
