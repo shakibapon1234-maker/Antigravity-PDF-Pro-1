@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadRotatePdf(file) {
         if (file) {
             originalFileName = file.name.replace('.pdf', '');
-            currentPdfBytes = new Uint8Array(await file.arrayBuffer());
+            currentPdfBytes = await file.arrayBuffer();
             showRotateWorkspace();
             renderRotatePreview();
         }
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const file = e.target.files[0];
                 if (file) {
                     originalFileName = file.name.replace('.pdf', '');
-                    currentPdfBytes = new Uint8Array(await file.arrayBuffer());
+                    currentPdfBytes = await file.arrayBuffer();
                     showRotateWorkspace();
                     renderRotatePreview();
                 }
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentPdfBytes) return;
         rotatePreview.innerHTML = '';
         try {
-            const loadingTask = pdfjsLib.getDocument({ data: currentPdfBytes.slice() });
+            const loadingTask = pdfjsLib.getDocument({ data: currentPdfBytes });
             const pdf = await loadingTask.promise;
             const page = await pdf.getPage(1);
             const viewport = page.getViewport({ scale: 0.5 });
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnRotatePdf.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Processing...';
 
         try {
-            const pdfDoc = await PDFLib.PDFDocument.load(currentPdfBytes.slice());
+            const pdfDoc = await PDFLib.PDFDocument.load(currentPdfBytes);
             const pages = pdfDoc.getPages();
             
             const angleVal = parseInt(document.querySelector('input[name="rotateAngle"]:checked').value);
