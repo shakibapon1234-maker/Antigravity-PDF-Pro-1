@@ -168,6 +168,14 @@ function initEventListeners() {
     document.addEventListener('mouseleave', () => { eraserDot.style.display = 'none'; });
 
     // ── টুল বাটন ────────────────────────────────────────────────────────
+    // Helper: clearText / moveArea active হলে text spans-এ pointer-events বন্ধ করো
+    // যাতে mousedown page wrapper পর্যন্ত পৌঁছায় (drag-select কাজ করে)
+    function setTextLayerInteractivity(enable) {
+        document.querySelectorAll('.editable-text-unit').forEach(s => {
+            s.style.pointerEvents = enable ? 'auto' : 'none';
+        });
+    }
+
     document.getElementById('btnSelect').addEventListener('click', () => {
         activeTool = 'select';
         updateToolUI('btnSelect');
@@ -175,6 +183,7 @@ function initEventListeners() {
         const w = document.getElementById('canvasWrapper');
         if (w) w.style.cursor = 'default';
         eraserDot.style.display = 'none';
+        setTextLayerInteractivity(true);
     });
 
     document.getElementById('btnTypeText').addEventListener('click', () => {
@@ -184,6 +193,7 @@ function initEventListeners() {
         const w = document.getElementById('canvasWrapper');
         if (w) w.style.cursor = 'crosshair';
         eraserDot.style.display = 'none';
+        setTextLayerInteractivity(true);
     });
 
     document.getElementById('btnClearText').addEventListener('click', () => {
@@ -193,6 +203,9 @@ function initEventListeners() {
         eraserDot.style.display = 'none';
         const w = document.getElementById('canvasWrapper');
         if (w) w.style.cursor = 'crosshair';
+        // CRITICAL: text spans-এ pointer-events বন্ধ করো
+        // যাতে mousedown page wrapper-এ পৌঁছে drag-select rectangle তৈরি হয়
+        setTextLayerInteractivity(false);
     });
 
     // ── ইমেজ ইন্সার্ট ───────────────────────────────────────────────────
@@ -221,6 +234,8 @@ function initEventListeners() {
         document.body.classList.remove('eraser-active');
         const w = document.getElementById('canvasWrapper');
         if (w) w.style.cursor = 'crosshair';
+        // text spans-এ pointer-events বন্ধ
+        setTextLayerInteractivity(false);
     });
 
     // ── Create Table বাটন ──────────────────────────────────────────────
@@ -344,17 +359,8 @@ function initEventListeners() {
             activeCellResize.cell.style.height = `${newHeight}px`;
         }
         
-        // Move Area Handling
-        if (moveAreaDragging && moveAreaRect) {
-            const deltaX = e.clientX - moveAreaDragStartX;
-            const deltaY = e.clientY - moveAreaDragStartY;
-            moveAreaRect.style.left = `${moveAreaOrigLeft + deltaX}px`;
-            moveAreaRect.style.top = `${moveAreaOrigTop + deltaY}px`;
-            if (moveAreaSelection) {
-                moveAreaSelection.left = moveAreaOrigLeft + deltaX;
-                moveAreaSelection.top = moveAreaOrigTop + deltaY;
-            }
-        }
+        // Move Area is now self-contained in endMoveAreaSelection()
+
     });
     
     document.addEventListener('mouseup', (e) => {
@@ -369,16 +375,8 @@ function initEventListeners() {
             activeCellResize = null;
         }
         
-        // Move Area End
-        if (moveAreaDragging) {
-            moveAreaDragging = false;
-            if (moveAreaRect) {
-                moveAreaRect.style.cursor = 'grab';
-            }
-            if (moveAreaSelection) {
-                applyMoveArea(moveAreaSelection, moveAreaSelection.container);
-            }
-        }
+        // Move Area is now self-contained in endMoveAreaSelection()
+
     });
 
     // ── Escape key ───────────────────────────────────────────────────────
@@ -393,6 +391,8 @@ function initEventListeners() {
         if (_clearTextDocMouseMove) { document.removeEventListener('mousemove', _clearTextDocMouseMove); _clearTextDocMouseMove = null; }
         if (_clearTextDocMouseUp)   { document.removeEventListener('mouseup',   _clearTextDocMouseUp);   _clearTextDocMouseUp   = null; }
         clearTextContainer = null;
+        // Finalize any active Move Area selection
+        if (typeof finalizeMoveArea === 'function') finalizeMoveArea();
         isSelecting = false;
         document.querySelectorAll('.shape-resize-handle').forEach(el => el.style.display = 'none');
         document.querySelectorAll('.shape-toolbar').forEach(el => el.style.display = 'none');

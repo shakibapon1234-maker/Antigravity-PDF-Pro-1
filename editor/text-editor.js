@@ -1,4 +1,4 @@
-﻿// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
 // editor/text-editor.js — Antigravity PDF Pro
 // টেক্সট এডিটিং: startEditing, addNewText,
 // drag, mouse handlers, transformEditorText
@@ -1167,33 +1167,9 @@ async function ensureBgCanvas() {
         bgCv.height    = viewport.height;
         const bgCtx    = bgCv.getContext('2d', { willReadFrequently: true });
 
-        // Try text-suppressed render first via operatorList interception
-        let rendered = false;
-        try {
-            const opList = await page.getOperatorList();
-            // Text-related OPS codes in PDF.js:
-            // OPS.showText=45, OPS.showSpacedText=46, OPS.nextLineShowText=47,
-            // OPS.nextLineSetSpacingShowText=48, OPS.setFont=27, OPS.beginText=39
-            // We patch the operator list to replace text-painting ops with no-ops
-            const TEXT_OPS = new Set([39, 40, 43, 44, 45, 46, 47, 48, 49, 50]);
-            for (let i = 0; i < opList.fnArray.length; i++) {
-                if (TEXT_OPS.has(opList.fnArray[i])) {
-                    // Replace with OPS.save (1) which is effectively a no-op paint
-                    // Actually replace with 0 so PDF.js just skips unknown fn
-                    opList.fnArray[i] = 0;
-                    opList.argsArray[i] = [];
-                }
-            }
-            const gfx = new pdfjsLib.PDFPageProxy;
-            // Fall back if this approach is not available
-        } catch(_) {}
-
-        // Most reliable method: render normally into bgCv, then
-        // overlay the existing main canvas on top to grab only the visual background.
-        // Since PDF.js renders BOTH graphics AND text into the same canvas,
-        // the only way to get a clean background is to render a SECOND time
-        // with text visibility hidden at the DOM level while sampling.
-        // We do a full render here; the text gets covered by the inpainted patch anyway.
+        // Render the page fully into bgCv
+        // PDF.js renders BOTH graphics AND text into the same canvas.
+        // The inpainting post-process below removes dark text pixels.
         await page.render({ canvasContext: bgCtx, viewport }).promise;
 
         // ── Post-process: remove text pixels by inpainting from edge samples ──
@@ -1423,82 +1399,77 @@ function endClearTextStroke(container) {
     let clearedCount = 0;
     const contRect = container.getBoundingClientRect();
 
-    // 1. Clear editable text units (user-added text) — text only, NO background change
+    // Helper: check if a span overlaps with the selection rectangle
+    function overlaps(span) {
+        const sr = span.getBoundingClientRect();
+        if (sr.width === 0 && sr.height === 0) return false;
+        const sl = sr.left - contRect.left;
+        const st = sr.top  - contRect.top;
+        const sw = sr.width  || 10;
+        const sh = sr.height || 10;
+        return (sl < l + w && sl + sw > l && st < t + h && st + sh > t);
+    }
+
+    // 1. Clear user-added editable text units
     container.querySelectorAll('.editable-text-unit').forEach(span => {
         if (span.classList.contains('floating-editor')) return;
+        if (!overlaps(span)) return;
 
-        const sr   = span.getBoundingClientRect();
-        const sl   = sr.left - contRect.left;
-        const st   = sr.top  - contRect.top;
-        const sw   = sr.width  || span.offsetWidth  || 20;
-        const sh   = sr.height || span.offsetHeight || 10;
-
-        if (sl < l + w && sl + sw > l && st < t + h && st + sh > t) {
-            clearedCount++;
+        clearedCount++;
+        // Use the span's own _triggerClearTextOnly if available (per-span patch)
+        if (typeof span._triggerClearTextOnly === 'function') {
+            span._triggerClearTextOnly();
+        } else {
+            // Fallback: just hide text
             span._cleared = true;
             span._textCleared = true;
-            
-            // ✅ CRITICAL: Save original background BEFORE clearing text
-            const originalBgColor = span.style.backgroundColor || 'transparent';
-            const originalBgImage = span.style.backgroundImage || 'none';
-            
-            // Clear only the text content and color
             span.textContent = '';
             span.style.color = 'transparent';
-            
-            // ✅ PRESERVE background - do NOT change it
-            span.style.backgroundColor = originalBgColor;
-            span.style.backgroundImage = originalBgImage;
-            span.style.pointerEvents = 'auto';
 
+            const sl = span.getBoundingClientRect().left - contRect.left;
+            const st = span.getBoundingClientRect().top  - contRect.top;
             const editId = span.dataset.editId || `ct-${currentPageNum}-${Math.round(sl)}-${Math.round(st)}`;
-            const existingIdx = textEdits.findIndex(ed => ed.id === editId || `${ed.page}-${ed.originalX}-${ed.originalY}` === editId);
+            const existingIdx = textEdits.findIndex(ed => ed.id === editId);
             const clearEntry = {
                 id: editId, page: currentPageNum, isNew: false,
-                originalX: sl / pdfScale, originalY: (container.offsetHeight - st - sh) / pdfScale,
-                x: sl / pdfScale, y: (container.offsetHeight - st - sh) / pdfScale,
+                originalX: sl / pdfScale, originalY: (container.offsetHeight - st) / pdfScale,
+                x: sl / pdfScale, y: (container.offsetHeight - st) / pdfScale,
                 text: '', size: parseFloat(span.style.fontSize) / pdfScale || 12,
                 color: 'transparent', bgHex: 'transparent',
                 bgR: 1, bgG: 1, bgB: 1,
                 font: 'Helvetica', isBold: false, isItalic: false, isUnderline: false,
-                width: sw / pdfScale, height: sh / pdfScale
+                width: (span.offsetWidth || 10) / pdfScale, height: (span.offsetHeight || 10) / pdfScale
             };
             if (existingIdx > -1) textEdits[existingIdx] = clearEntry;
             else textEdits.push(clearEntry);
         }
     });
 
-    // 2. Clear PDF.js native text spans from .text-layer — text only, NO background change
+    // 2. Clear PDF.js native text spans — use their _triggerClearTextOnly for per-span patch
     const textLayer = container.querySelector('.text-layer');
     if (textLayer) {
-        textLayer.querySelectorAll('span').forEach(nativeSpan => {
-            const sr   = nativeSpan.getBoundingClientRect();
-            const sl   = sr.left - contRect.left;
-            const st   = sr.top  - contRect.top;
-            const sw   = sr.width  || nativeSpan.offsetWidth  || 20;
-            const sh   = sr.height || nativeSpan.offsetHeight || 10;
+        textLayer.querySelectorAll('span.editable-text-unit').forEach(nativeSpan => {
+            if (nativeSpan.classList.contains('floating-editor')) return;
+            if (nativeSpan.classList.contains('span-drag-handle')) return;
+            if (nativeSpan._textCleared || nativeSpan._cleared) return;
+            if (!overlaps(nativeSpan)) return;
 
-            if (sl < l + w && sl + sw > l && st < t + h && st + sh > t) {
-                clearedCount++;
+            clearedCount++;
+            // Use per-span clear which creates precise background patch
+            if (typeof nativeSpan._triggerClearTextOnly === 'function') {
+                nativeSpan._triggerClearTextOnly();
+            } else {
+                // Fallback
                 nativeSpan.style.color = 'transparent';
                 nativeSpan.style.visibility = 'hidden';
                 nativeSpan.textContent = '';
-                // ✅ Do NOT touch background — leave PDF background completely intact
             }
         });
     }
 
-    // 3. Store text-clear info for PDF rendering (transparent text, no background rect)
-    // We store these as textEdits entries only — no clearStrokes background rect needed.
-    // This ensures the PDF export only hides the text, not the background.
-
     if (clearedCount === 0) {
-        // Nothing was cleared — pop the undo snapshot we just added
         undoHistory.pop();
     }
-
-    // ✅ NO patch div created, NO background color sampled, NO background changed.
-    // The background stays exactly as it was in the original PDF.
 
     clearTextContainer = null;
 }
@@ -1525,6 +1496,9 @@ function startMoveAreaSelection(e, container) {
     const rect = container.getBoundingClientRect();
     moveAreaStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     
+    // Remove any previous selection
+    if (moveAreaRect && moveAreaRect.parentNode) moveAreaRect.remove();
+    
     moveAreaRect = document.createElement('div');
     moveAreaRect.className = 'move-area-selection';
     moveAreaRect.style.cssText = `
@@ -1537,6 +1511,8 @@ function startMoveAreaSelection(e, container) {
         background: rgba(0, 212, 255, 0.1);
         z-index: 150;
         cursor: crosshair;
+        pointer-events: none;
+        box-sizing: border-box;
     `;
     container.appendChild(moveAreaRect);
 }
@@ -1567,87 +1543,122 @@ function endMoveAreaSelection(container) {
     const width = parseFloat(moveAreaRect.style.width);
     const height = parseFloat(moveAreaRect.style.height);
     
-    if (width > 5 && height > 5) {
-        // Store the selected area for dragging
-        moveAreaSelection = { left, top, width, height, container };
-        moveAreaRect.style.cursor = 'grab';
-        moveAreaRect.style.borderColor = '#b829f9';
-        moveAreaRect.style.pointerEvents = 'auto';
-        
-        // mousedown event - drag শুরু করুন
-        moveAreaRect.addEventListener('mousedown', (e) => {
-            moveAreaDragging = true;
-            moveAreaDragStartX = e.clientX;
-            moveAreaDragStartY = e.clientY;
-            moveAreaOrigLeft = parseFloat(moveAreaRect.style.left);
-            moveAreaOrigTop = parseFloat(moveAreaRect.style.top);
-            moveAreaRect.style.cursor = 'grabbing';
-            e.stopPropagation();
-            e.preventDefault();
-        });
-    } else {
+    if (width < 10 || height < 10) {
         moveAreaActive = false;
-        if (moveAreaRect && moveAreaRect.parentNode) {
-            moveAreaRect.remove();
-        }
+        if (moveAreaRect && moveAreaRect.parentNode) moveAreaRect.remove();
         moveAreaRect = null;
         moveAreaStart = null;
+        return;
     }
-}
 
-function applyMoveArea(selection, container) {
-    // সব টেক্সট আইটেম খুঁজুন যা সিলেকশনের মধ্যে আছে
-    // Find all text items within the selection
-    const textItems = container.querySelectorAll('.editable-text-unit');
-    let movedItems = [];
-    
-    const selectionBounds = {
-        left: selection.left,
-        top: selection.top,
-        right: selection.left + selection.width,
-        bottom: selection.top + selection.height
-    };
-    
-    textItems.forEach(item => {
-        const itemRect = item.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        const itemLeft = itemRect.left - containerRect.left;
-        const itemTop = itemRect.top - containerRect.top;
-        const itemRight = itemLeft + itemRect.width;
-        const itemBottom = itemTop + itemRect.height;
-        
-        // Check if item is within selection
-        if (itemLeft < selectionBounds.right &&
-            itemRight > selectionBounds.left &&
-            itemTop < selectionBounds.bottom &&
-            itemBottom > selectionBounds.top) {
-            movedItems.push({
-                item: item,
-                originalLeft: parseFloat(item.style.left) || itemLeft,
-                originalTop: parseFloat(item.style.top) || itemTop
-            });
-        }
-    });
-    
-    if (movedItems.length > 0) {
-        captureUndoSnapshot('Move area');
-        movedItems.forEach(moved => {
-            const edit = textEdits.find(ed => ed.id === moved.item.dataset.editId);
-            if (edit) {
-                edit.x = parseFloat(moved.item.style.left) / pdfScale;
-                edit.y = (container.offsetHeight - parseFloat(moved.item.style.top)) / pdfScale - edit.size;
+    const mainCanvas = container.querySelector('canvas');
+    if (!mainCanvas) {
+        moveAreaActive = false;
+        if (moveAreaRect.parentNode) moveAreaRect.remove();
+        moveAreaRect = null;
+        return;
+    }
+
+    captureUndoSnapshot('Move area');
+
+    // Capture the pixels from the canvas at the selection area
+    const ctx = mainCanvas.getContext('2d');
+    const captureCanvas = document.createElement('canvas');
+    captureCanvas.width = Math.round(width);
+    captureCanvas.height = Math.round(height);
+    const captureCtx = captureCanvas.getContext('2d');
+    captureCtx.drawImage(mainCanvas, 
+        Math.round(left), Math.round(top), Math.round(width), Math.round(height),
+        0, 0, Math.round(width), Math.round(height)
+    );
+
+    // White-out the original area on the canvas
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(Math.round(left), Math.round(top), Math.round(width), Math.round(height));
+
+    // Hide text-layer spans in the original area
+    const contRect = container.getBoundingClientRect();
+    const textLayer = container.querySelector('.text-layer');
+    if (textLayer) {
+        textLayer.querySelectorAll('span').forEach(span => {
+            const sr = span.getBoundingClientRect();
+            const sl = sr.left - contRect.left;
+            const st = sr.top - contRect.top;
+            if (sl < left + width && sl + sr.width > left && st < top + height && st + sr.height > top) {
+                span.style.visibility = 'hidden';
+                span.style.color = 'transparent';
             }
         });
     }
+
+    // Replace the selection rect with a draggable image
+    moveAreaRect.style.backgroundImage = `url(${captureCanvas.toDataURL()})`;
+    moveAreaRect.style.backgroundSize = '100% 100%';
+    moveAreaRect.style.backgroundColor = 'transparent';
+    moveAreaRect.style.border = '2px solid #b829f9';
+    moveAreaRect.style.cursor = 'grab';
+    moveAreaRect.style.pointerEvents = 'auto';
+    moveAreaRect.style.boxShadow = '0 4px 15px rgba(184,41,249,0.3)';
+
+    // Store for multiple drags
+    moveAreaSelection = { left, top, width, height, container, captureCanvas, ctx };
     
-    // পরিষ্কার করুন
-    if (moveAreaRect && moveAreaRect.parentNode) {
-        moveAreaRect.remove();
+    const selRect = moveAreaRect;
+    
+    // Allow MULTIPLE drags — don't finalize until Escape
+    selRect.addEventListener('mousedown', function onDragStart(ev) {
+        if (ev.button !== 0) return;
+        moveAreaDragging = true;
+        moveAreaDragStartX = ev.clientX;
+        moveAreaDragStartY = ev.clientY;
+        moveAreaOrigLeft = parseFloat(selRect.style.left);
+        moveAreaOrigTop = parseFloat(selRect.style.top);
+        selRect.style.cursor = 'grabbing';
+        selRect.style.opacity = '0.85';
+        ev.stopPropagation();
+        ev.preventDefault();
+
+        function onDragMove(em) {
+            if (!moveAreaDragging) return;
+            const dx = em.clientX - moveAreaDragStartX;
+            const dy = em.clientY - moveAreaDragStartY;
+            selRect.style.left = `${moveAreaOrigLeft + dx}px`;
+            selRect.style.top = `${moveAreaOrigTop + dy}px`;
+        }
+
+        function onDragEnd() {
+            if (!moveAreaDragging) return;
+            moveAreaDragging = false;
+            selRect.style.cursor = 'grab';
+            selRect.style.opacity = '1';
+            document.removeEventListener('mousemove', onDragMove);
+            document.removeEventListener('mouseup', onDragEnd);
+            // DON'T finalize here — keep floating until Escape
+        }
+
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('mouseup', onDragEnd);
+    });
+}
+
+// Finalize Move Area — called by Escape key or tool switch
+function finalizeMoveArea() {
+    if (!moveAreaRect || !moveAreaSelection) return;
+    const { ctx, captureCanvas } = moveAreaSelection;
+    const newLeft = parseFloat(moveAreaRect.style.left);
+    const newTop = parseFloat(moveAreaRect.style.top);
+    
+    // Draw the captured image at the final position on the canvas
+    if (ctx && captureCanvas) {
+        ctx.drawImage(captureCanvas, Math.round(newLeft), Math.round(newTop));
     }
+
+    // Clean up
+    if (moveAreaRect.parentNode) moveAreaRect.remove();
     moveAreaActive = false;
-    moveAreaStart = null;
-    moveAreaSelection = null;
     moveAreaRect = null;
+    moveAreaSelection = null;
+    moveAreaStart = null;
     moveAreaDragging = false;
 }
 
