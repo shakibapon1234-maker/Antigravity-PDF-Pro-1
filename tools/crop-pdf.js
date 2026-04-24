@@ -155,44 +155,46 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const pdfDoc = await PDFLib.PDFDocument.load(currentPdfBytes, { ignoreEncryption: true });
             const pages = pdfDoc.getPages();
-            
+
             let cropMode = 'all';
             for (const radio of radios) {
                 if (radio.checked) cropMode = radio.value;
             }
 
-            // Calculate PDF coordinates
-            // Note: Our cropRect is in CSS pixels of the canvas.
-            // We need to map this to PDF coordinates (points).
-            
-            // 1. Get scale ratio between displayed canvas and actual PDF points
-            const ratioX = pdfDocInfo.width / canvas.offsetWidth;
-            const ratioY = pdfDocInfo.height / canvas.offsetHeight;
-            
-            // 2. Calculate PDF top-left origin coordinates
+            // --- DPR-AWARE COORDINATE CALCULATION (FIXED) ---
+            // Use getBoundingClientRect() for the actual displayed CSS size
+            // This avoids bugs from offsetWidth/offsetHeight ignoring CSS transforms
+            const canvasRect = canvas.getBoundingClientRect();
+            const displayedW = canvasRect.width;   // actual CSS pixels displayed
+            const displayedH = canvasRect.height;
+
+            // Ratio: how many PDF points per CSS pixel
+            const ratioX = pdfDocInfo.width  / displayedW;
+            const ratioY = pdfDocInfo.height / displayedH;
+
+            // cropRect is in CSS pixels relative to the canvas top-left
             const pdfCropX = cropRect.x * ratioX;
-            // PDF-Lib coordinate system for CropBox usually expects (x, y, width, height)
-            // where x,y is the bottom-left corner of the crop box!
-            // Wait, we need: left, bottom, right, top bounds for PDF coordinates, or just X, Y, W, H.
-            // In PDFLib, setCropBox(x, y, width, height) where x,y is lower-left corner.
             const pdfCropW = cropRect.w * ratioX;
             const pdfCropH = cropRect.h * ratioY;
-            const bottomY = (canvas.offsetHeight - (cropRect.y + cropRect.h)) * ratioY;
+
+            // PDF coordinate origin is bottom-left, canvas is top-left — flip Y
+            const bottomY = (displayedH - (cropRect.y + cropRect.h)) * ratioY;
 
             const pagesToCrop = cropMode === 'all' ? pages : [pages[0]];
 
             for (const page of pagesToCrop) {
-                // To be safe, we can just use setCropBox. If a MediaBox exists, it limits visibility.
+                // Set both CropBox and MediaBox so all viewers respect the crop
                 page.setCropBox(pdfCropX, bottomY, pdfCropW, pdfCropH);
+                page.setMediaBox(pdfCropX, bottomY, pdfCropW, pdfCropH);
             }
 
             const modifiedPdfBytes = await pdfDoc.save();
             const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
             window.saveAs(blob, `${originalFileName}_cropped.pdf`);
-            
+
         } catch (err) {
-            console.error("Error applying crop:", err);
-            alert("Error cropping the PDF.");
+            console.error('Error applying crop:', err);
+            alert('Error cropping the PDF: ' + err.message);
         } finally {
             btnApplyCrop.innerHTML = originalBtnHtml;
             btnApplyCrop.disabled = false;

@@ -374,6 +374,7 @@ function handlePageMouseDown(e, container, viewport, page) {
         startClearStroke(x, y, container);
     } else if (activeTool === 'clearText') {
         isSelecting = true;
+        e.preventDefault(); // prevent text-selection from blocking rect-drag
         startClearTextStroke(x, y, container);
         // Note: clearText uses document-level mouseup â€” isSelecting cleared there
     } else if (activeTool === 'moveArea') {
@@ -391,8 +392,7 @@ function handlePageMouseMove(e, container) {
         const rect = container.getBoundingClientRect();
         continueClearStroke(e.clientX - rect.left, e.clientY - rect.top, container);
     } else if (isSelecting && activeTool === 'clearText') {
-        const rect = container.getBoundingClientRect();
-        continueClearTextStroke(e.clientX - rect.left, e.clientY - rect.top);
+        // handled by document-level listener in startClearTextStroke
     } else if (isSelecting && activeTool === 'moveArea') {
         const rect = container.getBoundingClientRect();
         continueMoveAreaSelection(e, container);

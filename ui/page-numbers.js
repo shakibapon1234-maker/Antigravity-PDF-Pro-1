@@ -108,11 +108,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentFileData) return;
 
         applyBtn.disabled = true;
-        applyBtn.textContent = 'Processing...';
+        applyBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Processing...';
+        if (window.lucide) lucide.createIcons();
 
         try {
             const { PDFDocument, rgb, StandardFonts } = PDFLib;
-            const pdfDoc = await PDFDocument.load(currentFileData);
+            const pdfDoc = await PDFDocument.load(currentFileData, { ignoreEncryption: true });
             const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
             const pages = pdfDoc.getPages();
             const total = pages.length;
@@ -134,24 +135,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (selectedPos === 'BR') { x = width - textWidth - margin; y = margin; }
 
                 page.drawText(text, {
-                    x: x,
-                    y: y,
-                    size: size,
+                    x, y,
+                    size,
                     font: helveticaFont,
                     color: hexToRgbLib(pnColor.value, rgb),
+                    opacity: 0.85,
                 });
             }
 
             const pdfBytes = await pdfDoc.save();
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-            saveAs(blob, currentFile.name.replace('.pdf', '_numbered.pdf'));
+            saveAs(blob, currentFile.name.replace(/\.pdf$/i, '_numbered.pdf'));
+
+            applyBtn.innerHTML = '<i data-lucide="check-circle"></i> Done!';
+            setTimeout(() => {
+                applyBtn.innerHTML = '<i data-lucide="hash"></i> Add Numbers & Download';
+                if (window.lucide) lucide.createIcons();
+            }, 2000);
 
         } catch (err) {
             console.error(err);
             alert('Error adding page numbers: ' + err.message);
+            applyBtn.innerHTML = '<i data-lucide="hash"></i> Add Numbers & Download';
+            if (window.lucide) lucide.createIcons();
         } finally {
             applyBtn.disabled = false;
-            applyBtn.textContent = 'Add Numbers & Download';
+            if (window.lucide) lucide.createIcons();
         }
     });
 
