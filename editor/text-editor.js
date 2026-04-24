@@ -22,8 +22,8 @@ function startEditing(e, originalItem, transform, viewport, page) {
         patchHeight = originalItem.height;
         patchData   = originalItem.patch;
     } else {
-        patchWidth  = (originalItem.width  || el.offsetWidth  / pdfScale) + padding * 2;
-        patchHeight = (originalItem.height || el.offsetHeight / pdfScale) + padding * 2;
+        patchWidth  = (originalItem.width  || el.offsetWidth  / pdfScale);
+        patchHeight = (originalItem.height || el.offsetHeight / pdfScale);
 
         if (transform) {
             // Sample the actual background pixels from the canvas
@@ -52,8 +52,8 @@ function startEditing(e, originalItem, transform, viewport, page) {
     // Use getBoundingClientRect — reliable regardless of el's parent/wrapper state
     const _elRect  = el.getBoundingClientRect();
     const _cRect   = container.getBoundingClientRect();
-    const _inputAbsLeft = `${(_elRect.left - _cRect.left) - padding * pdfScale}px`;
-    const _inputAbsTop  = `${(_elRect.top  - _cRect.top)  - padding * pdfScale}px`;
+    const _inputAbsLeft = `${_elRect.left - _cRect.left}px`;
+    const _inputAbsTop  = `${_elRect.top  - _cRect.top}px`;
 
     const input = document.createElement('div');
     input.contentEditable = 'true';
@@ -110,6 +110,7 @@ function startEditing(e, originalItem, transform, viewport, page) {
     }
 
     input.style.fontSize       = `${currentStyle.fontSize * viewport.scale}px`;
+    input.style.lineHeight     = '1';
     let fnEdit = (currentStyle.fontFamily || 'Helvetica');
     if (fnEdit.includes(' ') && !fnEdit.includes("'")) fnEdit = "'" + fnEdit + "'";
     input.style.fontFamily     = fnEdit;
@@ -327,6 +328,7 @@ function startEditing(e, originalItem, transform, viewport, page) {
         el.style.left            = `${wrapLeft2 - _tlOffL}px`;
         el.style.top             = `${wrapTop2  - _tlOffT}px`;
         el.style.fontSize        = `${editData.size * viewport.scale}px`;
+        el.style.lineHeight      = '1';
         el.style.fontFamily      = editData.font || 'Helvetica';
         el.style.fontWeight      = editData.isBold    ? 'bold'      : 'normal';
         el.style.fontStyle       = editData.isItalic  ? 'italic'    : 'normal';
@@ -340,40 +342,24 @@ function startEditing(e, originalItem, transform, viewport, page) {
         el.dataset.editId        = editData.id;
         el.style.zIndex          = '9999';
 
-        // ── FIX: Insert cover-patch BEHIND el using actual sampled PDF background ──
-        // Uses patchData (pixel-accurate canvas sample) if available, else bgHex color.
-        // This correctly handles PDFs with any background color (not just white).
+        // ── FIX: Insert cover-patch BEHIND el using sampled bgHex color ──
+        // Uses solid color instead of patchData image to avoid duplicating adjacent text.
+        // This correctly handles PDFs with any background color.
         const _coverPatch = document.createElement('div');
         _coverPatch.className = 'clear-patch text-cover-patch';
         const _coverW = Math.max((editData.width  || 10) * viewport.scale, el.offsetWidth  || 40);
         const _coverH = Math.max((editData.height || editData.size) * viewport.scale, el.offsetHeight || 20);
-        const _cpPatch = input.dataset.patch;
         const _cpBgHex = input.dataset.bgHex || '#ffffff';
-        if (_cpPatch) {
-            _coverPatch.style.cssText = `
-                position: absolute;
-                left: ${wrapLeft2 - _tlOffL}px;
-                top:  ${wrapTop2  - _tlOffT}px;
-                width: ${_coverW}px;
-                height: ${_coverH}px;
-                background-image: url(${_cpPatch});
-                background-size: 100% 100%;
-                background-repeat: no-repeat;
-                pointer-events: none;
-                z-index: 8;
-            `;
-        } else {
-            _coverPatch.style.cssText = `
-                position: absolute;
-                left: ${wrapLeft2 - _tlOffL}px;
-                top:  ${wrapTop2  - _tlOffT}px;
-                width: ${_coverW}px;
-                height: ${_coverH}px;
-                background-color: ${_cpBgHex};
-                pointer-events: none;
-                z-index: 8;
-            `;
-        }
+        _coverPatch.style.cssText = `
+            position: absolute;
+            left: ${wrapLeft2 - _tlOffL}px;
+            top:  ${wrapTop2  - _tlOffT}px;
+            width: ${_coverW}px;
+            height: ${_coverH}px;
+            background-color: ${_cpBgHex};
+            pointer-events: none;
+            z-index: 8;
+        `;
         // Store ref so eraser can hide it if text is cleared
         el._coverPatch = _coverPatch;
         const _tlParentSE = _tl || container;
@@ -504,7 +490,7 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
     }
 
     const patchWidth  = 120 / pdfScale;
-    const patchHeight = currentStyle.fontSize + 12;
+    const patchHeight = currentStyle.fontSize;
 
     let patchData = null;
     let bgColor;
@@ -565,6 +551,7 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
     }
 
     input.style.fontSize       = `${currentStyle.fontSize * viewport.scale}px`;
+    input.style.lineHeight     = '1';
     let fnAdd = (currentStyle.fontFamily || 'Helvetica');
     if (fnAdd.includes(' ') && !fnAdd.includes("'")) fnAdd = "'" + fnAdd + "'";
     input.style.fontFamily     = fnAdd;
@@ -731,6 +718,7 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         textItem.style.left            = `${wrapLeft}px`;
         textItem.style.top             = `${wrapTop}px`;
         textItem.style.fontSize        = input.style.fontSize;
+        textItem.style.lineHeight      = '1';
         textItem.style.fontFamily      = input.style.fontFamily;
         textItem.style.fontWeight      = input.style.fontWeight;
         textItem.style.fontStyle       = input.style.fontStyle;
@@ -911,38 +899,22 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         const tl = container.querySelector('.text-layer');
         const tlParent = tl || container;
 
-        // ── FIX: Cover-patch using actual sampled PDF background ──
-        // Uses patchData (pixel-accurate canvas sample) if available, else bgHex.
-        // Correctly handles any background color in the PDF (not just white).
+        // ── FIX: Cover-patch using sampled bgHex color ──
+        // Uses solid color instead of patchData image to avoid duplicating adjacent text.
+        // Correctly handles any background color in the PDF.
         const coverPatch = document.createElement('div');
         coverPatch.className = 'clear-patch text-cover-patch';
-        const _newPatch = input.dataset.patch;
         const _newBgHex = input.dataset.bgHex || '#ffffff';
-        if (_newPatch) {
-            coverPatch.style.cssText = `
-                position: absolute;
-                left: ${wrapLeft}px;
-                top:  ${wrapTop}px;
-                min-width: ${editData.width  * pdfScale}px;
-                height: ${editData.height * pdfScale}px;
-                background-image: url(${_newPatch});
-                background-size: 100% 100%;
-                background-repeat: no-repeat;
-                pointer-events: none;
-                z-index: 8;
-            `;
-        } else {
-            coverPatch.style.cssText = `
-                position: absolute;
-                left: ${wrapLeft}px;
-                top:  ${wrapTop}px;
-                min-width: ${editData.width  * pdfScale}px;
-                height: ${editData.height * pdfScale}px;
-                background-color: ${_newBgHex};
-                pointer-events: none;
-                z-index: 8;
-            `;
-        }
+        coverPatch.style.cssText = `
+            position: absolute;
+            left: ${wrapLeft}px;
+            top:  ${wrapTop}px;
+            min-width: ${editData.width  * pdfScale}px;
+            height: ${editData.height * pdfScale}px;
+            background-color: ${_newBgHex};
+            pointer-events: none;
+            z-index: 8;
+        `;
         textItem._coverPatch = coverPatch;
         tlParent.appendChild(coverPatch);  // insert BEFORE textItem so it's behind in z-order
         tlParent.appendChild(textItem);
