@@ -85,6 +85,11 @@ function startEditing(e, originalItem, transform, viewport, page) {
     input.style.backgroundImage = 'none';
     input.style.backgroundColor = '#ffffff';
 
+    input.dataset.bgHex = bgColor.hex;
+    input.dataset.bgR   = bgColor.r;
+    input.dataset.bgG   = bgColor.g;
+    input.dataset.bgB   = bgColor.b;
+
     // Sync toolbar from existing edit or current style
     const edit = textEdits.find(ed =>
         isNewItem
@@ -285,6 +290,10 @@ function startEditing(e, originalItem, transform, viewport, page) {
         _tmpDiv.querySelectorAll('.span-drag-handle, .floating-editor-handle').forEach(h => h.remove());
         const editorHTML = _tmpDiv.innerHTML;
 
+        // Calculate true dimensions before removing input
+        const finalWidth  = Math.max(parseFloat(input.style.minWidth || '0'), input.scrollWidth, input.offsetWidth) / pdfScale;
+        const finalHeight = Math.max(parseFloat(input.style.height || '0'), input.scrollHeight, input.offsetHeight) / pdfScale;
+
         // Remove wrapper (contains handle + editor) or just input
         if (wrap2 && wrap2.parentNode) wrap2.remove();
         else input.remove();
@@ -313,6 +322,12 @@ function startEditing(e, originalItem, transform, viewport, page) {
             return;
         }
 
+        // Calculate exact PDF coordinates using delta from original position
+        const deltaX = wrapLeft2 - _inputAbsLeftNum;
+        const deltaY = wrapTop2 - _inputAbsTopNum;
+        const trueX = (isNewItem ? originalItem.originalX : originalItem.transform[4]) + (deltaX / pdfScale);
+        const trueY = (isNewItem ? originalItem.originalY : originalItem.transform[5]) - (deltaY / pdfScale);
+
         const editData = {
             id: isNewItem
                 ? originalItem.id
@@ -321,8 +336,8 @@ function startEditing(e, originalItem, transform, viewport, page) {
             isNew:     isNewItem,
             originalX: isNewItem ? originalItem.originalX : originalItem.transform[4],
             originalY: isNewItem ? originalItem.originalY : originalItem.transform[5],
-            x:     wrapLeft2 / pdfScale,
-            y:     (container.offsetHeight - wrapTop2) / pdfScale - currentStyle.fontSize,
+            x:     trueX,
+            y:     trueY,
             text:  newText,
             html:  editorHTML || newText,
             size:  currentStyle.fontSize,
@@ -337,8 +352,8 @@ function startEditing(e, originalItem, transform, viewport, page) {
             isBold:      currentStyle.isBold,
             isItalic:    currentStyle.isItalic,
             isUnderline: currentStyle.isUnderline,
-            width:  parseFloat(input.style.minWidth || input.style.width || '0') / pdfScale,
-            height: parseFloat(input.style.height) / pdfScale
+            width:  finalWidth,
+            height: finalHeight
         };
 
         const idx = textEdits.findIndex(ed => ed.id === editData.id);
@@ -577,10 +592,14 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         // Transparent bg so image/content beneath shows through
         input.style.backgroundColor = 'transparent';
         input.style.backgroundImage = 'none';
+        input.dataset.bgHex = 'transparent';
     } else if (overrideBgHex) {
         // Solid override (e.g. shape bg color)
         input.style.backgroundColor = overrideBgHex;
         input.style.backgroundImage = 'none';
+        input.dataset.bgHex = overrideBgHex;
+        const rc = hexToRgb(overrideBgHex);
+        input.dataset.bgR = rc.r; input.dataset.bgG = rc.g; input.dataset.bgB = rc.b;
     } else {
         // FIXED BUG 1: Always solid white background in editor — patchData only stored
         // for PDF export, never used as visual background (prevents PDF bleed-through)
@@ -589,6 +608,10 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         }
         input.style.backgroundImage = 'none';
         input.style.backgroundColor = '#ffffff'; // solid white — no PDF bleed-through
+        input.dataset.bgHex = bgColor.hex;
+        input.dataset.bgR = bgColor.r;
+        input.dataset.bgG = bgColor.g;
+        input.dataset.bgB = bgColor.b;
     }
 
     input.style.fontSize       = `${currentStyle.fontSize * viewport.scale}px`;
@@ -730,6 +753,10 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         if (input._committed) return;
         input._committed = true;
 
+        // Read dimensions from input before cloning/removing
+        const finalWidth  = Math.max(parseFloat(input.style.minWidth || '0'), input.scrollWidth, input.offsetWidth) / pdfScale || patchWidth;
+        const finalHeight = Math.max(parseFloat(input.style.height || '0'), input.scrollHeight, input.offsetHeight) / pdfScale || patchHeight;
+
         // Get plain text — strip any drag handle elements that may be children of input
         const _cn = input.cloneNode(true);
         _cn.querySelectorAll('.span-drag-handle, .floating-editor-handle').forEach(h => h.remove());
@@ -768,8 +795,8 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
             isBold:      currentStyle.isBold,
             isItalic:    currentStyle.isItalic,
             isUnderline: currentStyle.isUnderline,
-            width:  patchWidth,
-            height: patchHeight
+            width:  finalWidth,
+            height: finalHeight
         };
 
         textEdits.push(editData);

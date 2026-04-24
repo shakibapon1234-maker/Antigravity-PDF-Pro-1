@@ -25,122 +25,6 @@ async function savePdfChanges() {
                           : (bold ? StandardFonts.HelveticaBold         : StandardFonts.Helvetica);
         }
 
-        // ── টেক্সট এডিট সেভ ────────────────────────────────────────────
-        for (const edit of textEdits) {
-            const pg = pages[edit.page - 1];
-            if (!pg) continue;
-
-            // Draw background first
-            if (edit.patch && edit.patch.startsWith('data:')) {
-                try {
-                    const imgFormat = edit.patch.split(';')[0].replace('data:', '');
-                    const embeddedPatch = imgFormat.includes('png')
-                        ? await pdfDoc.embedPng(edit.patch)
-                        : await pdfDoc.embedJpg(edit.patch);
-                    pg.drawImage(embeddedPatch, { x: edit.x, y: edit.y, width: edit.width, height: edit.height });
-                } catch (e) {
-                    console.error('Failed to embed text patch:', e);
-                }
-            } else if (edit.bgHex && edit.bgHex !== 'transparent') {
-                const color = hexToRgb(edit.bgHex);
-                pg.drawRectangle({
-                    x: edit.x, y: edit.y, width: edit.width, height: edit.height,
-                    color: rgb(color.r, color.g, color.b)
-                });
-            }
-
-            // Draw text on top of background
-            if (edit.text && edit.text.trim()) {
-                let font;
-                const CUSTOM_FONTS = {
-                    'Hind Siliguri':    'https://raw.githubusercontent.com/google/fonts/main/ofl/hindsiliguri/HindSiliguri-Regular.ttf',
-                    'Noto Sans Bengali': 'https://raw.githubusercontent.com/google/fonts/main/ofl/notosansbengali/NotoSansBengali-Regular.ttf'
-                };
-
-                if (CUSTOM_FONTS[edit.font]) {
-                    if (!window._cachedCustomFonts) window._cachedCustomFonts = {};
-                    if (!window._cachedCustomFonts[edit.font]) {
-                        try {
-                            const fontRes = await fetch(CUSTOM_FONTS[edit.font]);
-                            window._cachedCustomFonts[edit.font] = await fontRes.arrayBuffer();
-                        } catch (e) {
-                            console.error(`Custom font load failed (${edit.font}):`, e);
-                        }
-                    }
-                    font = window._cachedCustomFonts[edit.font]
-                        ? await pdfDoc.embedFont(window._cachedCustomFonts[edit.font])
-                        : await pdfDoc.embedFont(getFontVariant('Helvetica', edit.isBold, edit.isItalic));
-                } else {
-                    font = await pdfDoc.embedFont(getFontVariant(edit.font, edit.isBold, edit.isItalic));
-                }
-
-                const color = hexToRgb(edit.color);
-                pg.drawText(edit.text, {
-                    x: edit.x, y: edit.y, size: edit.size,
-                    font, color: rgb(color.r, color.g, color.b)
-                });
-
-                if (edit.isUnderline) {
-                    const tw = font.widthOfTextAtSize(edit.text, edit.size);
-                    pg.drawLine({
-                        start: { x: edit.x,      y: edit.y - 2 },
-                        end:   { x: edit.x + tw,  y: edit.y - 2 },
-                        thickness: 1,
-                        color: rgb(color.r, color.g, color.b)
-                    });
-                }
-            }
-        }
-
-        // ── Shape এডিট সেভ ─────────────────────────────────────────────
-        for (const edit of shapeEdits) {
-            const pg = pages[edit.page - 1];
-            if (!pg) continue;
-            const colorHex = edit.bgHex || edit.color || '#7c3aed';
-            if (colorHex === 'transparent') continue;
-            const color = hexToRgb(colorHex);
-            const rot   = edit.rotation ? PDFLib.degrees(edit.rotation) : PDFLib.degrees(0);
-            const cx    = edit.x + edit.width  / 2;
-            const cy    = edit.y + edit.height / 2;
-
-            if (edit.type === 'rect' || edit.type === 'round-rect') {
-                pg.drawRectangle({
-                    x: edit.x, y: edit.y, width: edit.width, height: edit.height,
-                    color: rgb(color.r, color.g, color.b),
-                    rotate: rot,
-                    borderRadius: edit.type === 'round-rect' ? 8 : 0
-                });
-            } else if (edit.type === 'circle') {
-                pg.drawEllipse({
-                    x: cx, y: cy,
-                    xScale: edit.width  / 2,
-                    yScale: edit.height / 2,
-                    color: rgb(color.r, color.g, color.b),
-                    rotate: rot
-                });
-            } else {
-                const left = edit.x, bottomY = edit.y, w = edit.width, h = edit.height;
-                let pts = [];
-                if (edit.type === 'triangle') pts = [[0.5,1],[1,0],[0,0]];
-                else if (edit.type === 'star') pts = [[0.5,1],[0.61,0.65],[0.98,0.65],[0.68,0.43],[0.79,0.09],[0.5,0.3],[0.21,0.09],[0.32,0.43],[0.02,0.65],[0.39,0.65]];
-                else if (edit.type === 'line') pts = [[0,0.45],[1,0.45],[1,0.55],[0,0.55]];
-
-                if (pts.length > 0) {
-                    const rad     = (edit.rotation || 0) * Math.PI / 180;
-                    const rotated = pts.map(p => {
-                        const px = left + w * p[0] - cx;
-                        const py = bottomY + h * p[1] - cy;
-                        return [
-                            cx + px * Math.cos(rad) - py * Math.sin(rad),
-                            cy + px * Math.sin(rad) + py * Math.cos(rad)
-                        ];
-                    });
-                    const pathStr = 'M ' + rotated.map(p => `${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(' L ') + ' Z';
-                    pg.drawSvgPath(pathStr, { color: rgb(color.r, color.g, color.b) });
-                }
-            }
-        }
-
         // ── Clear stroke সেভ ────────────────────────────────────────────
         for (const stroke of clearStrokes) {
             const pg = pages[stroke.page - 1];
@@ -194,7 +78,126 @@ async function savePdfChanges() {
             } catch (e) {
                 console.error('Image embed error:', e);
             }
+        }// ── Shape এডিট সেভ ─────────────────────────────────────────────
+        for (const edit of shapeEdits) {
+            const pg = pages[edit.page - 1];
+            if (!pg) continue;
+            const colorHex = edit.bgHex || edit.color || '#7c3aed';
+            if (colorHex === 'transparent') continue;
+            const color = hexToRgb(colorHex);
+            const rot   = edit.rotation ? PDFLib.degrees(edit.rotation) : PDFLib.degrees(0);
+            const cx    = edit.x + edit.width  / 2;
+            const cy    = edit.y + edit.height / 2;
+
+            if (edit.type === 'rect' || edit.type === 'round-rect') {
+                pg.drawRectangle({
+                    x: edit.x, y: edit.y, width: edit.width, height: edit.height,
+                    color: rgb(color.r, color.g, color.b),
+                    rotate: rot,
+                    borderRadius: edit.type === 'round-rect' ? 8 : 0
+                });
+            } else if (edit.type === 'circle') {
+                pg.drawEllipse({
+                    x: cx, y: cy,
+                    xScale: edit.width  / 2,
+                    yScale: edit.height / 2,
+                    color: rgb(color.r, color.g, color.b),
+                    rotate: rot
+                });
+            } else {
+                const left = edit.x, bottomY = edit.y, w = edit.width, h = edit.height;
+                let pts = [];
+                if (edit.type === 'triangle') pts = [[0.5,1],[1,0],[0,0]];
+                else if (edit.type === 'star') pts = [[0.5,1],[0.61,0.65],[0.98,0.65],[0.68,0.43],[0.79,0.09],[0.5,0.3],[0.21,0.09],[0.32,0.43],[0.02,0.65],[0.39,0.65]];
+                else if (edit.type === 'line') pts = [[0,0.45],[1,0.45],[1,0.55],[0,0.55]];
+
+                if (pts.length > 0) {
+                    const rad     = (edit.rotation || 0) * Math.PI / 180;
+                    const rotated = pts.map(p => {
+                        const px = left + w * p[0] - cx;
+                        const py = bottomY + h * p[1] - cy;
+                        return [
+                            cx + px * Math.cos(rad) - py * Math.sin(rad),
+                            cy + px * Math.sin(rad) + py * Math.cos(rad)
+                        ];
+                    });
+                    const pathStr = 'M ' + rotated.map(p => `${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(' L ') + ' Z';
+                    pg.drawSvgPath(pathStr, { color: rgb(color.r, color.g, color.b) });
+                }
+            }
         }
+
+        // ── টেক্সট এডিট সেভ ────────────────────────────────────────────
+        for (const edit of textEdits) {
+            const pg = pages[edit.page - 1];
+            if (!pg) continue;
+
+            // Draw background first
+            if (edit.patch && edit.patch.startsWith('data:')) {
+                try {
+                    const imgFormat = edit.patch.split(';')[0].replace('data:', '');
+                    const embeddedPatch = imgFormat.includes('png')
+                        ? await pdfDoc.embedPng(edit.patch)
+                        : await pdfDoc.embedJpg(edit.patch);
+                    pg.drawImage(embeddedPatch, { x: edit.x, y: edit.y, width: edit.width, height: edit.height });
+                } catch (e) {
+                    console.error('Failed to embed text patch:', e);
+                }
+            } else if (edit.bgHex && edit.bgHex !== 'transparent') {
+                const color = hexToRgb(edit.bgHex);
+                pg.drawRectangle({
+                    x: edit.x, 
+                    y: edit.y + edit.size - edit.height, 
+                    width: edit.width, 
+                    height: edit.height,
+                    color: rgb(color.r, color.g, color.b)
+                });
+            }
+
+            // Draw text on top of background
+            if (edit.text && edit.text.trim()) {
+                let font;
+                const CUSTOM_FONTS = {
+                    'Hind Siliguri':    'https://raw.githubusercontent.com/google/fonts/main/ofl/hindsiliguri/HindSiliguri-Regular.ttf',
+                    'Noto Sans Bengali': 'https://raw.githubusercontent.com/google/fonts/main/ofl/notosansbengali/NotoSansBengali-Regular.ttf'
+                };
+
+                if (CUSTOM_FONTS[edit.font]) {
+                    if (!window._cachedCustomFonts) window._cachedCustomFonts = {};
+                    if (!window._cachedCustomFonts[edit.font]) {
+                        try {
+                            const fontRes = await fetch(CUSTOM_FONTS[edit.font]);
+                            window._cachedCustomFonts[edit.font] = await fontRes.arrayBuffer();
+                        } catch (e) {
+                            console.error(`Custom font load failed (${edit.font}):`, e);
+                        }
+                    }
+                    font = window._cachedCustomFonts[edit.font]
+                        ? await pdfDoc.embedFont(window._cachedCustomFonts[edit.font])
+                        : await pdfDoc.embedFont(getFontVariant('Helvetica', edit.isBold, edit.isItalic));
+                } else {
+                    font = await pdfDoc.embedFont(getFontVariant(edit.font, edit.isBold, edit.isItalic));
+                }
+
+                const color = hexToRgb(edit.color);
+                pg.drawText(edit.text, {
+                    x: edit.x, y: edit.y, size: edit.size,
+                    font, color: rgb(color.r, color.g, color.b)
+                });
+
+                if (edit.isUnderline) {
+                    const tw = font.widthOfTextAtSize(edit.text, edit.size);
+                    pg.drawLine({
+                        start: { x: edit.x,      y: edit.y - 2 },
+                        end:   { x: edit.x + tw,  y: edit.y - 2 },
+                        thickness: 1,
+                        color: rgb(color.r, color.g, color.b)
+                    });
+                }
+            }
+        }
+
+        
 
         const blob = new Blob([await pdfDoc.save()], { type: 'application/pdf' });
         saveAs(blob, 'edited_' + currentPdfFile.name);
