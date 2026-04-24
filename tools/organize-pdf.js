@@ -33,12 +33,13 @@ document.addEventListener('DOMContentLoaded', () => {
         previewContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-dim); padding: 40px;">Generating thumbnails... This may take a moment.</div>';
 
         try {
-            const arrayBuffer = await file.arrayBuffer();
+            const arrayBuffer = new Uint8Array(await file.arrayBuffer());
             // Use PDFLib to get the full document for later saving.
             // But use pdf.js to render the thumbnails just like in text editor.
-            currentPdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+            currentPdfDoc = await PDFLib.PDFDocument.load(arrayBuffer.slice(0), { ignoreEncryption: true });
             
-            const pdfjsDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            // IMPORTANT: pass copy to pdf.js to avoid ArrayBuffer detach
+            const pdfjsDoc = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
             await renderThumbnails(pdfjsDoc);
             
         } catch (error) {

@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentFileData) return;
 
         try {
-            const loadingTask = pdfjsLib.getDocument({ data: currentFileData });
+            const loadingTask = pdfjsLib.getDocument({ data: currentFileData.slice(0) });
             const pdf = await loadingTask.promise;
             const total = pdf.numPages;
             const page = await pdf.getPage(1);
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const { PDFDocument, rgb, StandardFonts } = PDFLib;
-            const pdfDoc = await PDFDocument.load(currentFileData, { ignoreEncryption: true });
+            const pdfDoc = await PDFDocument.load(currentFileData.slice(0), { ignoreEncryption: true });
             const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
             const pages = pdfDoc.getPages();
             const total = pages.length;

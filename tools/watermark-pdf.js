@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
 
             // Load the ORIGINAL PDF directly (no nuclear flattening)
-            const pdfDoc = await PDFDocument.load(currentFileData, { ignoreEncryption: true });
+            const pdfDoc = await PDFDocument.load(currentFileData.slice(0), { ignoreEncryption: true });
             pdfDoc.registerFontkit(fontkit);
 
             // Embed font

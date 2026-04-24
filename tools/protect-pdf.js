@@ -1,5 +1,6 @@
-// Antigravity PDF - Protect PDF Logic (FIXED: 100% Client-side, no server needed)
-// Uses PDF-lib's built-in encryption support
+// Antigravity PDF - Protect PDF Logic (FIXED: jsPDF encryption — truly works)
+// PDF-lib does NOT support encryption. jsPDF does.
+// Strategy: Render each page with pdf.js → add as image to jsPDF with encryption
 document.addEventListener('DOMContentLoaded', () => {
     const btnUpload = document.getElementById('btnUploadProtect');
     const fileInput = document.getElementById('protectFileInput');
@@ -14,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!btnUpload) return;
 
     let currentFile = null;
-    let currentFileBytes = null;
+    let currentFileBytes = null; // Uint8Array — safe from detach
 
     btnUpload.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
@@ -44,6 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Please enter a password.');
             return;
         }
+        if (password.length < 1) {
+            alert('Password is too short.');
+            return;
+        }
         if (password !== confirmPassword) {
             alert('Passwords do not match.');
             return;
@@ -53,41 +58,69 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Check jsPDF availability
+        if (typeof jspdf === 'undefined' && typeof window.jspdf === 'undefined') {
+            alert('jsPDF library not loaded. Please refresh the page and ensure you have internet connection.');
+            return;
+        }
+
         btnApplyProtect.disabled = true;
-        btnApplyProtect.innerHTML = '<i data-lucide="loader-2"></i> Protecting...';
+        btnApplyProtect.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Protecting...';
         if (window.lucide) lucide.createIcons();
 
         try {
-            // PDF-lib supports owner/user password encryption natively
-            const { PDFDocument } = PDFLib;
+            // Step 1: Load PDF with pdf.js to render pages
+            const pdfJsDoc = await pdfjsLib.getDocument({ data: currentFileBytes.slice(0) }).promise;
+            const totalPages = pdfJsDoc.numPages;
 
-            // Load the original PDF
-            const pdfDoc = await PDFDocument.load(currentFileBytes, {
-                ignoreEncryption: true
+            // Step 2: Render first page to determine orientation
+            const firstPage = await pdfJsDoc.getPage(1);
+            const firstViewport = firstPage.getViewport({ scale: 1.0 });
+            const isLandscape = firstViewport.width > firstViewport.height;
+
+            // Step 3: Create jsPDF with encryption
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: isLandscape ? 'landscape' : 'portrait',
+                unit: 'pt',
+                format: [firstViewport.width, firstViewport.height],
+                encryption: {
+                    userPassword: password,
+                    ownerPassword: password + '_antigravity_owner',
+                    userPermissions: []  // No permissions = maximum restriction
+                }
             });
 
-            // Save with encryption
-            // PDF-lib v1.17+ supports userPassword and ownerPassword
-            const protectedBytes = await pdfDoc.save({
-                userPassword: password,
-                ownerPassword: password + '_owner',
-                permissions: {
-                    printing: 'lowResolution',
-                    modifying: false,
-                    copying: false,
-                    annotating: false,
-                    fillingForms: false,
-                    contentAccessibility: true,
-                    documentAssembly: false,
-                },
-            });
+            // Step 4: Render each page and add to jsPDF
+            for (let i = 1; i <= totalPages; i++) {
+                btnApplyProtect.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Page ${i}/${totalPages}...`;
 
-            const blob = new Blob([protectedBytes], { type: 'application/pdf' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `protected_${currentFile.name}`;
-            link.click();
-            URL.revokeObjectURL(link.href);
+                const page = await pdfJsDoc.getPage(i);
+                const scale = 2.0; // High quality render
+                const viewport = page.getViewport({ scale });
+                const pageW = page.getViewport({ scale: 1.0 }).width;
+                const pageH = page.getViewport({ scale: 1.0 }).height;
+
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                const ctx = canvas.getContext('2d');
+
+                await page.render({ canvasContext: ctx, viewport }).promise;
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.92);
+
+                if (i > 1) {
+                    // Add a new page with the correct size
+                    const pageIsLandscape = pageW > pageH;
+                    doc.addPage([pageW, pageH], pageIsLandscape ? 'landscape' : 'portrait');
+                }
+
+                doc.addImage(imgData, 'JPEG', 0, 0, pageW, pageH);
+            }
+
+            // Step 5: Save and download
+            doc.save(`protected_${currentFile.name}`);
 
             // Success feedback
             btnApplyProtect.innerHTML = '<i data-lucide="check-circle"></i> Protected!';
@@ -100,49 +133,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (err) {
             console.error('Protect PDF error:', err);
-            // Fallback: if PDF-lib encryption fails (older build),
-            // re-embed each page into a new PDF with a note
-            try {
-                await fallbackProtect(password);
-            } catch (fallbackErr) {
-                alert('Failed to protect PDF: ' + err.message);
-            }
+            alert('Failed to protect PDF: ' + err.message);
+            btnApplyProtect.innerHTML = '<i data-lucide="lock"></i> Protect & Download';
         } finally {
             btnApplyProtect.disabled = false;
             if (window.lucide) lucide.createIcons();
         }
     });
-
-    // Fallback: flatten + add visual "PROTECTED" watermark layer
-    // (For PDF-lib builds that don't support encryption)
-    async function fallbackProtect(password) {
-        const { PDFDocument, StandardFonts, rgb, degrees } = PDFLib;
-        const pdfDoc = await PDFDocument.load(currentFileBytes, { ignoreEncryption: true });
-        const pages = pdfDoc.getPages();
-        const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-        // Add a subtle security note on each page
-        for (const page of pages) {
-            const { width, height } = page.getSize();
-            page.drawText(`🔒 Password Protected`, {
-                x: 10, y: 10,
-                size: 8,
-                font,
-                color: rgb(0.6, 0.6, 0.6),
-                opacity: 0.4,
-            });
-        }
-
-        const pdfBytes = await pdfDoc.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `protected_${currentFile.name}`;
-        link.click();
-        URL.revokeObjectURL(link.href);
-
-        alert('Note: Your PDF viewer must support PDF encryption for full password protection. File has been saved.');
-    }
 
     window.loadProtectPdf = loadProtectPdf;
 });

@@ -37,10 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
         btnApplyCrop.disabled = true;
 
         try {
-            currentPdfBytes = await file.arrayBuffer();
+            currentPdfBytes = new Uint8Array(await file.arrayBuffer());
             
             // Render first page with pdf.js to show preview
-            const pdfjsDoc = await pdfjsLib.getDocument({ data: currentPdfBytes }).promise;
+            // IMPORTANT: pass a copy (.slice(0)) because pdf.js transfers/detaches the ArrayBuffer
+            const pdfjsDoc = await pdfjsLib.getDocument({ data: currentPdfBytes.slice(0) }).promise;
             const page = await pdfjsDoc.getPage(1);
             
             // Limit width for preview
@@ -153,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnApplyCrop.disabled = true;
 
         try {
-            const pdfDoc = await PDFLib.PDFDocument.load(currentPdfBytes, { ignoreEncryption: true });
+            const pdfDoc = await PDFLib.PDFDocument.load(currentPdfBytes.slice(0), { ignoreEncryption: true });
             const pages = pdfDoc.getPages();
 
             let cropMode = 'all';
