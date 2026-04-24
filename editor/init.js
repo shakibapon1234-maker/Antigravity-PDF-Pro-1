@@ -203,8 +203,16 @@ function initEventListeners() {
         eraserDot.style.display = 'none';
         const w = document.getElementById('canvasWrapper');
         if (w) w.style.cursor = 'crosshair';
-        // CRITICAL: text spans-এ pointer-events বন্ধ করো
-        // যাতে mousedown page wrapper-এ পৌঁছে drag-select rectangle তৈরি হয়
+        setTextLayerInteractivity(false);
+    });
+
+    document.getElementById('btnCloneArea').addEventListener('click', () => {
+        activeTool = 'cloneArea';
+        updateToolUI('btnCloneArea');
+        document.body.classList.remove('eraser-active');
+        eraserDot.style.display = 'none';
+        const w = document.getElementById('canvasWrapper');
+        if (w) w.style.cursor = 'crosshair';
         setTextLayerInteractivity(false);
     });
 
@@ -322,7 +330,7 @@ function initEventListeners() {
     document.querySelectorAll('.btn-tool, .color-picker-wrapper, #btnIncreaseFont, #btnDecreaseFont, #fontFamily, #fontSize').forEach(el => {
         el.addEventListener('mousedown', (e) => {
             if (el.tagName === 'SELECT' || el.tagName === 'INPUT') return;
-            const noPreventList = ['btnSelect','btnTypeText','btnClearText','btnInsertImage','btnUndo','btnClearEdits','btnShapeMenu','btnMoveArea','btnCreateTable'];
+            const noPreventList = ['btnSelect','btnTypeText','btnClearText','btnCloneArea','btnInsertImage','btnUndo','btnClearEdits','btnShapeMenu','btnMoveArea','btnCreateTable'];
             if (noPreventList.includes(el.id)) return;
             e.preventDefault();
         });

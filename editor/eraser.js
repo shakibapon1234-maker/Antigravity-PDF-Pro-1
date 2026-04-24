@@ -481,7 +481,7 @@ function deactivateWhiteEraser() {
 }
 
 function _weUpdateToolbar(activeId) {
-    ['btnSelect','btnTypeText','btnClearText','btnWhiteEraser'].forEach(id => {
+    ['btnSelect','btnTypeText','btnClearText','btnCloneArea','btnWhiteEraser'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle('active', id === activeId);
     });

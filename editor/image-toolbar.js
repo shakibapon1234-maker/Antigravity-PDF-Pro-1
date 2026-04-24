@@ -11,17 +11,17 @@
 // SECTION A — addImageToPdf  (Insert image into PDF page)
 // ════════════════════════════════════════════════════════════════════════════
 
-function addImageToPdf(dataUrl, fileName) {
+function addImageToPdf(dataUrl, fileName, initialRect = null) {
     if (!currentPdfObj) { alert('আগে একটি PDF ফাইল খুলুন।'); return; }
     const container = document.querySelector('.pdf-page-wrapper');
     if (!container) return;
 
     captureUndoSnapshot('Insert image');
 
-    const defW = Math.min(200, container.offsetWidth  * 0.4);
-    const defH = defW;
-    const defL = (container.offsetWidth  - defW) / 2;
-    const defT = (container.offsetHeight - defH) / 2;
+    const defW = initialRect ? initialRect.w : Math.min(200, container.offsetWidth  * 0.4);
+    const defH = initialRect ? initialRect.h : defW;
+    const defL = initialRect ? initialRect.l : (container.offsetWidth  - defW) / 2;
+    const defT = initialRect ? initialRect.t : (container.offsetHeight - defH) / 2;
 
     const wrap = document.createElement('div');
     wrap.className = 'pdf-image-wrapper';

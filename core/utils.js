@@ -31,7 +31,7 @@ function switchTab(tabId) {
 }
 
 function updateToolUI(activeId) {
-    ['btnSelect', 'btnTypeText', 'btnClearText'].forEach(id => {
+    ['btnSelect', 'btnTypeText', 'btnClearText', 'btnCloneArea'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle('active', id === activeId);
     });
@@ -242,16 +242,25 @@ function sampleBackgroundColor(x, y) {
     const canvas = pageWrapper.querySelector('canvas');
     if (!canvas) return { r: 1, g: 1, b: 1, hex: '#ffffff' };
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     try {
-        const overlays = pageWrapper.querySelectorAll('.text-layer, .clear-overlay');
+        const overlays = pageWrapper.querySelectorAll('.text-layer, .clear-overlay, .clear-patch, .pdf-image-wrapper');
         overlays.forEach(o => { o.style.visibility = 'hidden'; });
 
+        const scaleX = canvas.width / pageWrapper.offsetWidth;
+        const scaleY = canvas.height / pageWrapper.offsetHeight;
+        const px = x * scaleX;
+        const py = y * scaleY;
+
         const sz = 40;
-        const sx = Math.max(0, Math.round(x) - sz / 2);
-        const sy = Math.max(0, Math.round(y) - sz / 2);
+        const sx = Math.max(0, Math.round(px) - sz / 2);
+        const sy = Math.max(0, Math.round(py) - sz / 2);
         const sw = Math.min(sz, canvas.width  - sx);
         const sh = Math.min(sz, canvas.height - sy);
+        
+        // Ensure width and height are at least 1 pixel
+        if (sw < 1 || sh < 1) return { r: 1, g: 1, b: 1, hex: '#ffffff' };
+
         const d  = ctx.getImageData(sx, sy, sw, sh).data;
 
         overlays.forEach(o => { o.style.visibility = ''; });

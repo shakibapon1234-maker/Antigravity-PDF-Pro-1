@@ -308,7 +308,7 @@
     });
 
     right.appendChild(sec('Mode'));
-    ['btnSelect','btnTypeText','btnClearText','btnWhiteEraser'].forEach(id => {
+    ['btnSelect','btnTypeText','btnClearText','btnCloneArea','btnWhiteEraser'].forEach(id => {
       const p = makeProxy(id); if (p) right.appendChild(p);
     });
 

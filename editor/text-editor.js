@@ -419,6 +419,10 @@ function handlePageMouseDown(e, container, viewport, page) {
         e.preventDefault(); // prevent text-selection from blocking rect-drag
         startClearTextStroke(x, y, container);
         // Note: clearText uses document-level mouseup â€” isSelecting cleared there
+    } else if (activeTool === 'cloneArea') {
+        isSelecting = true;
+        e.preventDefault();
+        startCloneAreaStroke(x, y, container);
     } else if (activeTool === 'moveArea') {
         // Move Area টুল - এরিয়া সিলেক্ট করতে শুরু করুন
         if (!e.target.classList.contains('move-area-selection') &&
@@ -1506,7 +1510,47 @@ function endClearTextStroke(container) {
     let clearedCount = 0;
     const contRect = container.getBoundingClientRect();
 
-    // Find and hide all text spans that overlap the selection rectangle
+    const mc  = container.querySelector('canvas');
+    const csx = mc ? mc.width  / container.offsetWidth  : 1;
+    const csy = mc ? mc.height / container.offsetHeight : 1;
+
+    // 1. Generate inpainted patch for EXACTLY the dragged area
+    const patchDataUrl = typeof generateInpaintedPatch === 'function'
+        ? generateInpaintedPatch(
+            Math.round(l * csx), Math.round(t * csy),
+            Math.round(w * csx), Math.round(h * csy))
+        : null;
+
+    const bgSample = typeof sampleBackgroundColor === 'function'
+        ? sampleBackgroundColor(l + w / 2, t + h / 2)
+        : { r: 1, g: 1, b: 1, hex: '#ffffff' };
+
+    // 2. Create ONE visual patch covering EXACTLY the dragged area
+    const patchEl = document.createElement('div');
+    patchEl.className = 'clear-patch';
+    patchEl.style.cssText = `
+        position:absolute; left:${l}px; top:${t}px;
+        width:${w}px; height:${h}px;
+        background-color:${bgSample.hex};
+        ${patchDataUrl ? `background-image:url(${patchDataUrl});background-size:100% 100%;background-repeat:no-repeat;` : ''}
+        pointer-events:none; z-index:5;
+    `;
+    container.appendChild(patchEl);
+
+    // 3. Save stroke to clearStrokes for PDF export
+    let pe = clearStrokes.find(s => s.page === currentPageNum);
+    if (!pe) { pe = { page: currentPageNum, rects: [] }; clearStrokes.push(pe); }
+    pe.rects.push({
+        x: l / pdfScale,
+        y: (container.offsetHeight - t - h) / pdfScale,
+        w: w / pdfScale,
+        h: h / pdfScale,
+        r: bgSample.r, g: bgSample.g, b: bgSample.b,
+        patch: patchDataUrl || null,
+        isTextClear: true
+    });
+
+    // 4. Find and hide all text spans that overlap the selection rectangle
     container.querySelectorAll('.editable-text-unit').forEach(span => {
         if (span.classList.contains('floating-editor')) return;
         if (span.classList.contains('span-drag-handle')) return;
@@ -1522,6 +1566,7 @@ function endClearTextStroke(container) {
         if (!(sl < l + w && sl + sw > l && st < t + h && st + sh > t)) return;
 
         clearedCount++;
+        
         span._cleared = true;
         span._textCleared = true;
         span.textContent = '';
@@ -1529,7 +1574,7 @@ function endClearTextStroke(container) {
         span.style.backgroundColor = 'transparent';
         span.style.backgroundImage = 'none';
 
-        // Record in textEdits so renderPage() preserves cleared state
+        // Record in textEdits as transparent so renderer doesn't bring back the selectable text
         const editId = span.dataset.editId || `ct-${currentPageNum}-${Math.round(sl)}-${Math.round(st)}`;
         const clearEntry = {
             id: editId, page: currentPageNum, isNew: false,
@@ -1568,6 +1613,91 @@ function endClearTextStroke(container) {
     }
 
     clearTextContainer = null;
+}
+
+// ────────────────────────────────────────────────────────────
+// Clone Area - সিলেক্টেড এরিয়ার ইমেজ ক্লোন করা
+// ────────────────────────────────────────────────────────────
+let cloneAreaRectStart = null;
+let cloneAreaRectEl = null;
+let cloneAreaContainer = null;
+
+function startCloneAreaStroke(x, y, container) {
+    cloneAreaRectStart = { x, y };
+    cloneAreaContainer = container;
+    cloneAreaRectEl = document.createElement('div');
+    cloneAreaRectEl.className = 'clone-area-rect-preview';
+    cloneAreaRectEl.style.cssText = `
+        position:absolute;left:${x}px;top:${y}px;width:0;height:0;
+        border:2px dashed #6366f1; background:rgba(99,102,241,0.2);
+        pointer-events:none;z-index:200;
+    `;
+    container.appendChild(cloneAreaRectEl);
+
+    const onMove = (e) => {
+        if (!isSelecting) return;
+        const r = container.getBoundingClientRect();
+        continueCloneAreaStroke(e.clientX - r.left, e.clientY - r.top);
+    };
+    const onUp = () => {
+        if (isSelecting) {
+            endCloneAreaStroke(container);
+            isSelecting = false;
+        }
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+}
+
+function continueCloneAreaStroke(x, y) {
+    if (!cloneAreaRectEl) return;
+    const l = Math.min(cloneAreaRectStart.x, x);
+    const t = Math.min(cloneAreaRectStart.y, y);
+    cloneAreaRectEl.style.left   = `${l}px`;
+    cloneAreaRectEl.style.top    = `${t}px`;
+    cloneAreaRectEl.style.width  = `${Math.abs(x - cloneAreaRectStart.x)}px`;
+    cloneAreaRectEl.style.height = `${Math.abs(y - cloneAreaRectStart.y)}px`;
+}
+
+function endCloneAreaStroke(container) {
+    if (!cloneAreaRectEl) { cloneAreaContainer = null; return; }
+    const l = parseFloat(cloneAreaRectEl.style.left)   || 0;
+    const t = parseFloat(cloneAreaRectEl.style.top)    || 0;
+    const w = parseFloat(cloneAreaRectEl.style.width)  || 0;
+    const h = parseFloat(cloneAreaRectEl.style.height) || 0;
+
+    cloneAreaRectEl.remove();
+    cloneAreaRectEl = null;
+
+    if (w < 3 || h < 3) { cloneAreaContainer = null; return; }
+
+    const mc  = container.querySelector('canvas');
+    if (mc && typeof addImageToPdf === 'function') {
+        const scaleX = mc.width / container.offsetWidth;
+        const scaleY = mc.height / container.offsetHeight;
+
+        const tempCv = document.createElement('canvas');
+        tempCv.width = w * scaleX;
+        tempCv.height = h * scaleY;
+        const tCtx = tempCv.getContext('2d', { willReadFrequently: true });
+
+        // We only clone the base PDF content (the canvas).
+        // Overlays are separate DOM elements, so canvas drawing ignores them.
+        tCtx.drawImage(mc, l * scaleX, t * scaleY, w * scaleX, h * scaleY, 0, 0, tempCv.width, tempCv.height);
+
+        const dataUrl = tempCv.toDataURL('image/png');
+        
+        // Spawn the cloned image slightly offset so the user sees it
+        addImageToPdf(dataUrl, 'cloned-area', { l: l + 10, t: t + 10, w: w, h: h });
+        
+        // Switch to select tool so they can immediately drag it
+        const btnSelect = document.getElementById('btnSelect');
+        if (btnSelect) btnSelect.click();
+    }
+
+    cloneAreaContainer = null;
 }
 
 // ────────────────────────────────────────────────────────────
