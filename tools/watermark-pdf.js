@@ -297,9 +297,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         rotate: pdfRot,
                     });
                 } else if (wmImg) {
-                    const imgDims = wmImg.scale(0.5 * scaleVal);
-                    const iw = imgDims.width;
-                    const ih = imgDims.height;
+                    // Calculate target size relative to PAGE, not native image resolution
+                    // Preview uses baseSize=250 at 0.8 scale = 312.5 PDF points base
+                    const baseSize = 312.5; // matches preview's 250px / 0.8
+                    const nativeW = wmImg.width;
+                    const nativeH = wmImg.height;
+                    const imgFitScale = baseSize / Math.max(nativeW, nativeH);
+                    const iw = nativeW * imgFitScale * scaleVal;
+                    const ih = nativeH * imgFitScale * scaleVal;
 
                     // Center image at (xCtr, yCtr)
                     page.drawImage(wmImg, {
