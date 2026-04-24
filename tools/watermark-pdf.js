@@ -280,18 +280,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const xCtr = width * (parseFloat(wmPosX.value) / 100);
                 const yCtr = height * (parseFloat(wmPosY.value) / 100);
                 const pdfRot = degrees(-rot);
-                const rad = (-rot * Math.PI) / 180;
 
                 if (watermarkType === 'text' && wmText.value) {
                     const fSize = parseInt(wmSize.value) * scaleVal;
                     const tw = font.widthOfTextAtSize(wmText.value, fSize);
-                    // Offset so text center is at (xCtr, yCtr)
-                    const offX = (tw / 2) * Math.cos(rad);
-                    const offY = (tw / 2) * Math.sin(rad);
 
+                    // Simple centering: just offset by half text width
+                    // PDF-lib rotates around the (x,y) point, so position at center
                     page.drawText(wmText.value, {
-                        x: xCtr - offX,
-                        y: yCtr - offY,
+                        x: xCtr - tw / 2,
+                        y: yCtr,
                         size: fSize,
                         font,
                         color: hexToRgbLib(wmColor.value, rgb),
@@ -302,10 +300,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const imgDims = wmImg.scale(0.5 * scaleVal);
                     const iw = imgDims.width;
                     const ih = imgDims.height;
-                    const sX = xCtr - (iw / 2 * Math.cos(rad) - ih / 2 * Math.sin(rad));
-                    const sY = yCtr - (iw / 2 * Math.sin(rad) + ih / 2 * Math.cos(rad));
+
+                    // Center image at (xCtr, yCtr)
                     page.drawImage(wmImg, {
-                        x: sX, y: sY,
+                        x: xCtr - iw / 2,
+                        y: yCtr - ih / 2,
                         width: iw, height: ih,
                         opacity,
                         rotate: pdfRot,

@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (fileInput) fileInput.addEventListener('change', handleUpload);
     if (btnApplyCrop) btnApplyCrop.addEventListener('click', applyCrop);
 
-    async function handleUpload(e) {
+    function handleUpload(e) {
         const file = e.target.files[0];
         if (!file) return;
 
@@ -36,40 +36,49 @@ document.addEventListener('DOMContentLoaded', () => {
         cropRect = { x: 0, y: 0, w: 0, h: 0 };
         btnApplyCrop.disabled = true;
 
-        try {
-            currentPdfBytes = new Uint8Array(await file.arrayBuffer());
-            
-            // Render first page with pdf.js to show preview
-            // IMPORTANT: pass a copy (.slice(0)) because pdf.js transfers/detaches the ArrayBuffer
-            const pdfjsDoc = await pdfjsLib.getDocument({ data: currentPdfBytes.slice(0) }).promise;
-            const page = await pdfjsDoc.getPage(1);
-            
-            // Limit width for preview
-            const viewportForScale = page.getViewport({ scale: 1.0 });
-            const maxPreviewWidth = 800; 
-            const scale = viewportForScale.width > maxPreviewWidth ? maxPreviewWidth / viewportForScale.width : 1.5;
-            
-            const viewport = page.getViewport({ scale });
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            
-            pdfDocInfo = { 
-                width: viewportForScale.width, 
-                height: viewportForScale.height,
-                scale: scale 
-            };
+        // Use FileReader instead of file.arrayBuffer() for better compatibility
+        const reader = new FileReader();
+        reader.onload = async function() {
+            try {
+                currentPdfBytes = new Uint8Array(this.result);
+                
+                // Render first page with pdf.js — ALWAYS pass a copy
+                const pdfjsDoc = await pdfjsLib.getDocument({ data: currentPdfBytes.slice(0) }).promise;
+                const page = await pdfjsDoc.getPage(1);
+                
+                // Limit width for preview
+                const viewportForScale = page.getViewport({ scale: 1.0 });
+                const maxPreviewWidth = 800; 
+                const scale = viewportForScale.width > maxPreviewWidth ? maxPreviewWidth / viewportForScale.width : 1.5;
+                
+                const viewport = page.getViewport({ scale });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                
+                pdfDocInfo = { 
+                    width: viewportForScale.width, 
+                    height: viewportForScale.height,
+                    scale: scale 
+                };
 
-            await page.render({
-                canvasContext: ctx,
-                viewport: viewport
-            }).promise;
-            
-        } catch (err) {
-            console.error("Error loading PDF for crop:", err);
-            alert("Could not load PDF for cropping.");
+                await page.render({
+                    canvasContext: ctx,
+                    viewport: viewport
+                }).promise;
+                
+            } catch (err) {
+                console.error("Error loading PDF for crop:", err);
+                alert("Could not load PDF for cropping: " + err.message);
+                emptyState.classList.remove('d-none');
+                workspace.classList.add('d-none');
+            }
+        };
+        reader.onerror = function() {
+            alert("Could not read the file. Please try again.");
             emptyState.classList.remove('d-none');
             workspace.classList.add('d-none');
-        }
+        };
+        reader.readAsArrayBuffer(file);
         
         fileInput.value = '';
     }
@@ -80,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
         isDrawing = true;
         const rect = canvas.getBoundingClientRect();
         
-        // CSS offsets inside container
         const contRect = container.getBoundingClientRect();
         const offsetX = rect.left - contRect.left;
         const offsetY = rect.top - contRect.top;
@@ -88,7 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
         startX = e.clientX - rect.left;
         startY = e.clientY - rect.top;
         
-        // Ensure starting point is inside canvas bounds
         if(startX < 0 || startY < 0 || startX > canvas.offsetWidth || startY > canvas.offsetHeight) {
             isDrawing = false;
             return;
@@ -108,11 +115,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isDrawing) return;
         const rect = canvas.getBoundingClientRect();
         
-        // Calculate canvas bounds bounds
         let currentX = e.clientX - rect.left;
         let currentY = e.clientY - rect.top;
         
-        // Constrain to canvas
         currentX = Math.max(0, Math.min(currentX, canvas.offsetWidth));
         currentY = Math.max(0, Math.min(currentY, canvas.offsetHeight));
 
@@ -150,10 +155,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentPdfBytes || cropRect.w === 0 || cropRect.h === 0) return;
 
         const originalBtnHtml = btnApplyCrop.innerHTML;
-        btnApplyCrop.innerHTML = '<i class="bi bi-arrow-repeat spin" style="display:inline-block; animation: spin 2s linear infinite;"></i> Cropping...';
+        btnApplyCrop.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Cropping...';
         btnApplyCrop.disabled = true;
+        if (window.lucide) lucide.createIcons();
 
         try {
+            // ALWAYS pass a fresh copy to PDF-lib
             const pdfDoc = await PDFLib.PDFDocument.load(currentPdfBytes.slice(0), { ignoreEncryption: true });
             const pages = pdfDoc.getPages();
 
@@ -162,29 +169,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (radio.checked) cropMode = radio.value;
             }
 
-            // --- DPR-AWARE COORDINATE CALCULATION (FIXED) ---
-            // Use getBoundingClientRect() for the actual displayed CSS size
-            // This avoids bugs from offsetWidth/offsetHeight ignoring CSS transforms
+            // DPR-aware coordinate calculation
             const canvasRect = canvas.getBoundingClientRect();
-            const displayedW = canvasRect.width;   // actual CSS pixels displayed
+            const displayedW = canvasRect.width;
             const displayedH = canvasRect.height;
 
-            // Ratio: how many PDF points per CSS pixel
             const ratioX = pdfDocInfo.width  / displayedW;
             const ratioY = pdfDocInfo.height / displayedH;
 
-            // cropRect is in CSS pixels relative to the canvas top-left
             const pdfCropX = cropRect.x * ratioX;
             const pdfCropW = cropRect.w * ratioX;
             const pdfCropH = cropRect.h * ratioY;
-
-            // PDF coordinate origin is bottom-left, canvas is top-left — flip Y
             const bottomY = (displayedH - (cropRect.y + cropRect.h)) * ratioY;
 
             const pagesToCrop = cropMode === 'all' ? pages : [pages[0]];
 
             for (const page of pagesToCrop) {
-                // Set both CropBox and MediaBox so all viewers respect the crop
                 page.setCropBox(pdfCropX, bottomY, pdfCropW, pdfCropH);
                 page.setMediaBox(pdfCropX, bottomY, pdfCropW, pdfCropH);
             }
@@ -199,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             btnApplyCrop.innerHTML = originalBtnHtml;
             btnApplyCrop.disabled = false;
+            if (window.lucide) lucide.createIcons();
         }
     }
 });

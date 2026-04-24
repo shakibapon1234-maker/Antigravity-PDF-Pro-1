@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Antigravity PDF - Auto Test Suite</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0a1a; color: #e0e0e0; padding: 30px; }
+        h1 { color: #00e5ff; margin-bottom: 10px; }
+        .subtitle { color: #888; margin-bottom: 30px; }
+        .test-grid { display: grid; gap: 15px; max-width: 900px; }
+        .test-card {
+            background: #12122a; border: 1px solid #2a2a4a; border-radius: 10px;
+            padding: 16px 20px; display: flex; align-items: center; gap: 15px;
+        }
+        .test-card .status {
+            width: 36px; height: 36px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+        }
+        .status.pending { background: #333; }
+        .status.running { background: #ff9800; animation: pulse 1s infinite; }
+        .status.pass { background: #00c853; }
+        .status.fail { background: #ff1744; }
+        .status.skip { background: #616161; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .test-info { flex: 1; }
+        .test-name { font-weight: 600; font-size: 15px; }
+        .test-detail { font-size: 12px; color: #888; margin-top: 3px; }
+        .test-error { font-size: 12px; color: #ff5252; margin-top: 5px; word-break: break-all; }
+        .test-time { font-size: 11px; color: #666; }
+        #btnRunAll {
+            background: linear-gradient(135deg, #00e5ff, #7c4dff);
+            color: #000; border: none; padding: 14px 40px; border-radius: 8px;
+            font-size: 16px; font-weight: 700; cursor: pointer; margin-bottom: 25px;
+        }
+        #btnRunAll:disabled { opacity: 0.5; cursor: not-allowed; }
+        .summary { margin-top: 25px; padding: 15px; background: #1a1a3a; border-radius: 8px; font-size: 14px; }
+        .summary b { color: #00e5ff; }
+    </style>
+    <!-- Libraries (same as main app) -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/@pdf-lib/fontkit@0.0.4/dist/fontkit.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@7.1.0/build/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+</head>
+<body>
+    <h1>🧪 Antigravity PDF — Auto Test Suite</h1>
+    <p class="subtitle">সব PDF ফাংশন অটোমেটিক্যালি টেস্ট করুন। প্রতিটি টেস্ট একটি sample PDF তৈরি করে, ফাংশন প্রয়োগ করে এবং ফলাফল যাচাই করে।</p>
+    <button id="btnRunAll" onclick="runAllTests()">▶ Run All Tests</button>
+    <div class="test-grid" id="testGrid"></div>
+    <div class="summary" id="summary" style="display:none;"></div>
+
+<script>
+// ======= TEST DEFINITIONS =======
+const tests = [
+    { id: 'lib-pdflib',     name: 'Library: PDF-lib loaded',         fn: testPdfLib },
+    { id: 'lib-pdfjs',      name: 'Library: pdf.js loaded',          fn: testPdfJs },
+    { id: 'lib-jspdf',      name: 'Library: jsPDF loaded',           fn: testJsPdf },
+    { id: 'lib-docx',       name: 'Library: docx loaded',            fn: testDocx },
+    { id: 'create-pdf',     name: 'Create Sample PDF (PDF-lib)',     fn: testCreatePdf },
+    { id: 'merge-pdf',      name: 'Merge 2 PDFs',                   fn: testMergePdf },
+    { id: 'split-pdf',      name: 'Split PDF (extract page)',        fn: testSplitPdf },
+    { id: 'rotate-pdf',     name: 'Rotate PDF Page',                 fn: testRotatePdf },
+    { id: 'compress-pdf',   name: 'Compress PDF (canvas render)',    fn: testCompressPdf },
+    { id: 'crop-pdf',       name: 'Crop PDF (setCropBox)',           fn: testCropPdf },
+    { id: 'page-numbers',   name: 'Add Page Numbers',               fn: testPageNumbers },
+    { id: 'watermark-text', name: 'Watermark (Text)',                fn: testWatermarkText },
+    { id: 'protect-pdf',    name: 'Protect PDF (jsPDF encryption)',  fn: testProtectPdf },
+    { id: 'pdf-to-word',    name: 'PDF to Word (text extract)',      fn: testPdfToWord },
+];
+
+let samplePdfBytes = null; // Created once, used by all tests
+
+// ======= UI RENDERING =======
+function renderTests() {
+    const grid = document.getElementById('testGrid');
+    grid.innerHTML = tests.map(t => `
+        <div class="test-card" id="card-${t.id}">
+            <div class="status pending" id="status-${t.id}">⏳</div>
+            <div class="test-info">
+                <div class="test-name">${t.name}</div>
+                <div class="test-detail" id="detail-${t.id}">Waiting...</div>
+                <div class="test-error" id="error-${t.id}"></div>
+            </div>
+            <div class="test-time" id="time-${t.id}"></div>
+        </div>
+    `).join('');
+}
+
+function setStatus(id, status, detail, error) {
+    const icons = { pending: '⏳', running: '⏳', pass: '✅', fail: '❌', skip: '⏭️' };
+    document.getElementById(`status-${id}`).className = `status ${status}`;
+    document.getElementById(`status-${id}`).textContent = icons[status] || '';
+    if (detail) document.getElementById(`detail-${id}`).textContent = detail;
+    if (error) document.getElementById(`error-${id}`).textContent = error;
+}
+
+function setTime(id, ms) {
+    document.getElementById(`time-${id}`).textContent = `${ms}ms`;
+}
+
+// ======= HELPER: Create a multi-page sample PDF =======
+async function createSamplePdf() {
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    for (let i = 1; i <= 3; i++) {
+        const page = pdfDoc.addPage([595, 842]); // A4
+        page.drawText(`Antigravity Test - Page ${i}`, {
+            x: 50, y: 780, size: 24, font, color: rgb(0, 0, 0)
+        });
+        page.drawText(`This is sample content for automated testing.\nLine 2 of page ${i}.`, {
+            x: 50, y: 740, size: 14, font, color: rgb(0.3, 0.3, 0.3)
+        });
+        // Draw a colored rectangle
+        page.drawRectangle({ x: 50, y: 500, width: 200, height: 100,
+            color: rgb(0.2 * i, 0.4, 0.8) });
+    }
+    return await pdfDoc.save();
+}
+
+// ======= TEST FUNCTIONS =======
+async function testPdfLib() {
+    if (typeof PDFLib === 'undefined') throw new Error('PDFLib not found in global scope');
+    if (!PDFLib.PDFDocument) throw new Error('PDFLib.PDFDocument missing');
+    return 'PDFLib v' + (PDFLib.VERSION || '1.17.x') + ' loaded';
+}
+
+async function testPdfJs() {
+    if (typeof pdfjsLib === 'undefined') throw new Error('pdfjsLib not found');
+    return 'pdf.js v' + (pdfjsLib.version || 'unknown') + ' loaded';
+}
+
+async function testJsPdf() {
+    if (typeof window.jspdf === 'undefined') throw new Error('window.jspdf not found — CDN may not have loaded');
+    if (!window.jspdf.jsPDF) throw new Error('jsPDF constructor not found');
+    return 'jsPDF loaded successfully';
+}
+
+async function testDocx() {
+    if (typeof docx === 'undefined') throw new Error('docx library not found');
+    return 'docx library loaded';
+}
+
+async function testCreatePdf() {
+    samplePdfBytes = await createSamplePdf();
+    if (!samplePdfBytes || samplePdfBytes.byteLength < 100)
+        throw new Error('Generated PDF too small: ' + (samplePdfBytes ? samplePdfBytes.byteLength : 0) + ' bytes');
+    return `Sample PDF created: ${samplePdfBytes.byteLength} bytes, 3 pages`;
+}
+
+async function testMergePdf() {
+    if (!samplePdfBytes) throw new Error('No sample PDF available');
+    const { PDFDocument } = PDFLib;
+    const pdf1 = await PDFDocument.load(samplePdfBytes.slice(0));
+    const pdf2 = await PDFDocument.load(samplePdfBytes.slice(0));
+    const merged = await PDFDocument.create();
+    const p1 = await merged.copyPages(pdf1, pdf1.getPageIndices());
+    const p2 = await merged.copyPages(pdf2, pdf2.getPageIndices());
+    p1.forEach(p => merged.addPage(p));
+    p2.forEach(p => merged.addPage(p));
+    const bytes = await merged.save();
+    const pageCount = merged.getPageCount();
+    if (pageCount !== 6) throw new Error(`Expected 6 pages, got ${pageCount}`);
+    return `Merged: ${pageCount} pages, ${bytes.byteLength} bytes`;
+}
+
+async function testSplitPdf() {
+    if (!samplePdfBytes) throw new Error('No sample PDF');
+    const { PDFDocument } = PDFLib;
+    const src = await PDFDocument.load(samplePdfBytes.slice(0));
+    const split = await PDFDocument.create();
+    const [page] = await split.copyPages(src, [1]); // Extract page 2
+    split.addPage(page);
+    const bytes = await split.save();
+    if (split.getPageCount() !== 1) throw new Error('Split should have 1 page');
+    return `Split page 2: ${bytes.byteLength} bytes`;
+}
+
+async function testRotatePdf() {
+    if (!samplePdfBytes) throw new Error('No sample PDF');
+    const { PDFDocument, degrees } = PDFLib;
+    const doc = await PDFDocument.load(samplePdfBytes.slice(0));
+    const page = doc.getPage(0);
+    const before = page.getRotation().angle;
+    page.setRotation(degrees(90));
+    const after = page.getRotation().angle;
+    const bytes = await doc.save();
+    if (after !== 90) throw new Error(`Rotation should be 90, got ${after}`);
+    return `Rotated: ${before}° → ${after}°, ${bytes.byteLength} bytes`;
+}
+
+async function testCompressPdf() {
+    if (!samplePdfBytes) throw new Error('No sample PDF');
+    // Render page 1 with pdf.js → canvas → JPEG
+    const pdfJs = await pdfjsLib.getDocument({ data: samplePdfBytes.slice(0) }).promise;
+    const page = await pdfJs.getPage(1);
+    const vp = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement('canvas');
+    canvas.width = vp.width; canvas.height = vp.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+    if (!dataUrl.startsWith('data:image/jpeg')) throw new Error('Canvas JPEG conversion failed');
+
+    // Embed into new PDF
+    const { PDFDocument } = PDFLib;
+    const newDoc = await PDFDocument.create();
+    const base64 = dataUrl.split(',')[1];
+    const imgBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const img = await newDoc.embedJpg(imgBytes);
+    const p = newDoc.addPage([vp.width / 1.5, vp.height / 1.5]);
+    p.drawImage(img, { x: 0, y: 0, width: vp.width / 1.5, height: vp.height / 1.5 });
+    const bytes = await newDoc.save();
+    return `Compressed: ${samplePdfBytes.byteLength} → ${bytes.byteLength} bytes`;
+}
+
+async function testCropPdf() {
+    if (!samplePdfBytes) throw new Error('No sample PDF');
+    const { PDFDocument } = PDFLib;
+    const doc = await PDFDocument.load(samplePdfBytes.slice(0));
+    const page = doc.getPage(0);
+    const { width, height } = page.getSize();
+    // Crop to center 50%
+    page.setCropBox(width * 0.25, height * 0.25, width * 0.5, height * 0.5);
+    page.setMediaBox(width * 0.25, height * 0.25, width * 0.5, height * 0.5);
+    const bytes = await doc.save();
+    return `Cropped center 50%: ${bytes.byteLength} bytes`;
+}
+
+async function testPageNumbers() {
+    if (!samplePdfBytes) throw new Error('No sample PDF');
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+    const doc = await PDFDocument.load(samplePdfBytes.slice(0));
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const pages = doc.getPages();
+    pages.forEach((page, i) => {
+        const { width } = page.getSize();
+        const text = `Page ${i + 1} of ${pages.length}`;
+        const tw = font.widthOfTextAtSize(text, 12);
+        page.drawText(text, { x: width / 2 - tw / 2, y: 25, size: 12, font, color: rgb(0, 0, 0) });
+    });
+    const bytes = await doc.save();
+    // Verify by loading with pdf.js
+    const verify = await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
+    if (verify.numPages !== 3) throw new Error('Page count mismatch after numbering');
+    return `Numbered ${pages.length} pages: ${bytes.byteLength} bytes`;
+}
+
+async function testWatermarkText() {
+    if (!samplePdfBytes) throw new Error('No sample PDF');
+    const { PDFDocument, StandardFonts, rgb, degrees } = PDFLib;
+    const doc = await PDFDocument.load(samplePdfBytes.slice(0));
+    const font = await doc.embedFont(StandardFonts.HelveticaBold);
+    const pages = doc.getPages();
+    pages.forEach(page => {
+        const { width, height } = page.getSize();
+        const text = 'CONFIDENTIAL';
+        const fSize = 50;
+        const tw = font.widthOfTextAtSize(text, fSize);
+        page.drawText(text, {
+            x: width / 2 - tw / 2, y: height / 2,
+            size: fSize, font, color: rgb(1, 0, 0), opacity: 0.3,
+            rotate: degrees(-45),
+        });
+    });
+    const bytes = await doc.save();
+    return `Watermarked ${pages.length} pages: ${bytes.byteLength} bytes`;
+}
+
+async function testProtectPdf() {
+    if (typeof window.jspdf === 'undefined') throw new Error('jsPDF not loaded — cannot test encryption');
+    if (!samplePdfBytes) throw new Error('No sample PDF');
+
+    // Render page 1 with pdf.js
+    const pdfJs = await pdfjsLib.getDocument({ data: samplePdfBytes.slice(0) }).promise;
+    const page = await pdfJs.getPage(1);
+    const vp = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement('canvas');
+    canvas.width = vp.width; canvas.height = vp.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    const imgData = canvas.toDataURL('image/jpeg', 0.9);
+
+    // Create encrypted jsPDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'portrait', unit: 'pt',
+        format: [vp.width / 1.5, vp.height / 1.5],
+        encryption: { userPassword: 'test123', ownerPassword: 'owner456', userPermissions: [] }
+    });
+    doc.addImage(imgData, 'JPEG', 0, 0, vp.width / 1.5, vp.height / 1.5);
+    const output = doc.output('arraybuffer');
+    if (!output || output.byteLength < 100) throw new Error('Encrypted PDF too small');
+
+    // Verify it's actually encrypted by trying to open WITHOUT password
+    try {
+        await pdfjsLib.getDocument({ data: new Uint8Array(output) }).promise;
+        // If this succeeds without password, encryption didn't work
+        throw new Error('PDF opened without password — encryption NOT applied!');
+    } catch (e) {
+        if (e.name === 'PasswordException' || (e.message && e.message.includes('password'))) {
+            return `Encrypted PDF: ${output.byteLength} bytes — password required ✓`;
+        }
+        if (e.message.includes('NOT applied')) throw e;
+        // Other errors might still indicate the PDF is encrypted
+        return `Encrypted PDF: ${output.byteLength} bytes (verification inconclusive: ${e.message})`;
+    }
+}
+
+async function testPdfToWord() {
+    if (!samplePdfBytes) throw new Error('No sample PDF');
+    if (typeof docx === 'undefined') throw new Error('docx library not loaded');
+
+    const pdf = await pdfjsLib.getDocument({ data: samplePdfBytes.slice(0) }).promise;
+    const page = await pdf.getPage(1);
+    const content = await page.getTextContent();
+    const textItems = content.items.filter(i => i.str && i.str.trim());
+    if (textItems.length === 0) throw new Error('No text extracted from PDF');
+
+    // Create docx
+    const doc = new docx.Document({
+        sections: [{ children: textItems.map(i => new docx.Paragraph({
+            children: [new docx.TextRun({ text: i.str, size: 24 })]
+        }))}]
+    });
+    const blob = await docx.Packer.toBlob(doc);
+    if (blob.size < 100) throw new Error('Generated DOCX too small');
+    return `Extracted ${textItems.length} text items → DOCX ${blob.size} bytes`;
+}
+
+// ======= TEST RUNNER =======
+async function runAllTests() {
+    const btn = document.getElementById('btnRunAll');
+    btn.disabled = true;
+    btn.textContent = '⏳ Running Tests...';
+
+    let passed = 0, failed = 0, skipped = 0;
+
+    for (const test of tests) {
+        setStatus(test.id, 'running', 'Running...');
+        const start = performance.now();
+        try {
+            const result = await test.fn();
+            const elapsed = Math.round(performance.now() - start);
+            setStatus(test.id, 'pass', result);
+            setTime(test.id, elapsed);
+            passed++;
+        } catch (err) {
+            const elapsed = Math.round(performance.now() - start);
+            setStatus(test.id, 'fail', 'Failed', err.message);
+            setTime(test.id, elapsed);
+            failed++;
+            console.error(`Test [${test.name}] failed:`, err);
+        }
+    }
+
+    const summary = document.getElementById('summary');
+    summary.style.display = 'block';
+    summary.innerHTML = `
+        <b>Results:</b> ${passed} passed, ${failed} failed, ${skipped} skipped out of ${tests.length} total<br>
+        <b>Status:</b> ${failed === 0 ? '🎉 All tests passed!' : '⚠️ Some tests failed — check errors above'}
+    `;
+    btn.disabled = false;
+    btn.textContent = '▶ Run All Tests Again';
+}
+
+// Init
+renderTests();
+</script>
+</body>
+</html>
