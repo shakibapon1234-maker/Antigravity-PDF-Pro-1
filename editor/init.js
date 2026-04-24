@@ -216,6 +216,16 @@ function initEventListeners() {
         setTextLayerInteractivity(false);
     });
 
+    document.getElementById('btnTransparentBg').addEventListener('click', function() {
+        this.classList.toggle('active');
+        if (this.classList.contains('active')) {
+            // Disable BG color picker visually
+            document.getElementById('bgColor').style.opacity = '0.5';
+        } else {
+            document.getElementById('bgColor').style.opacity = '1';
+        }
+    });
+
     // ── ইমেজ ইন্সার্ট ───────────────────────────────────────────────────
     document.getElementById('btnInsertImage').addEventListener('click', () => {
         const inp = document.createElement('input');

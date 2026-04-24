@@ -30,6 +30,26 @@ async function savePdfChanges() {
             const pg = pages[edit.page - 1];
             if (!pg) continue;
 
+            // Draw background first
+            if (edit.patch && edit.patch.startsWith('data:')) {
+                try {
+                    const imgFormat = edit.patch.split(';')[0].replace('data:', '');
+                    const embeddedPatch = imgFormat.includes('png')
+                        ? await pdfDoc.embedPng(edit.patch)
+                        : await pdfDoc.embedJpg(edit.patch);
+                    pg.drawImage(embeddedPatch, { x: edit.x, y: edit.y, width: edit.width, height: edit.height });
+                } catch (e) {
+                    console.error('Failed to embed text patch:', e);
+                }
+            } else if (edit.bgHex && edit.bgHex !== 'transparent') {
+                const color = hexToRgb(edit.bgHex);
+                pg.drawRectangle({
+                    x: edit.x, y: edit.y, width: edit.width, height: edit.height,
+                    color: rgb(color.r, color.g, color.b)
+                });
+            }
+
+            // Draw text on top of background
             if (edit.text && edit.text.trim()) {
                 let font;
                 const CUSTOM_FONTS = {
@@ -69,12 +89,6 @@ async function savePdfChanges() {
                         color: rgb(color.r, color.g, color.b)
                     });
                 }
-            } else if (edit.bgHex && edit.bgHex !== 'transparent') {
-                const color = hexToRgb(edit.bgHex);
-                pg.drawRectangle({
-                    x: edit.x, y: edit.y, width: edit.width, height: edit.height,
-                    color: rgb(color.r, color.g, color.b)
-                });
             }
         }
 

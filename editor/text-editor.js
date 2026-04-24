@@ -13,6 +13,19 @@ function startEditing(e, originalItem, transform, viewport, page) {
     if (!container) return;
     const isNewItem = originalItem.isNew || false;
 
+    // â”€â”€ Store the absolute position for the wrapper (editWrap will be absolute)
+    // Use getBoundingClientRect — reliable regardless of el's parent/wrapper state
+    const _elRect  = el.getBoundingClientRect();
+    const _cRect   = container.getBoundingClientRect();
+    const _inputAbsLeftNum = _elRect.left - _cRect.left;
+    const _inputAbsTopNum  = _elRect.top  - _cRect.top;
+    const _inputAbsLeft = `${_inputAbsLeftNum}px`;
+    const _inputAbsTop  = `${_inputAbsTopNum}px`;
+
+    // Calculate center for background sampling
+    const cx = _inputAbsLeftNum + _elRect.width / 2;
+    const cy = _inputAbsTopNum  + _elRect.height / 2;
+
     // Capture background patch from the canvas (the real background)
     let patchData, patchWidth, patchHeight;
     const padding = 2;
@@ -28,8 +41,8 @@ function startEditing(e, originalItem, transform, viewport, page) {
         if (transform) {
             // Sample the actual background pixels from the canvas
             patchData = sampleBackgroundPatch(
-                transform[4] / pdfScale - padding,
-                transform[5] / pdfScale - padding,
+                _inputAbsLeftNum / pdfScale - padding,
+                _inputAbsTopNum / pdfScale - padding,
                 patchWidth, patchHeight, pdfScale
             );
         }
@@ -40,7 +53,7 @@ function startEditing(e, originalItem, transform, viewport, page) {
         const hex = originalItem.bgHex || 'transparent';
         bgColor = { hex, ...(hex === 'transparent' ? {r:1,g:1,b:1} : hexToRgb(hex)) };
     } else if (transform) {
-        bgColor = sampleBackgroundColor(transform[4], transform[5]);
+        bgColor = sampleBackgroundColor(cx, cy);
     } else {
         const existingEdit = textEdits.find(ed => ed.id === originalItem.id);
         const hex = existingEdit?.bgHex || 'transparent';
@@ -48,13 +61,6 @@ function startEditing(e, originalItem, transform, viewport, page) {
     }
 
     // â”€â”€ Create the floating editor div â”€â”€
-    // Store the absolute position for the wrapper (editWrap will be absolute)
-    // Use getBoundingClientRect — reliable regardless of el's parent/wrapper state
-    const _elRect  = el.getBoundingClientRect();
-    const _cRect   = container.getBoundingClientRect();
-    const _inputAbsLeft = `${_elRect.left - _cRect.left}px`;
-    const _inputAbsTop  = `${_elRect.top  - _cRect.top}px`;
-
     const input = document.createElement('div');
     input.contentEditable = 'true';
     input.className       = 'floating-editor';
@@ -73,7 +79,6 @@ function startEditing(e, originalItem, transform, viewport, page) {
 
     // FIXED BUG: Always use solid white/opaque background while editing so
     // typed text is never obscured by the PDF content behind it.
-    // (patchData is only stored for PDF save/export, NOT used as visual background)
     if (patchData) {
         input.dataset.patch = patchData;
     }
@@ -178,6 +183,30 @@ function startEditing(e, originalItem, transform, viewport, page) {
             dragHandle2.style.cursor = 'grab';
             document.removeEventListener('mousemove', _onHandle2Move);
             document.removeEventListener('mouseup',   _onHandle2Up);
+
+            // Re-sample background color at the dropped location
+            const btnTransBg = document.getElementById('btnTransparentBg');
+            if (!input.dataset.overrideBgHex && input.dataset.overrideBgHex !== 'transparent') {
+                if (!(btnTransBg && btnTransBg.classList.contains('active'))) {
+                    const wrap = input._wrapEl || input;
+                    const newL = parseFloat(wrap.style.left) || 0;
+                    const newT = parseFloat(wrap.style.top)  || 0;
+                    const w = wrap.offsetWidth || 100;
+                    const h = wrap.offsetHeight || 20;
+                    const newBg = sampleBackgroundColor(newL + w / 2, newT + h / 2);
+                    if (newBg) {
+                        input.dataset.bgHex = newBg.hex;
+                        const rc = hexToRgb(newBg.hex);
+                        input.dataset.bgR = rc.r;
+                        input.dataset.bgG = rc.g;
+                        input.dataset.bgB = rc.b;
+                        delete input.dataset.patch;
+                    }
+                } else {
+                    input.dataset.bgHex = 'transparent';
+                    delete input.dataset.patch;
+                }
+            }
         }
     }
     dragHandle2.addEventListener('mousedown', (ev) => {
@@ -518,9 +547,14 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
             y / pdfScale - patchHeight / 2,
             patchWidth, patchHeight, pdfScale
         );
-        bgColor = sampleBackgroundColor(x, y);
-        currentStyle.bgColor = bgColor.hex;
-        document.getElementById('bgColor').value = bgColor.hex;
+        const btnTransBg = document.getElementById('btnTransparentBg');
+        if (btnTransBg && btnTransBg.classList.contains('active')) {
+            bgColor = { hex: 'transparent', r: 1, g: 1, b: 1 };
+        } else {
+            bgColor = sampleBackgroundColor(x, y);
+            currentStyle.bgColor = bgColor.hex;
+            document.getElementById('bgColor').value = bgColor.hex;
+        }
     }
 
     const input = document.createElement('div');
@@ -610,6 +644,28 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
             dragHandle.style.cursor = 'grab';
             document.removeEventListener('mousemove', _onHandleMove);
             document.removeEventListener('mouseup',   _onHandleUp);
+            
+            // Re-sample background color at the dropped location
+            const btnTransBg = document.getElementById('btnTransparentBg');
+            if (!overrideBgHex && !(btnTransBg && btnTransBg.classList.contains('active'))) {
+                const wrap = input._wrapEl || input;
+                const newL = parseFloat(wrap.style.left) || 0;
+                const newT = parseFloat(wrap.style.top)  || 0;
+                const w = wrap.offsetWidth || 100;
+                const h = wrap.offsetHeight || 20;
+                const newBg = sampleBackgroundColor(newL + w / 2, newT + h / 2);
+                if (newBg) {
+                    input.dataset.bgHex = newBg.hex;
+                    const rc = hexToRgb(newBg.hex);
+                    input.dataset.bgR = rc.r;
+                    input.dataset.bgG = rc.g;
+                    input.dataset.bgB = rc.b;
+                    delete input.dataset.patch;
+                }
+            } else if (!overrideBgHex && btnTransBg && btnTransBg.classList.contains('active')) {
+                input.dataset.bgHex = 'transparent';
+                delete input.dataset.patch;
+            }
         }
     }
     dragHandle.addEventListener('mousedown', (ev) => {
@@ -912,6 +968,7 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         const coverPatch = document.createElement('div');
         coverPatch.className = 'clear-patch text-cover-patch';
         const _newBgHex = input.dataset.bgHex || '#ffffff';
+
         coverPatch.style.cssText = `
             position: absolute;
             left: ${wrapLeft}px;
@@ -1031,9 +1088,45 @@ function finalizeDragging() {
         ed.id === id || `${ed.page}-${ed.originalX}-${ed.originalY}` === id);
     if (edit) {
         const cont = dragTarget.closest('.pdf-page-wrapper');
-        edit.x = parseFloat(dragTarget.style.left) / pdfScale;
-        edit.y = (cont.offsetHeight / pdfScale) -
-                 (parseFloat(dragTarget.style.top) / pdfScale) - edit.size;
+        const newLeft = parseFloat(dragTarget.style.left);
+        const newTop = parseFloat(dragTarget.style.top);
+        
+        edit.x = newLeft / pdfScale;
+        edit.y = (cont.offsetHeight / pdfScale) - (newTop / pdfScale) - edit.size;
+
+        // Re-sample background color if it's not transparent/overridden
+        const btnTransBg = document.getElementById('btnTransparentBg');
+        if (dragTarget.dataset.bgHex !== 'transparent' && dragTarget.dataset.overrideBgHex !== 'transparent') {
+            if (!(btnTransBg && btnTransBg.classList.contains('active'))) {
+                const w = dragTarget.offsetWidth || 100;
+                const h = dragTarget.offsetHeight || 20;
+                const newBg = sampleBackgroundColor(newLeft + w / 2, newTop + h / 2);
+                if (newBg) {
+                    const newHex = newBg.hex;
+                    dragTarget.dataset.bgHex = newHex;
+                    edit.bgHex = newHex;
+                    edit.bgR = newBg.r;
+                    edit.bgG = newBg.g;
+                    edit.bgB = newBg.b;
+                    delete dragTarget.dataset.patch;
+                    delete edit.patch;
+                    
+                    if (dragTarget._coverPatch) {
+                        dragTarget._coverPatch.style.backgroundImage = 'none';
+                        dragTarget._coverPatch.style.backgroundColor = newHex;
+                    }
+                }
+            } else {
+                dragTarget.dataset.bgHex = 'transparent';
+                edit.bgHex = 'transparent';
+                delete dragTarget.dataset.patch;
+                delete edit.patch;
+                if (dragTarget._coverPatch) {
+                    dragTarget._coverPatch.style.backgroundImage = 'none';
+                    dragTarget._coverPatch.style.backgroundColor = 'transparent';
+                }
+            }
+        }
     }
 }
 
