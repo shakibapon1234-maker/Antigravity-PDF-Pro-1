@@ -71,17 +71,14 @@ function startEditing(e, originalItem, transform, viewport, page) {
     input.style.width        = 'auto';
     input.style.minWidth     = `${patchWidth * pdfScale}px`;
 
+    // FIXED BUG: Always use solid white/opaque background while editing so
+    // typed text is never obscured by the PDF content behind it.
+    // (patchData is only stored for PDF save/export, NOT used as visual background)
     if (patchData) {
-        // Show the real PDF background while editing â€” helps user see context
-        input.style.backgroundImage = `url(${patchData})`;
-        input.style.backgroundSize  = '100% 100%';
         input.dataset.patch = patchData;
-    } else {
-        // Subtle highlight so user knows they're editing, not an opaque box
-        input.style.backgroundColor = bgColor.hex;
     }
-    // Store for PDF save but editing visual is just outlined, not filled
-    // (the box-shadow on .floating-editor in CSS gives enough visual cue)
+    input.style.backgroundImage = 'none';
+    input.style.backgroundColor = '#ffffff';
 
     // Sync toolbar from existing edit or current style
     const edit = textEdits.find(ed =>
@@ -195,7 +192,8 @@ function startEditing(e, originalItem, transform, viewport, page) {
     });
     // Place drag handle OUTSIDE the contentEditable div so caret works correctly
     const editWrap = document.createElement('div');
-    editWrap.style.cssText = 'position:absolute;z-index:100;';
+    // FIXED BUG 2: z-index must be above eraser clear-patch (z:5) and text layer
+    editWrap.style.cssText = 'position:absolute;z-index:9999;';
     editWrap.style.left = _inputAbsLeft;
     editWrap.style.top  = _inputAbsTop;
     input.style.left = '0';
@@ -260,6 +258,12 @@ function startEditing(e, originalItem, transform, viewport, page) {
         // Remove wrapper (contains handle + editor) or just input
         if (wrap2 && wrap2.parentNode) wrap2.remove();
         else input.remove();
+
+        // ── Cleanup: remove any existing cover-patch from a previous edit of this span ──
+        if (el._coverPatch && el._coverPatch.parentNode) {
+            el._coverPatch.parentNode.removeChild(el._coverPatch);
+            el._coverPatch = null;
+        }
 
         // Always restore the original span visibility & interactivity
         el.style.opacity       = '1';
@@ -334,6 +338,56 @@ function startEditing(e, originalItem, transform, viewport, page) {
         el.style.minHeight       = `${(editData.height || editData.size) * viewport.scale}px`;
         el.classList.add('modified', 'draggable');
         el.dataset.editId        = editData.id;
+        el.style.zIndex          = '9999';
+
+        // ── FIX: Insert cover-patch BEHIND el using actual sampled PDF background ──
+        // Uses patchData (pixel-accurate canvas sample) if available, else bgHex color.
+        // This correctly handles PDFs with any background color (not just white).
+        const _coverPatch = document.createElement('div');
+        _coverPatch.className = 'clear-patch text-cover-patch';
+        const _coverW = Math.max((editData.width  || 10) * viewport.scale, el.offsetWidth  || 40);
+        const _coverH = Math.max((editData.height || editData.size) * viewport.scale, el.offsetHeight || 20);
+        const _cpPatch = input.dataset.patch;
+        const _cpBgHex = input.dataset.bgHex || '#ffffff';
+        if (_cpPatch) {
+            _coverPatch.style.cssText = `
+                position: absolute;
+                left: ${wrapLeft2 - _tlOffL}px;
+                top:  ${wrapTop2  - _tlOffT}px;
+                width: ${_coverW}px;
+                height: ${_coverH}px;
+                background-image: url(${_cpPatch});
+                background-size: 100% 100%;
+                background-repeat: no-repeat;
+                pointer-events: none;
+                z-index: 8;
+            `;
+        } else {
+            _coverPatch.style.cssText = `
+                position: absolute;
+                left: ${wrapLeft2 - _tlOffL}px;
+                top:  ${wrapTop2  - _tlOffT}px;
+                width: ${_coverW}px;
+                height: ${_coverH}px;
+                background-color: ${_cpBgHex};
+                pointer-events: none;
+                z-index: 8;
+            `;
+        }
+        // Store ref so eraser can hide it if text is cleared
+        el._coverPatch = _coverPatch;
+        const _tlParentSE = _tl || container;
+        _tlParentSE.appendChild(_coverPatch);
+
+        // ── Sync cover-patch size to el's actual rendered size (after layout) ──
+        // Handles cases where typed text is wider than the initial patch estimate.
+        requestAnimationFrame(() => {
+            if (!_coverPatch.parentNode) return;
+            const _actualW = Math.max(el.offsetWidth  || _coverW, _coverW);
+            const _actualH = Math.max(el.offsetHeight || _coverH, _coverH);
+            _coverPatch.style.width  = `${_actualW}px`;
+            _coverPatch.style.height = `${_actualH}px`;
+        });
     };
 }
 
@@ -354,8 +408,7 @@ function handlePageMouseDown(e, container, viewport, page) {
         if (!e.target.classList.contains('editable-text-unit') && 
             !e.target.classList.contains('floating-editor') &&
             !e.target.closest('.floating-editor') &&
-            !e.target.closest('.floating-editor-handle') &&
-            !e.target.closest('.text-layer')) {
+            !e.target.closest('.floating-editor-handle')) {
             deselectTextItem();
             // FIX: যেকোনো open floating-editor আগে commit করো
             // শুধু এই container নয়, পুরো document-এ
@@ -424,6 +477,32 @@ function handlePageMouseUp(e, container) {
 }
 
 function addNewText(x, y, viewport, page, container, overrideBgHex) {
+    // Guard: if there's already an open floating editor, don't create another
+    const existingEditor = container.querySelector('.floating-editor');
+    if (existingEditor) return;
+
+    // Guard: if click point overlaps an existing committed text span, edit it instead
+    if (!overrideBgHex) {
+        const contRect = container.getBoundingClientRect();
+        const allSpans = container.querySelectorAll('.editable-text-unit');
+        for (const sp of allSpans) {
+            if (sp.classList.contains('floating-editor')) continue;
+            if (sp._cleared || sp._textCleared) continue;
+            const sr = sp.getBoundingClientRect();
+            const sl = sr.left - contRect.left;
+            const st = sr.top  - contRect.top;
+            if (x >= sl && x <= sl + sr.width && y >= st && y <= st + sr.height) {
+                // Click is on existing span — trigger edit instead
+                const editId = sp.dataset.editId;
+                const editData = textEdits.find(ed => ed.id === editId);
+                if (editData) {
+                    startEditing({ target: sp }, editData, null, viewport, page);
+                    return;
+                }
+            }
+        }
+    }
+
     const patchWidth  = 120 / pdfScale;
     const patchHeight = currentStyle.fontSize + 12;
 
@@ -475,12 +554,14 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         // Solid override (e.g. shape bg color)
         input.style.backgroundColor = overrideBgHex;
         input.style.backgroundImage = 'none';
-    } else if (patchData) {
-        input.style.backgroundImage = `url(${patchData})`;
-        input.style.backgroundSize  = 'cover';
-        input.dataset.patch = patchData;
     } else {
-        input.style.backgroundColor = bgColor.hex;
+        // FIXED BUG 1: Always solid white background in editor — patchData only stored
+        // for PDF export, never used as visual background (prevents PDF bleed-through)
+        if (patchData) {
+            input.dataset.patch = patchData;
+        }
+        input.style.backgroundImage = 'none';
+        input.style.backgroundColor = '#ffffff'; // solid white — no PDF bleed-through
     }
 
     input.style.fontSize       = `${currentStyle.fontSize * viewport.scale}px`;
@@ -550,7 +631,9 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
     });
     // Place drag handle as a sibling wrapper so it doesn't interfere with contentEditable caret
     const editorWrap = document.createElement('div');
-    editorWrap.style.cssText = 'position:absolute;z-index:200;';
+    // FIXED BUG 2: Always use z-index 9999 so text editor always appears
+    // above eraser patches (z:5), canvas, and all other page elements
+    editorWrap.style.cssText = `position:absolute;z-index:9999;`;
     editorWrap.style.left = input.style.left;
     editorWrap.style.top  = input.style.top;
     // Remove position from input since wrapper handles it
@@ -665,7 +748,9 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         textItem.dataset.editId        = editData.id;
         textItem.dataset.isOriginal    = 'false';
         textItem.style.cursor          = 'move';
-        textItem.style.zIndex          = '200';
+        // FIXED BUG 2: Always use z-index 9999 so committed text spans always
+        // render above eraser clear-patch elements (which use z-index: 5)
+        textItem.style.zIndex          = '9999';
 
         // â”€â”€ Drag handle badge (visible on hover, works in any tool mode) â”€â”€
         // ── Drag handle ─────────────────────────────────────────────────────
@@ -825,8 +910,53 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         // This prevents handle symbol from ever leaking into textContent/innerHTML
         const tl = container.querySelector('.text-layer');
         const tlParent = tl || container;
+
+        // ── FIX: Cover-patch using actual sampled PDF background ──
+        // Uses patchData (pixel-accurate canvas sample) if available, else bgHex.
+        // Correctly handles any background color in the PDF (not just white).
+        const coverPatch = document.createElement('div');
+        coverPatch.className = 'clear-patch text-cover-patch';
+        const _newPatch = input.dataset.patch;
+        const _newBgHex = input.dataset.bgHex || '#ffffff';
+        if (_newPatch) {
+            coverPatch.style.cssText = `
+                position: absolute;
+                left: ${wrapLeft}px;
+                top:  ${wrapTop}px;
+                min-width: ${editData.width  * pdfScale}px;
+                height: ${editData.height * pdfScale}px;
+                background-image: url(${_newPatch});
+                background-size: 100% 100%;
+                background-repeat: no-repeat;
+                pointer-events: none;
+                z-index: 8;
+            `;
+        } else {
+            coverPatch.style.cssText = `
+                position: absolute;
+                left: ${wrapLeft}px;
+                top:  ${wrapTop}px;
+                min-width: ${editData.width  * pdfScale}px;
+                height: ${editData.height * pdfScale}px;
+                background-color: ${_newBgHex};
+                pointer-events: none;
+                z-index: 8;
+            `;
+        }
+        textItem._coverPatch = coverPatch;
+        tlParent.appendChild(coverPatch);  // insert BEFORE textItem so it's behind in z-order
         tlParent.appendChild(textItem);
         tlParent.appendChild(spanHandle); // sibling, not child of textItem
+
+        // ── Sync cover-patch size to textItem's actual rendered size (after layout) ──
+        // Typed text may be wider than the initial patchWidth estimate.
+        requestAnimationFrame(() => {
+            if (!coverPatch.parentNode) return;
+            const _aw = Math.max(textItem.offsetWidth  || editData.width  * pdfScale, editData.width  * pdfScale);
+            const _ah = Math.max(textItem.offsetHeight || editData.height * pdfScale, editData.height * pdfScale);
+            coverPatch.style.minWidth = `${_aw}px`;
+            coverPatch.style.height   = `${_ah}px`;
+        });
 
         // â”€â”€ FIX: In text mode, allow dragging committed spans by holding mousedown â”€â”€
         let _dragPending = false, _dragMoved = false, _pdx = 0, _pdy = 0;
@@ -1034,7 +1164,9 @@ function endClearStroke(container) {
                 }
             });
 
-            // â”€â”€ Visual patch: use real background image if available, else solid color â”€â”€
+            // ── Visual patch: use real background image if available, else solid color ──
+            // FIXED BUG 2: z-index kept at 5 (below text at 9999) so new text typed
+            // on top of an erased area always appears above the eraser patch.
             const patchEl = document.createElement('div');
             patchEl.className = 'clear-patch';
             if (patchDataUrl) {

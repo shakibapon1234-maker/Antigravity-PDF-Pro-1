@@ -52,6 +52,27 @@ function addImageToPdf(dataUrl, fileName) {
         const tb = wrap.querySelector('.image-toolbar');
         if (e.target.classList.contains('image-resize-handle')) return;
         if (tb && tb.contains(e.target)) return;
+
+        // TEXT TOOL: Type tool active হলে image-এর উপরে text editor open করো
+        if (typeof activeTool !== 'undefined' && activeTool === 'text') {
+            e.stopPropagation();
+            e.preventDefault();
+            const cont = wrap.closest('.pdf-page-wrapper');
+            if (cont && typeof addNewText === 'function' && typeof currentPdfObj !== 'undefined') {
+                const imgLeft = parseFloat(wrap.style.left) + 8;
+                const imgTop = parseFloat(wrap.style.top) + (currentStyle ? currentStyle.fontSize * pdfScale + 8 : 24);
+                // Commit any existing floating editor first
+                document.querySelectorAll('.floating-editor').forEach(fe => {
+                    if (fe._commit) fe._commit();
+                });
+                currentPdfObj.getPage(currentPageNum).then(page => {
+                    const viewport = page.getViewport({ scale: pdfScale });
+                    addNewText(imgLeft, imgTop, viewport, page, cont, 'transparent');
+                });
+            }
+            return;
+        }
+
         _iDrag = true; _iSX = e.clientX; _iSY = e.clientY;
         _iOL = parseFloat(wrap.style.left) || 0;
         _iOT = parseFloat(wrap.style.top)  || 0;

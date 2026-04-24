@@ -353,6 +353,29 @@ function createShapeNode(edit, container) {
         if (e.target === handle) return;
         if (toolbar.contains(e.target)) return;
 
+        // TEXT TOOL: Type tool active হলে shape-এর উপরে text editor open করো
+        if (typeof activeTool !== 'undefined' && activeTool === 'text') {
+            e.stopPropagation();
+            e.preventDefault();
+            // Open text editor at shape center
+            const cont = wrapper.closest('.pdf-page-wrapper');
+            if (cont && typeof addNewText === 'function' && typeof currentPdfObj !== 'undefined') {
+                const shapeCenterX = parseFloat(wrapper.style.left) + wrapper.offsetWidth / 2;
+                const shapeCenterY = parseFloat(wrapper.style.top) + wrapper.offsetHeight / 2;
+                const ed = shapeEdits.find(s => s.id === edit.id);
+                const shapeBgColor = ed ? (ed.bgHex || ed.color || '#7c3aed') : '#7c3aed';
+                // Commit any existing floating editor first
+                document.querySelectorAll('.floating-editor').forEach(fe => {
+                    if (fe._commit) fe._commit();
+                });
+                currentPdfObj.getPage(currentPageNum).then(page => {
+                    const viewport = page.getViewport({ scale: pdfScale });
+                    addNewText(shapeCenterX, shapeCenterY, viewport, page, cont, shapeBgColor);
+                });
+            }
+            return;
+        }
+
         // CRITICAL: stop propagation so the page's mousedown doesn't
         // create a new text box or trigger other tools
         e.stopPropagation();

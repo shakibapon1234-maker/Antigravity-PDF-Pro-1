@@ -382,18 +382,29 @@ function initEventListeners() {
     // ── Escape key ───────────────────────────────────────────────────────
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
-        const ae = document.querySelector('.floating-editor');
-        if (ae && ae._commit) ae._commit();
-        else if (ae && ae._wrapEl) ae._wrapEl.remove();
+        // Commit ALL open floating editors (works even when editor has focus)
+        document.querySelectorAll('.floating-editor').forEach(ae => {
+            if (ae._commit) ae._commit();
+            else if (ae._wrapEl) ae._wrapEl.remove();
+            else ae.remove();
+        });
         deselectTextItem();
         if (eraserRectEl)   { eraserRectEl.remove();   eraserRectEl = null; }
         if (clearTextRectEl){ clearTextRectEl.remove(); clearTextRectEl = null; }
         if (_clearTextDocMouseMove) { document.removeEventListener('mousemove', _clearTextDocMouseMove); _clearTextDocMouseMove = null; }
         if (_clearTextDocMouseUp)   { document.removeEventListener('mouseup',   _clearTextDocMouseUp);   _clearTextDocMouseUp   = null; }
         clearTextContainer = null;
+        isSelecting = false;
         // Finalize any active Move Area selection
         if (typeof finalizeMoveArea === 'function') finalizeMoveArea();
-        isSelecting = false;
+        // Deactivate current tool — go back to select mode
+        if (typeof activeTool !== 'undefined' && activeTool && activeTool !== 'select') {
+            const prevBtn = document.querySelector(`[data-tool='${activeTool}']`) ||
+                            document.getElementById('btnTypeText') ||
+                            document.getElementById('btnSelect');
+            const selectBtn = document.getElementById('btnSelect');
+            if (selectBtn) selectBtn.click();
+        }
         document.querySelectorAll('.shape-resize-handle').forEach(el => el.style.display = 'none');
         document.querySelectorAll('.shape-toolbar').forEach(el => el.style.display = 'none');
         document.querySelectorAll('.pdf-shape-element').forEach(el => el.style.outline = 'none');

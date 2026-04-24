@@ -14,6 +14,7 @@ function captureUndoSnapshot(description) {
         textEdits:    JSON.parse(JSON.stringify(textEdits)),
         shapeEdits:   JSON.parse(JSON.stringify(shapeEdits)),
         clearStrokes: JSON.parse(JSON.stringify(clearStrokes)),
+        imageEdits:   JSON.parse(JSON.stringify(typeof imageEdits !== 'undefined' ? imageEdits : [])),
     };
     undoHistory.push(snapshot);
     if (undoHistory.length > UNDO_LIMIT) undoHistory.shift();
@@ -35,6 +36,7 @@ function performUndo() {
         textEdits:    JSON.parse(JSON.stringify(textEdits)),
         shapeEdits:   JSON.parse(JSON.stringify(shapeEdits)),
         clearStrokes: JSON.parse(JSON.stringify(clearStrokes)),
+        imageEdits:   JSON.parse(JSON.stringify(typeof imageEdits !== 'undefined' ? imageEdits : [])),
     };
     _pushRedo(currentSnap);
 
@@ -42,6 +44,7 @@ function performUndo() {
     textEdits    = JSON.parse(JSON.stringify(snapshot.textEdits));
     shapeEdits   = JSON.parse(JSON.stringify(snapshot.shapeEdits   || []));
     clearStrokes = JSON.parse(JSON.stringify(snapshot.clearStrokes || []));
+    if (typeof imageEdits !== 'undefined') imageEdits = JSON.parse(JSON.stringify(snapshot.imageEdits || []));
 
     if (currentPdfObj) renderPage(currentPdfObj, currentPageNum);
     updateUndoButtonState();
@@ -52,6 +55,7 @@ function _applySnapshot(snapshot) {
     textEdits    = JSON.parse(JSON.stringify(snapshot.textEdits    || []));
     shapeEdits   = JSON.parse(JSON.stringify(snapshot.shapeEdits   || []));
     clearStrokes = JSON.parse(JSON.stringify(snapshot.clearStrokes || []));
+    if (typeof imageEdits !== 'undefined') imageEdits = JSON.parse(JSON.stringify(snapshot.imageEdits || []));
     if (currentPdfObj) renderPage(currentPdfObj, currentPageNum);
     updateUndoButtonState();
 }
