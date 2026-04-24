@@ -1399,72 +1399,61 @@ function endClearTextStroke(container) {
     let clearedCount = 0;
     const contRect = container.getBoundingClientRect();
 
-    // Helper: check if a span overlaps with the selection rectangle
-    function overlaps(span) {
+    // Find and hide all text spans that overlap the selection rectangle
+    container.querySelectorAll('.editable-text-unit').forEach(span => {
+        if (span.classList.contains('floating-editor')) return;
+        if (span.classList.contains('span-drag-handle')) return;
+        if (span._textCleared || span._cleared) return;
+
         const sr = span.getBoundingClientRect();
-        if (sr.width === 0 && sr.height === 0) return false;
+        if (sr.width === 0 && sr.height === 0) return;
         const sl = sr.left - contRect.left;
         const st = sr.top  - contRect.top;
         const sw = sr.width  || 10;
         const sh = sr.height || 10;
-        return (sl < l + w && sl + sw > l && st < t + h && st + sh > t);
-    }
 
-    // 1. Clear user-added editable text units
-    container.querySelectorAll('.editable-text-unit').forEach(span => {
-        if (span.classList.contains('floating-editor')) return;
-        if (!overlaps(span)) return;
+        if (!(sl < l + w && sl + sw > l && st < t + h && st + sh > t)) return;
 
         clearedCount++;
-        // Use the span's own _triggerClearTextOnly if available (per-span patch)
-        if (typeof span._triggerClearTextOnly === 'function') {
-            span._triggerClearTextOnly();
-        } else {
-            // Fallback: just hide text
-            span._cleared = true;
-            span._textCleared = true;
-            span.textContent = '';
-            span.style.color = 'transparent';
+        span._cleared = true;
+        span._textCleared = true;
+        span.textContent = '';
+        span.style.color = 'transparent';
+        span.style.backgroundColor = 'transparent';
+        span.style.backgroundImage = 'none';
 
-            const sl = span.getBoundingClientRect().left - contRect.left;
-            const st = span.getBoundingClientRect().top  - contRect.top;
-            const editId = span.dataset.editId || `ct-${currentPageNum}-${Math.round(sl)}-${Math.round(st)}`;
-            const existingIdx = textEdits.findIndex(ed => ed.id === editId);
-            const clearEntry = {
-                id: editId, page: currentPageNum, isNew: false,
-                originalX: sl / pdfScale, originalY: (container.offsetHeight - st) / pdfScale,
-                x: sl / pdfScale, y: (container.offsetHeight - st) / pdfScale,
-                text: '', size: parseFloat(span.style.fontSize) / pdfScale || 12,
-                color: 'transparent', bgHex: 'transparent',
-                bgR: 1, bgG: 1, bgB: 1,
-                font: 'Helvetica', isBold: false, isItalic: false, isUnderline: false,
-                width: (span.offsetWidth || 10) / pdfScale, height: (span.offsetHeight || 10) / pdfScale
-            };
-            if (existingIdx > -1) textEdits[existingIdx] = clearEntry;
-            else textEdits.push(clearEntry);
-        }
+        // Record in textEdits so renderPage() preserves cleared state
+        const editId = span.dataset.editId || `ct-${currentPageNum}-${Math.round(sl)}-${Math.round(st)}`;
+        const clearEntry = {
+            id: editId, page: currentPageNum, isNew: false,
+            originalX: sl / pdfScale, originalY: (container.offsetHeight - st - sh) / pdfScale,
+            x: sl / pdfScale, y: (container.offsetHeight - st - sh) / pdfScale,
+            text: '', size: parseFloat(span.style.fontSize) / pdfScale || 12,
+            color: 'transparent', bgHex: 'transparent',
+            bgR: 1, bgG: 1, bgB: 1,
+            font: 'Helvetica', isBold: false, isItalic: false, isUnderline: false,
+            width: sw / pdfScale, height: sh / pdfScale
+        };
+        const existingIdx = textEdits.findIndex(ed => ed.id === editId);
+        if (existingIdx > -1) textEdits[existingIdx] = clearEntry;
+        else textEdits.push(clearEntry);
     });
 
-    // 2. Clear PDF.js native text spans — use their _triggerClearTextOnly for per-span patch
-    const textLayer = container.querySelector('.text-layer');
-    if (textLayer) {
-        textLayer.querySelectorAll('span.editable-text-unit').forEach(nativeSpan => {
-            if (nativeSpan.classList.contains('floating-editor')) return;
-            if (nativeSpan.classList.contains('span-drag-handle')) return;
-            if (nativeSpan._textCleared || nativeSpan._cleared) return;
-            if (!overlaps(nativeSpan)) return;
-
-            clearedCount++;
-            // Use per-span clear which creates precise background patch
-            if (typeof nativeSpan._triggerClearTextOnly === 'function') {
-                nativeSpan._triggerClearTextOnly();
-            } else {
-                // Fallback
-                nativeSpan.style.color = 'transparent';
-                nativeSpan.style.visibility = 'hidden';
-                nativeSpan.textContent = '';
-            }
-        });
+    if (clearedCount > 0) {
+        // Show subtle visual indicator that text was cleared
+        const indicator = document.createElement('div');
+        indicator.className = 'clear-text-indicator';
+        indicator.style.cssText = `
+            position:absolute; left:${l}px; top:${t}px;
+            width:${w}px; height:${h}px;
+            border: 2px dashed rgba(0,200,100,0.6);
+            background: rgba(0,200,100,0.1);
+            pointer-events:none; z-index:5;
+            transition: opacity 2s ease;
+        `;
+        container.appendChild(indicator);
+        setTimeout(() => { indicator.style.opacity = '0'; }, 2000);
+        setTimeout(() => { indicator.remove(); }, 4000);
     }
 
     if (clearedCount === 0) {
