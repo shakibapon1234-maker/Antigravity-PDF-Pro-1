@@ -37,14 +37,14 @@ function startEditing(e, originalItem, transform, viewport, page) {
 
     let bgColor;
     if (isNewItem) {
-        bgColor = { hex: originalItem.bgHex || '#ffffff', ...hexToRgb(originalItem.bgHex || '#ffffff') };
+        const hex = originalItem.bgHex || 'transparent';
+        bgColor = { hex, ...(hex === 'transparent' ? {r:1,g:1,b:1} : hexToRgb(hex)) };
     } else if (transform) {
         bgColor = sampleBackgroundColor(transform[4], transform[5]);
     } else {
-        // Re-editing a new item without transform â€” use stored bg
         const existingEdit = textEdits.find(ed => ed.id === originalItem.id);
-        const hex = existingEdit?.bgHex || '#ffffff';
-        bgColor = { hex, ...hexToRgb(hex) };
+        const hex = existingEdit?.bgHex || 'transparent';
+        bgColor = { hex, ...(hex === 'transparent' ? {r:1,g:1,b:1} : hexToRgb(hex)) };
     }
 
     // â”€â”€ Create the floating editor div â”€â”€
@@ -362,7 +362,10 @@ function startEditing(e, originalItem, transform, viewport, page) {
         `;
         // Store ref so eraser can hide it if text is cleared
         el._coverPatch = _coverPatch;
-        const _tlParentSE = _tl || container;
+        const _tlParentSE = container; // ALWAYS append to container to allow z-index 9999 to beat images
+        if (el.parentNode && el.parentNode !== container) {
+            container.appendChild(el); // Move to container if it wasn't there
+        }
         _tlParentSE.appendChild(_coverPatch);
 
         // ── Sync cover-patch size to el's actual rendered size (after layout) ──
@@ -498,13 +501,13 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
     if (overrideBgHex) {
         // Override mode: text placed on shape/image — skip canvas sampling
         if (overrideBgHex === 'transparent') {
-            bgColor = { hex: '#ffffff', r: 1, g: 1, b: 1 };
+            bgColor = { hex: 'transparent', r: 1, g: 1, b: 1 };
         } else {
             const orc = hexToRgb(overrideBgHex);
             bgColor = { hex: overrideBgHex, r: orc.r, g: orc.g, b: orc.b };
         }
-        currentStyle.bgColor = bgColor.hex;
-        document.getElementById('bgColor').value = bgColor.hex;
+        currentStyle.bgColor = bgColor.hex === 'transparent' ? '#ffffff' : bgColor.hex;
+        document.getElementById('bgColor').value = currentStyle.bgColor;
     } else {
         patchData = sampleBackgroundPatch(
             x / pdfScale,
@@ -896,8 +899,8 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         input.remove();
         // Append textItem to text-layer; append spanHandle as a sibling (NOT inside textItem)
         // This prevents handle symbol from ever leaking into textContent/innerHTML
-        const tl = container.querySelector('.text-layer');
-        const tlParent = tl || container;
+        // Append directly to container so z-index 9999 puts it above images/shapes
+        const tlParent = container;
 
         // ── FIX: Cover-patch using sampled bgHex color ──
         // Uses solid color instead of patchData image to avoid duplicating adjacent text.
