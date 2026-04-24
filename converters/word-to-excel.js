@@ -1,4 +1,4 @@
-// Word to Excel Logic - Antigravity PDF Pro
+// Word to Excel Logic - Antigravity PDF Pro (FIXED: full table extraction + non-table content)
 document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('w2eFileInput');
     const uploadBtn = document.getElementById('btnUploadWordToExcel');
@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentFile = null;
     let extractedTables = [];
+    let extractedParagraphs = [];
 
     if (!fileInput) return;
 
@@ -57,50 +58,85 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
                 const html = result.value;
-                previewArea.innerHTML = html;
                 
-                // Extract tables for conversion
+                // Show preview
+                previewArea.innerHTML = `<div style="background:#fff; color:#222; padding:20px; border-radius:8px; max-height:400px; overflow:auto;">${html}</div>`;
+                
+                // Parse HTML to extract ALL content
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
-                const tables = doc.querySelectorAll('table');
                 
                 extractedTables = [];
+                extractedParagraphs = [];
+                
+                // --- Extract ALL tables ---
+                const tables = doc.querySelectorAll('table');
                 tables.forEach((table, index) => {
                     const rows = [];
                     table.querySelectorAll('tr').forEach(tr => {
                         const row = [];
                         tr.querySelectorAll('td, th').forEach(td => {
-                            row.push(td.innerText.trim());
+                            // Use textContent (not innerText — innerText doesn't work in DOMParser)
+                            let cellText = td.textContent.trim();
+                            // Preserve line breaks within cells
+                            cellText = cellText.replace(/\s+/g, ' ');
+                            row.push(cellText);
                         });
-                        rows.push(row);
+                        if (row.length > 0) rows.push(row);
                     });
                     if (rows.length > 0) {
                         extractedTables.push({
-                            name: `Table ${index + 1}`,
+                            name: `Table_${index + 1}`,
                             data: rows
                         });
                     }
                 });
 
-                if (extractedTables.length === 0) {
-                    previewArea.innerHTML += `
-                        <div style="margin-top: 20px; padding: 15px; background: #fff3cd; color: #856404; border-radius: 8px; border: 1px solid #ffeeba;">
-                            <strong>Note:</strong> No clear tables were detected in this document. Only actual Word tables can be converted to Excel.
-                        </div>
-                    `;
-                } else {
-                    previewArea.innerHTML = `
-                        <div style="margin-bottom: 20px; padding: 10px; background: #e8f5e9; color: #2e7d32; border-radius: 8px; border: 1px solid #c8e6c9;">
-                            <strong>Success:</strong> ${extractedTables.length} table(s) detected and ready for extraction.
-                        </div>
-                    ` + previewArea.innerHTML;
+                // --- Also extract non-table content (paragraphs, headings, lists) ---
+                const bodyChildren = doc.body.children;
+                let textRows = [];
+                for (let i = 0; i < bodyChildren.length; i++) {
+                    const el = bodyChildren[i];
+                    // Skip tables (already extracted)
+                    if (el.tagName === 'TABLE') continue;
+                    
+                    const text = el.textContent.trim();
+                    if (text) {
+                        const tag = el.tagName.toLowerCase();
+                        let type = 'Text';
+                        if (tag.startsWith('h')) type = 'Heading';
+                        else if (tag === 'ul' || tag === 'ol') type = 'List';
+                        textRows.push([type, text]);
+                    }
                 }
+                if (textRows.length > 0) {
+                    extractedParagraphs = textRows;
+                }
+
+                // Show status
+                let statusHtml = '';
+                if (extractedTables.length > 0) {
+                    statusHtml += `<div style="margin-bottom:10px; padding:10px; background:#e8f5e9; color:#2e7d32; border-radius:8px; border:1px solid #c8e6c9;">
+                        <strong>✅ ${extractedTables.length} table(s) detected</strong> — Total rows: ${extractedTables.reduce((s, t) => s + t.data.length, 0)}
+                    </div>`;
+                }
+                if (extractedParagraphs.length > 0) {
+                    statusHtml += `<div style="margin-bottom:10px; padding:10px; background:#e3f2fd; color:#1565c0; border-radius:8px; border:1px solid #bbdefb;">
+                        <strong>📝 ${extractedParagraphs.length} text paragraphs</strong> will be added to a separate "Content" sheet
+                    </div>`;
+                }
+                if (extractedTables.length === 0 && extractedParagraphs.length === 0) {
+                    statusHtml = `<div style="padding:15px; background:#fff3cd; color:#856404; border-radius:8px; border:1px solid #ffeeba;">
+                        <strong>Note:</strong> No content detected in this document.
+                    </div>`;
+                }
+                previewArea.innerHTML = statusHtml + previewArea.innerHTML;
 
                 if (window.lucide) lucide.createIcons();
 
             } catch (err) {
                 console.error('Error parsing Word doc:', err);
-                alert('Failed to read Word document. Please ensure it is a valid .docx file.');
+                alert('Failed to read Word document: ' + err.message);
                 resetW2E();
             }
         };
@@ -108,33 +144,74 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     convertBtn.addEventListener('click', () => {
-        if (extractedTables.length === 0) {
-            alert('No tables found to extract. Please upload a Word document containing tables.');
+        if (extractedTables.length === 0 && extractedParagraphs.length === 0) {
+            alert('No content found to extract. Please upload a Word document with tables or text.');
             return;
         }
 
         try {
             const wb = XLSX.utils.book_new();
             
-            extractedTables.forEach(table => {
-                const ws = XLSX.utils.aoa_to_sheet(table.data);
-                // Basic column width estimation
-                const maxWidths = [];
-                table.data.forEach(row => {
-                    row.forEach((cell, i) => {
-                        const len = cell ? cell.toString().length : 0;
-                        maxWidths[i] = Math.max(maxWidths[i] || 10, len + 2);
-                    });
-                });
-                ws['!cols'] = maxWidths.map(w => ({ wch: w }));
+            // === COMBINE all tables into ONE sheet ===
+            let combinedData = [];
+            
+            extractedTables.forEach((table, idx) => {
+                // Add table header/separator
+                if (idx > 0) {
+                    combinedData.push([]); // Empty row separator
+                    combinedData.push([]); // Double spacing between tables
+                }
+                combinedData.push([`📋 ${table.name} (${table.data.length} rows)`]);
                 
-                XLSX.utils.book_append_sheet(wb, ws, table.name);
+                // Add all rows of this table
+                table.data.forEach(row => {
+                    combinedData.push(row);
+                });
             });
+
+            // Add paragraphs at the end
+            if (extractedParagraphs.length > 0) {
+                combinedData.push([]);
+                combinedData.push([]);
+                combinedData.push(['📝 Document Text Content']);
+                combinedData.push(['Type', 'Content']);
+                extractedParagraphs.forEach(p => {
+                    combinedData.push(p);
+                });
+            }
+
+            if (combinedData.length === 0) {
+                alert('No data to export.');
+                return;
+            }
+
+            const ws = XLSX.utils.aoa_to_sheet(combinedData);
+            
+            // Smart column width — scan ALL rows for max width
+            const maxWidths = [];
+            combinedData.forEach(row => {
+                if (!row) return;
+                row.forEach((cell, i) => {
+                    const len = cell ? Math.min(cell.toString().length, 60) : 0;
+                    maxWidths[i] = Math.max(maxWidths[i] || 8, len + 2);
+                });
+            });
+            ws['!cols'] = maxWidths.map(w => ({ wch: Math.min(w, 70) }));
+            
+            XLSX.utils.book_append_sheet(wb, ws, 'All Data');
 
             const outName = currentFile.name.replace(/\.[^/.]+$/, "") + '_Extracted.xlsx';
             XLSX.writeFile(wb, outName);
             
-            // Success notification or sound could go here
+            // Success feedback
+            convertBtn.innerHTML = '<i data-lucide="check-circle"></i> Downloaded!';
+            convertBtn.style.background = 'linear-gradient(135deg, #00c851, #007e33)';
+            setTimeout(() => {
+                convertBtn.innerHTML = '<i data-lucide="file-spreadsheet"></i> Convert & Download Excel';
+                convertBtn.style.background = '';
+                if (window.lucide) lucide.createIcons();
+            }, 2500);
+
         } catch (err) {
             console.error('Excel export error:', err);
             alert('Failed to generate Excel file: ' + err.message);
@@ -146,6 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function resetW2E() {
         currentFile = null;
         extractedTables = [];
+        extractedParagraphs = [];
         fileInput.value = '';
         workspace.classList.add('d-none');
         emptyState.classList.remove('d-none');

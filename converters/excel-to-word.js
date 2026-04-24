@@ -67,7 +67,31 @@ document.addEventListener('DOMContentLoaded', () => {
         return hasData?{s:{r:minR,c:minC},e:{r:maxR,c:maxC}}:{s:{r:0,c:0},e:{r:0,c:0}};
     }
 
-    function cw(c){return Math.max(45,colsConfig[c]?(colsConfig[c].wpx||80):80);}
+    // Content-aware column width: analyze actual cell text lengths
+    let contentWidths = {};
+    function computeContentWidths() {
+        if (!currentWorksheet || !trueRange) return;
+        contentWidths = {};
+        for (let C = trueRange.s.c; C <= trueRange.e.c; C++) {
+            let maxLen = 3; // minimum
+            for (let R = trueRange.s.r; R <= trueRange.e.r; R++) {
+                const addr = XLSX.utils.encode_cell({c: C, r: R});
+                const cell = currentWorksheet[addr];
+                if (cell && cell.v !== undefined) {
+                    const txt = XLSX.utils.format_cell(cell);
+                    maxLen = Math.max(maxLen, txt.length);
+                }
+            }
+            // Width in px: ~7px per char, min 40, max 300
+            contentWidths[C] = Math.max(40, Math.min(300, maxLen * 7 + 10));
+        }
+    }
+    function cw(c) {
+        // Priority: Excel config > content-based > default
+        if (colsConfig[c] && colsConfig[c].wpx && colsConfig[c].wpx > 20) return colsConfig[c].wpx;
+        if (contentWidths[c]) return contentWidths[c];
+        return 80;
+    }
 
     function handleExcelFile(file){
         currentFile=file;
@@ -79,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentWorksheet=currentWorkbook.Sheets[sn];
             trueRange=computeTrueRange(currentWorksheet);
             colsConfig=currentWorksheet['!cols']||[];
+            computeContentWidths();
             selStart=null;selEnd=null;
             if(areaSelectInput)areaSelectInput.value='';
             renderTablePreview();
@@ -304,16 +329,51 @@ document.addEventListener('DOMContentLoaded', () => {
         if(window.lucide)lucide.createIcons();
 
         try{
+            const showGridlines=showGridlinesInput?showGridlinesInput.checked:true;
+            let isLandscape  =orientationSelect&&orientationSelect.value==='landscape';
+            const pageSz       =pageSizeSelect?pageSizeSelect.value:'a4';
+
+            // Page dimensions in twips
+            let outW,outH;
+            if     (pageSz==='letter'){outW=12240;outH=15840;}
+            else if(pageSz==='legal') {outW=12240;outH=20160;}
+            else                      {outW=11906;outH=16838;}
+
+            if(isLandscape&&pageSz!=='fit')[outW,outH]=[outH,outW];
+
+            // Dynamic margins
+            const numColsTotal = trueRange.e.c - trueRange.s.c + 1;
+            let marginTwips = numColsTotal > 10 ? 360 : numColsTotal > 6 ? 540 : 720;
+            let availTwips=outW-marginTwips*2;
+
             // Determine export range
             let exportRange;
             const iv=areaSelectInput?areaSelectInput.value.trim().toUpperCase():'';
-            if(iv){try{exportRange=XLSX.utils.decode_range(iv);}catch(_){exportRange=trueRange;}}
-            else if(selStart&&selEnd){
+            if(iv){
+                try{exportRange=XLSX.utils.decode_range(iv);}catch(_){exportRange=trueRange;}
+            } else if(selStart&&selEnd){
                 exportRange={
                     s:{r:Math.min(selStart.r,selEnd.r),c:Math.min(selStart.c,selEnd.c)},
                     e:{r:Math.max(selStart.r,selEnd.r),c:Math.max(selStart.c,selEnd.c)}
                 };
-            } else exportRange=trueRange;
+            } else {
+                // === AUTO-CLIP: only export columns that fit within the page border ===
+                if(pageSz !== 'fit') {
+                    let cumWidth = 0;
+                    let maxCol = trueRange.s.c;
+                    for(let C = trueRange.s.c; C <= trueRange.e.c; C++) {
+                        cumWidth += cw(C) * 15; // twips
+                        if(cumWidth > availTwips) break;
+                        maxCol = C;
+                    }
+                    exportRange = {
+                        s: { r: trueRange.s.r, c: trueRange.s.c },
+                        e: { r: trueRange.e.r, c: maxCol }
+                    };
+                } else {
+                    exportRange = trueRange;
+                }
+            }
 
             // Word col limit
             if(exportRange.e.c-exportRange.s.c+1>63){
@@ -321,40 +381,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 exportRange.e.c=exportRange.s.c+62;
             }
 
-            const showGridlines=showGridlinesInput?showGridlinesInput.checked:true;
-            const isLandscape  =orientationSelect&&orientationSelect.value==='landscape';
-            const pageSz       =pageSizeSelect?pageSizeSelect.value:'a4';
-            const inToTwip     =1440;
-
-            // Page dimensions in twips
-            let outW,outH;
-            if     (pageSz==='letter'){outW=12240;outH=15840;}
-            else if(pageSz==='legal') {outW=12240;outH=20160;}
-            else                      {outW=11906;outH=16838;} // a4 and fit both → A4
-
-            if(isLandscape&&pageSz!=='fit')[outW,outH]=[outH,outW];
-
-            const marginTwips=720; // 0.5 inch each side
+            const numCols = exportRange.e.c - exportRange.s.c + 1;
+            marginTwips = numCols > 10 ? 360 : numCols > 6 ? 540 : 720;
+            availTwips = outW - marginTwips*2;
 
             // Column widths in twips
             let rawTwips=0;
             for(let C=exportRange.s.c;C<=exportRange.e.c;++C)rawTwips+=cw(C)*15;
 
-            let availTwips=outW-marginTwips*2;
             let scale=1.0;
 
             if(pageSz==='fit'){
-                // Expand page width to fit content
                 outW=Math.max(outW,rawTwips+marginTwips*2);
                 availTwips=rawTwips;
             } else if(rawTwips>availTwips){
-                // Scale down columns to fit within page margins
                 scale=availTwips/rawTwips;
             }
 
-            const fontSize  =Math.max(6,Math.round(24*scale));
-            const padTB     =Math.floor(60*scale);
-            const padLR     =Math.floor(80*scale);
+            // Minimum readable font: 7pt = 14 half-points (was 3pt which is unreadable)
+            const fontSize  =Math.max(14, Math.round(24*scale));
+            const padTB     =Math.max(20, Math.floor(60*scale));
+            const padLR     =Math.max(30, Math.floor(80*scale));
 
             // Build table rows — NO row/col headers
             const tRows=[];
