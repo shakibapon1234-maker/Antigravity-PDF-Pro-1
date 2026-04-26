@@ -601,13 +601,15 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         const rc = hexToRgb(overrideBgHex);
         input.dataset.bgR = rc.r; input.dataset.bgG = rc.g; input.dataset.bgB = rc.b;
     } else {
-        // FIXED BUG 1: Always solid white background in editor — patchData only stored
-        // for PDF export, never used as visual background (prevents PDF bleed-through)
+        // Store patch data for PDF export
         if (patchData) {
             input.dataset.patch = patchData;
         }
         input.style.backgroundImage = 'none';
-        input.style.backgroundColor = '#ffffff'; // solid white — no PDF bleed-through
+        // FIXED: Use the sampled background color instead of hardcoded white
+        // This makes the editor match the actual PDF background color
+        const editorBg = (bgColor.hex && bgColor.hex !== 'transparent') ? bgColor.hex : '#ffffff';
+        input.style.backgroundColor = editorBg;
         input.dataset.bgHex = bgColor.hex;
         input.dataset.bgR = bgColor.r;
         input.dataset.bgG = bgColor.g;

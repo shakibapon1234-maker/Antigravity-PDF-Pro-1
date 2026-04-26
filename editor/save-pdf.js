@@ -132,36 +132,14 @@ async function savePdfChanges() {
             const pg = pages[edit.page - 1];
             if (!pg) continue;
 
-            // Draw background first
-            if (edit.patch && edit.patch.startsWith('data:')) {
-                try {
-                    const imgFormat = edit.patch.split(';')[0].replace('data:', '');
-                    const embeddedPatch = imgFormat.includes('png')
-                        ? await pdfDoc.embedPng(edit.patch)
-                        : await pdfDoc.embedJpg(edit.patch);
-                    pg.drawImage(embeddedPatch, { x: edit.x, y: edit.y, width: edit.width, height: edit.height });
-                } catch (e) {
-                    console.error('Failed to embed text patch:', e);
-                }
-            } else if (edit.bgHex && edit.bgHex !== 'transparent') {
-                const color = hexToRgb(edit.bgHex);
-                pg.drawRectangle({
-                    x: edit.x, 
-                    y: edit.y + edit.size - edit.height, 
-                    width: edit.width, 
-                    height: edit.height,
-                    color: rgb(color.r, color.g, color.b)
-                });
-            }
+            // Embed font first so we can measure text width accurately
+            let font;
+            const CUSTOM_FONTS = {
+                'Hind Siliguri':    'https://raw.githubusercontent.com/google/fonts/main/ofl/hindsiliguri/HindSiliguri-Regular.ttf',
+                'Noto Sans Bengali': 'https://raw.githubusercontent.com/google/fonts/main/ofl/notosansbengali/NotoSansBengali-Regular.ttf'
+            };
 
-            // Draw text on top of background
             if (edit.text && edit.text.trim()) {
-                let font;
-                const CUSTOM_FONTS = {
-                    'Hind Siliguri':    'https://raw.githubusercontent.com/google/fonts/main/ofl/hindsiliguri/HindSiliguri-Regular.ttf',
-                    'Noto Sans Bengali': 'https://raw.githubusercontent.com/google/fonts/main/ofl/notosansbengali/NotoSansBengali-Regular.ttf'
-                };
-
                 if (CUSTOM_FONTS[edit.font]) {
                     if (!window._cachedCustomFonts) window._cachedCustomFonts = {};
                     if (!window._cachedCustomFonts[edit.font]) {
@@ -178,7 +156,36 @@ async function savePdfChanges() {
                 } else {
                     font = await pdfDoc.embedFont(getFontVariant(edit.font, edit.isBold, edit.isItalic));
                 }
+            }
 
+            // Draw background cover rect to hide original text underneath
+            // FIXED: Use solid color rect (never patch images which contain old text pixels)
+            // FIXED: Position rect properly relative to text baseline with padding
+            if (edit.bgHex && edit.bgHex !== 'transparent') {
+                const bgColor = hexToRgb(edit.bgHex);
+                // Calculate accurate text width from font metrics when possible
+                let coverWidth = edit.width || 10;
+                if (font && edit.text && edit.text.trim()) {
+                    try {
+                        const measuredWidth = font.widthOfTextAtSize(edit.text, edit.size);
+                        coverWidth = Math.max(coverWidth, measuredWidth + 4);
+                    } catch(e) {}
+                }
+                // descent ≈ 25% of font size, ascent ≈ font size
+                const descent = edit.size * 0.25;
+                const coverHeight = Math.max(edit.height || edit.size, edit.size + descent + 2);
+                const padding = 2;
+                pg.drawRectangle({
+                    x: edit.x - padding,
+                    y: edit.y - descent - padding,
+                    width: coverWidth + padding * 2,
+                    height: coverHeight + padding * 2,
+                    color: rgb(bgColor.r, bgColor.g, bgColor.b)
+                });
+            }
+
+            // Draw text on top of background
+            if (font && edit.text && edit.text.trim()) {
                 const color = hexToRgb(edit.color);
                 pg.drawText(edit.text, {
                     x: edit.x, y: edit.y, size: edit.size,

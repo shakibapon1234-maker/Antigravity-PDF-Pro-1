@@ -42,11 +42,12 @@ function updateToolUI(activeId) {
 // ════════════════════════════════════════════
 
 function hexToRgb(hex) {
-    if (!hex) return { r: 1, g: 1, b: 1 };
+    if (!hex || hex === 'transparent') return { r: 1, g: 1, b: 1 };
     if (hex.startsWith('rgb')) {
         const p = hex.match(/\d+/g);
         return { r: p[0] / 255, g: p[1] / 255, b: p[2] / 255 };
     }
+    if (!hex.startsWith('#') || hex.length < 7) return { r: 1, g: 1, b: 1 };
     return {
         r: parseInt(hex.slice(1, 3), 16) / 255,
         g: parseInt(hex.slice(3, 5), 16) / 255,
@@ -239,6 +240,50 @@ function sampleBackgroundPatch(x, y, width, height, scale) {
 function sampleBackgroundColor(x, y) {
     const pageWrapper = document.querySelector('.pdf-page-wrapper');
     if (!pageWrapper) return { r: 1, g: 1, b: 1, hex: '#ffffff' };
+
+    // ── STRATEGY 1: Use inpainted background canvas (text pixels removed) ──
+    // This is the most accurate method since text has been removed via inpainting.
+    if (typeof _bgCanvasCache !== 'undefined' && _bgCanvasCache &&
+        _bgCanvasCache.pageNum === currentPageNum && _bgCanvasCache.canvas) {
+        try {
+            const bgCv = _bgCanvasCache.canvas;
+            const mainCanvas = pageWrapper.querySelector('canvas');
+            if (mainCanvas) {
+                const scaleX = bgCv.width / pageWrapper.offsetWidth;
+                const scaleY = bgCv.height / pageWrapper.offsetHeight;
+                const bx = Math.max(0, Math.min(bgCv.width - 1, Math.round(x * scaleX)));
+                const by = Math.max(0, Math.min(bgCv.height - 1, Math.round(y * scaleY)));
+                const bgCtx = bgCv.getContext('2d', { willReadFrequently: true });
+                // Sample a larger area from the clean bg canvas
+                const sz = 60;
+                const sx = Math.max(0, bx - sz / 2);
+                const sy = Math.max(0, by - sz / 2);
+                const sw = Math.min(sz, bgCv.width - sx);
+                const sh = Math.min(sz, bgCv.height - sy);
+                if (sw >= 1 && sh >= 1) {
+                    const d = bgCtx.getImageData(sx, sy, sw, sh).data;
+                    // Average all non-transparent pixels (text already removed)
+                    let tr = 0, tg = 0, tb = 0, cnt = 0;
+                    for (let i = 0; i < d.length; i += 4) {
+                        if (d[i + 3] > 128) {
+                            tr += d[i]; tg += d[i + 1]; tb += d[i + 2]; cnt++;
+                        }
+                    }
+                    if (cnt > 0) {
+                        const ar = Math.round(tr / cnt);
+                        const ag = Math.round(tg / cnt);
+                        const ab = Math.round(tb / cnt);
+                        const hex = '#' + [ar, ag, ab].map(v => v.toString(16).padStart(2, '0')).join('');
+                        return { r: ar / 255, g: ag / 255, b: ab / 255, hex };
+                    }
+                }
+            }
+        } catch (e) {
+            // Fall through to strategy 2
+        }
+    }
+
+    // ── STRATEGY 2: Sample from main canvas, skip dark text pixels ──
     const canvas = pageWrapper.querySelector('canvas');
     if (!canvas) return { r: 1, g: 1, b: 1, hex: '#ffffff' };
 
@@ -252,7 +297,8 @@ function sampleBackgroundColor(x, y) {
         const px = x * scaleX;
         const py = y * scaleY;
 
-        const sz = 40;
+        // Use a larger sampling area (80x80) for more accurate background detection
+        const sz = 80;
         const sx = Math.max(0, Math.round(px) - sz / 2);
         const sy = Math.max(0, Math.round(py) - sz / 2);
         const sw = Math.min(sz, canvas.width  - sx);
@@ -271,9 +317,14 @@ function sampleBackgroundColor(x, y) {
 
         for (let i = 0; i < d.length; i += 4) {
             if (d[i + 3] > 128) {
-                const r = d[i]   & 0xF8;
-                const g = d[i+1] & 0xF8;
-                const b = d[i+2] & 0xF8;
+                // FIXED: Skip dark pixels (likely text characters) to avoid
+                // text color polluting the background color detection
+                const lum = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+                if (lum < 100) continue; // skip dark text pixels
+
+                const r = d[i]   & 0xF0;
+                const g = d[i+1] & 0xF0;
+                const b = d[i+2] & 0xF0;
                 const key = `${r},${g},${b}`;
                 counts[key] = (counts[key] || 0) + 1;
                 if (counts[key] > maxCount) {
