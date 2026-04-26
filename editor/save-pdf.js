@@ -7,6 +7,11 @@
 async function savePdfChanges() {
     if (!currentPdfFile) { alert('No PDF loaded.'); return; }
     try {
+        if (typeof window.finalizeTables === 'function') await window.finalizeTables();
+        if (typeof finalizeMoveArea === 'function') finalizeMoveArea();
+        document.querySelectorAll('.floating-editor').forEach(ae => {
+            if (ae._commit) ae._commit();
+        });
         const arrayBuffer = await currentPdfFile.arrayBuffer();
         const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
 

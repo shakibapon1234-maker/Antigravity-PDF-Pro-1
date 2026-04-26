@@ -184,6 +184,18 @@ function initEventListeners() {
         if (w) w.style.cursor = 'default';
         eraserDot.style.display = 'none';
         setTextLayerInteractivity(true);
+
+        const selectEscListener = (e) => {
+            if (activeTool !== 'select') { document.removeEventListener('keydown', selectEscListener); return; }
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                deselectTextItem();
+                document.querySelectorAll('.shape-resize-handle').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.shape-toolbar').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.pdf-shape-element').forEach(el => el.style.outline = 'none');
+                if (typeof selectedTextItem !== 'undefined' && selectedTextItem) { selectedTextItem.style.outline = ''; selectedTextItem = null; }
+            }
+        };
+        document.addEventListener('keydown', selectEscListener);
     });
 
     document.getElementById('btnTypeText').addEventListener('click', () => {
@@ -194,6 +206,21 @@ function initEventListeners() {
         if (w) w.style.cursor = 'crosshair';
         eraserDot.style.display = 'none';
         setTextLayerInteractivity(true);
+
+        const textEscListener = (e) => {
+            if (activeTool !== 'text') { document.removeEventListener('keydown', textEscListener); return; }
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                document.querySelectorAll('.floating-editor').forEach(ae => {
+                    if (ae._commit) ae._commit();
+                    else if (ae._wrapEl) ae._wrapEl.remove();
+                    else ae.remove();
+                });
+                deselectTextItem();
+                const selectBtn = document.getElementById('btnSelect');
+                if (selectBtn) selectBtn.click();
+            }
+        };
+        document.addEventListener('keydown', textEscListener);
     });
 
     document.getElementById('btnClearText').addEventListener('click', () => {
@@ -204,6 +231,20 @@ function initEventListeners() {
         const w = document.getElementById('canvasWrapper');
         if (w) w.style.cursor = 'crosshair';
         setTextLayerInteractivity(false);
+
+        const clearTextEscListener = (e) => {
+            if (activeTool !== 'clearText') { document.removeEventListener('keydown', clearTextEscListener); return; }
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                if (typeof clearTextRectEl !== 'undefined' && clearTextRectEl) { clearTextRectEl.remove(); clearTextRectEl = null; }
+                if (typeof _clearTextDocMouseMove !== 'undefined' && _clearTextDocMouseMove) { document.removeEventListener('mousemove', _clearTextDocMouseMove); _clearTextDocMouseMove = null; }
+                if (typeof _clearTextDocMouseUp !== 'undefined' && _clearTextDocMouseUp)   { document.removeEventListener('mouseup',   _clearTextDocMouseUp);   _clearTextDocMouseUp   = null; }
+                if (typeof clearTextContainer !== 'undefined') clearTextContainer = null;
+                if (typeof isSelecting !== 'undefined') isSelecting = false;
+                const selectBtn = document.getElementById('btnSelect');
+                if (selectBtn) selectBtn.click();
+            }
+        };
+        document.addEventListener('keydown', clearTextEscListener);
     });
 
     document.getElementById('btnCloneArea').addEventListener('click', () => {
@@ -214,6 +255,16 @@ function initEventListeners() {
         const w = document.getElementById('canvasWrapper');
         if (w) w.style.cursor = 'crosshair';
         setTextLayerInteractivity(false);
+
+        const cloneAreaEscListener = (e) => {
+            if (activeTool !== 'cloneArea') { document.removeEventListener('keydown', cloneAreaEscListener); return; }
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                if (typeof finalizeCloneArea === 'function') finalizeCloneArea();
+                const selectBtn = document.getElementById('btnSelect');
+                if (selectBtn) selectBtn.click();
+            }
+        };
+        document.addEventListener('keydown', cloneAreaEscListener);
     });
 
     document.getElementById('btnTransparentBg').addEventListener('click', function() {
@@ -254,6 +305,17 @@ function initEventListeners() {
         if (w) w.style.cursor = 'crosshair';
         // text spans-এ pointer-events বন্ধ
         setTextLayerInteractivity(false);
+
+        // ম্যানুয়ালি Escape লিসেনার যোগ করা হচ্ছে (ইউজারের নির্দেশ অনুযায়ী)
+        const moveAreaEscListener = (e) => {
+            if (activeTool !== 'moveArea') { document.removeEventListener('keydown', moveAreaEscListener); return; }
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                if (typeof finalizeMoveArea === 'function') finalizeMoveArea();
+                const selectBtn = document.getElementById('btnSelect');
+                if (selectBtn) selectBtn.click();
+            }
+        };
+        document.addEventListener('keydown', moveAreaEscListener);
     });
 
     // ── Create Table বাটন ──────────────────────────────────────────────
@@ -306,6 +368,15 @@ function initEventListeners() {
                 x: 50,
                 y: 50
             });
+
+            // ম্যানুয়ালি Escape লিসেনার যোগ করা হচ্ছে (ইউজারের নির্দেশ অনুযায়ী)
+            const tableEscListener = (e) => {
+                if (e.key === 'Escape' || e.key === 'Esc') {
+                    if (typeof window.finalizeTables === 'function') window.finalizeTables();
+                    document.removeEventListener('keydown', tableEscListener);
+                }
+            };
+            document.addEventListener('keydown', tableEscListener);
         });
 
         // মডাল বন্ধ করতে ESC কী
@@ -397,37 +468,7 @@ function initEventListeners() {
 
     });
 
-    // ── Escape key ───────────────────────────────────────────────────────
-    document.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape') return;
-        // Commit ALL open floating editors (works even when editor has focus)
-        document.querySelectorAll('.floating-editor').forEach(ae => {
-            if (ae._commit) ae._commit();
-            else if (ae._wrapEl) ae._wrapEl.remove();
-            else ae.remove();
-        });
-        deselectTextItem();
-        if (eraserRectEl)   { eraserRectEl.remove();   eraserRectEl = null; }
-        if (clearTextRectEl){ clearTextRectEl.remove(); clearTextRectEl = null; }
-        if (_clearTextDocMouseMove) { document.removeEventListener('mousemove', _clearTextDocMouseMove); _clearTextDocMouseMove = null; }
-        if (_clearTextDocMouseUp)   { document.removeEventListener('mouseup',   _clearTextDocMouseUp);   _clearTextDocMouseUp   = null; }
-        clearTextContainer = null;
-        isSelecting = false;
-        // Finalize any active Move Area selection
-        if (typeof finalizeMoveArea === 'function') finalizeMoveArea();
-        // Deactivate current tool — go back to select mode
-        if (typeof activeTool !== 'undefined' && activeTool && activeTool !== 'select') {
-            const prevBtn = document.querySelector(`[data-tool='${activeTool}']`) ||
-                            document.getElementById('btnTypeText') ||
-                            document.getElementById('btnSelect');
-            const selectBtn = document.getElementById('btnSelect');
-            if (selectBtn) selectBtn.click();
-        }
-        document.querySelectorAll('.shape-resize-handle').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('.shape-toolbar').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('.pdf-shape-element').forEach(el => el.style.outline = 'none');
-        if (selectedTextItem) { selectedTextItem.style.outline = ''; selectedTextItem = null; }
-    });
+    // ── Escape key সরানো হলো (ইউজারের নির্দেশ অনুযায়ী) ──────────────────
 
     // ── Nav ট্যাব ────────────────────────────────────────────────────────
     document.querySelectorAll('.nav-item').forEach(item => {

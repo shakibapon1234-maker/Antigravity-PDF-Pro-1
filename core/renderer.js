@@ -158,6 +158,11 @@ async function renderPage(pdf, pageNum) {
             restoreShapesToDom(pageWrapper);
         }
 
+        // ── Images পুনরুদ্ধার ────────────────────────────────────────────
+        if (typeof window.restoreImagesToDom === 'function') {
+            window.restoreImagesToDom(pageWrapper);
+        }
+
         // bg canvas cache রিসেট
         _bgCanvasCache = null;
 

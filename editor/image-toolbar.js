@@ -32,19 +32,22 @@ function addImageToPdf(dataUrl, fileName, initialRect = null) {
     const img = document.createElement('img');
     img.src = dataUrl;
     img.draggable = false;
-    img.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;';
+    img.style.cssText = `width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;${initialRect && initialRect.opacity !== undefined ? `opacity:${initialRect.opacity};` : ''}${initialRect && initialRect.rotation ? `transform:rotate(${initialRect.rotation}deg);` : ''}`;
     wrap.appendChild(img);
     container.appendChild(wrap);
 
-    const imageId = `img-${Date.now()}`;
+    const imageId = initialRect && initialRect.id ? initialRect.id : `img-${Date.now()}`;
     wrap.dataset.imageId = imageId;
-    imageEdits.push({
-        id: imageId, page: currentPageNum, dataUrl, name: fileName || 'image',
-        x: defL / pdfScale,
-        y: (container.offsetHeight - defT - defH) / pdfScale,
-        width: defW / pdfScale, height: defH / pdfScale,
-        rotation: 0, opacity: 1, zIndex: _imgZCounter
-    });
+    
+    if (!initialRect || !initialRect.id) {
+        imageEdits.push({
+            id: imageId, page: currentPageNum, dataUrl, name: fileName || 'image',
+            x: defL / pdfScale,
+            y: (container.offsetHeight - defT - defH) / pdfScale,
+            width: defW / pdfScale, height: defH / pdfScale,
+            rotation: 0, opacity: 1, zIndex: _imgZCounter
+        });
+    }
 
     // ── Drag to move ─────────────────────────────────────────────────────────
     let _iDrag = false, _iSX = 0, _iSY = 0, _iOL = 0, _iOT = 0;
@@ -97,6 +100,21 @@ function addImageToPdf(dataUrl, fileName, initialRect = null) {
 
     attachImageLayerToolbar(wrap, imageId);
 }
+
+window.restoreImagesToDom = function(container) {
+    if (typeof imageEdits === 'undefined') return;
+    const pageImages = imageEdits.filter(img => img.page === currentPageNum);
+    pageImages.forEach(img => {
+        const defW = img.width * pdfScale;
+        const defH = img.height * pdfScale;
+        const defL = img.x * pdfScale;
+        const defT = container.offsetHeight - (img.y * pdfScale) - defH;
+        addImageToPdf(img.dataUrl, img.name, {
+            id: img.id, l: defL, t: defT, w: defW, h: defH,
+            opacity: img.opacity, rotation: img.rotation
+        });
+    });
+};
 
 // ════════════════════════════════════════════════════════════════════════════
 // SECTION B — TEXT COLOR  (applies to floating editor + committed spans)

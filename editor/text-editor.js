@@ -1992,7 +1992,7 @@ function endMoveAreaSelection(container) {
 // Finalize Move Area — called by Escape key or tool switch
 function finalizeMoveArea() {
     if (!moveAreaRect || !moveAreaSelection) return;
-    const { ctx, captureCanvas } = moveAreaSelection;
+    const { ctx, captureCanvas, container, left: origLeft, top: origTop, width, height } = moveAreaSelection;
     const newLeft = parseFloat(moveAreaRect.style.left);
     const newTop = parseFloat(moveAreaRect.style.top);
     
@@ -2000,6 +2000,32 @@ function finalizeMoveArea() {
     if (ctx && captureCanvas) {
         ctx.drawImage(captureCanvas, Math.round(newLeft), Math.round(newTop));
     }
+
+    // Save state for PDF download
+    // 1. Clear the original area
+    let pe = clearStrokes.find(s => s.page === currentPageNum);
+    if (!pe) { pe = { page: currentPageNum, rects: [] }; clearStrokes.push(pe); }
+    pe.rects.push({
+        x: origLeft / pdfScale, 
+        y: (container.offsetHeight - origTop - height) / pdfScale,
+        w: width / pdfScale, 
+        h: height / pdfScale,
+        r: 1, g: 1, b: 1, // Whiteout
+        patch: null
+    });
+
+    // 2. Add the moved area as an image
+    imageEdits.push({
+        id: 'move-area-' + Date.now(),
+        page: currentPageNum,
+        dataUrl: captureCanvas.toDataURL('image/png'),
+        x: newLeft / pdfScale,
+        y: (container.offsetHeight - newTop - height) / pdfScale,
+        width: width / pdfScale,
+        height: height / pdfScale,
+        opacity: 1,
+        rotation: 0
+    });
 
     // Clean up
     if (moveAreaRect.parentNode) moveAreaRect.remove();
@@ -2135,4 +2161,52 @@ function createTable(columns, rows, cellWidth, cellHeight, container, viewport, 
     
     return tableContainer;
 }
+
+window.finalizeTables = async function() {
+    const tables = document.querySelectorAll('.created-table');
+    if (tables.length === 0) return;
+    
+    // load html2canvas if not present
+    if (typeof html2canvas === 'undefined') {
+        await new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+            script.onload = resolve;
+            document.head.appendChild(script);
+        });
+    }
+
+    const container = document.querySelector('.pdf-page-wrapper');
+    if (!container) return;
+
+    for (const table of Array.from(tables)) {
+        // Hide the drag handle before capturing
+        const handle = table.querySelector('div[style*="top: -20px"]');
+        if (handle) handle.style.display = 'none';
+
+        // ensure no resize handles are visible
+        table.querySelectorAll('.cell-resize-handle').forEach(h => h.style.display = 'none');
+
+        try {
+            const canvas = await html2canvas(table, { backgroundColor: null, scale: 2 });
+            const dataUrl = canvas.toDataURL('image/png');
+            
+            const w = table.offsetWidth;
+            const h = table.offsetHeight;
+            const l = parseFloat(table.style.left) || 0;
+            const t = parseFloat(table.style.top) || 0;
+            
+            // Remove the HTML table
+            table.remove();
+            
+            // Convert to an image edit
+            if (typeof addImageToPdf === 'function') {
+                addImageToPdf(dataUrl, 'table', { l, t, w, h });
+            }
+        } catch (err) {
+            console.error('Failed to capture table', err);
+            if (handle) handle.style.display = '';
+        }
+    }
+};
 
