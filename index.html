@@ -81,6 +81,10 @@
                     <i data-lucide="arrow-right-left"></i>
                     <span>Image Converter</span>
                 </button>
+                <button class="nav-item" data-tab="image-to-word">
+                    <i data-lucide="file-output"></i>
+                    <span>Image to Word</span>
+                </button>
                 <button class="nav-item" data-tab="organize-pdf">
                     <i data-lucide="layers"></i>
                     <span>Organize PDF</span>
@@ -223,6 +227,12 @@
                             <div class="card-icon"><i data-lucide="arrow-right-left"></i></div>
                             <h3>Image Converter</h3>
                             <p>Convert images between PNG, JPG, and other formats.</p>
+                        </div>
+                        <div class="tool-card blue" onclick="switchTab('image-to-word')">
+                            <div class="card-icon"><i data-lucide="file-output"></i></div>
+                            <h3>Image to Word</h3>
+                            <p>Convert image files into editable Word documents using AI.</p>
+                            <span class="tool-tag">New</span>
                         </div>
                         <div class="tool-card indigo" onclick="switchTab('organize-pdf')">
                             <div class="card-icon"><i data-lucide="layers"></i></div>
@@ -587,6 +597,36 @@
                                 <div class="progress-bar" id="convProgress"></div>
                             </div>
                             <button class="btn btn-success w-100 mt-3" id="btnDownloadWord">
+                                <i data-lucide="download"></i> Download .docx
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Image to Word Section -->
+                <section id="image-to-word" class="tab-content">
+                    <div class="section-header">
+                        <h2>Convert Image to Word</h2>
+                    </div>
+                    <div class="converter-box">
+                        <div class="drop-zone" id="itwDropZone">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="image-plus"></i>
+                            <p>Drag & drop your Image file here or <span>browse</span></p>
+                            <input type="file" id="itwInput" accept="image/*" hidden>
+                        </div>
+                        <div id="itwConversionStatus" class="conversion-status d-none">
+                            <div class="file-info">
+                                <i data-lucide="file-check"></i>
+                                <span id="itwFileNameDisplay">image.png</span>
+                            </div>
+                            <div class="progress-bar-wrapper">
+                                <div class="progress-bar" id="itwConvProgress"></div>
+                            </div>
+                            <button class="btn btn-success w-100 mt-3" id="btnDownloadItwWord">
                                 <i data-lucide="download"></i> Download .docx
                             </button>
                         </div>
@@ -1467,6 +1507,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <script src="converters/word-to-excel.js"></script>
     <script src="converters/image-converter.js"></script>
+    <script src="converters/image-to-word.js"></script>
     <script src="converters/html-to-pdf.js"></script>
 
     <!-- ui/ : ইন্টারফেস -->
