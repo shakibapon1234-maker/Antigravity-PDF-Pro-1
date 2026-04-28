@@ -82,7 +82,11 @@
                     <span>Image Converter</span>
                 </button>
                 <button class="nav-item" data-tab="image-to-word">
+<<<<<<< Updated upstream
                     <i data-lucide="file-output"></i>
+=======
+                    <i data-lucide="file-text"></i>
+>>>>>>> Stashed changes
                     <span>Image to Word</span>
                 </button>
                 <button class="nav-item" data-tab="organize-pdf">
@@ -228,10 +232,17 @@
                             <h3>Image Converter</h3>
                             <p>Convert images between PNG, JPG, and other formats.</p>
                         </div>
+<<<<<<< Updated upstream
                         <div class="tool-card blue" onclick="switchTab('image-to-word')">
                             <div class="card-icon"><i data-lucide="file-output"></i></div>
                             <h3>Image to Word</h3>
                             <p>Convert image files into editable Word documents using AI.</p>
+=======
+                        <div class="tool-card orange" onclick="switchTab('image-to-word')">
+                            <div class="card-icon"><i data-lucide="file-text"></i></div>
+                            <h3>Image to Word</h3>
+                            <p>Convert images to editable Word documents using OCR.</p>
+>>>>>>> Stashed changes
                             <span class="tool-tag">New</span>
                         </div>
                         <div class="tool-card indigo" onclick="switchTab('organize-pdf')">
@@ -1441,6 +1452,52 @@
                             </div>
                         </div>
                     </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Image to Word Section -->
+                <section id="image-to-word" class="tab-content">
+                    <div class="section-header">
+                        <h2>Convert Image to Word</h2>
+                        <button class="btn btn-primary" id="btnUploadImageToWord">
+                            <i data-lucide="upload-cloud"></i> Upload Image
+                        </button>
+                        <input type="file" id="itwFileInput" accept="image/*" multiple hidden>
+                    </div>
+                    <div class="image-to-word-container">
+                        <div class="no-file-state" id="itwEmptyState">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="file-text" class="large-icon"></i>
+                            <h3>No File Selected</h3>
+                            <p>Upload images to extract text and convert to Word.</p>
+                        </div>
+                        <div class="itw-workspace d-none" id="itwWorkspace" style="padding: 20px;">
+                            <div class="itw-options" style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px; background: #2a2a2a; padding: 15px; border-radius: 8px;">
+                                <label style="font-weight: 500;">Language (OCR):</label>
+                                <select id="itwLangSelect" class="form-input" style="width: auto;">
+                                    <option value="eng">English</option>
+                                    <option value="ben">Bengali</option>
+                                    <option value="eng+ben">English + Bengali</option>
+                                </select>
+                            </div>
+                            <div class="itw-preview" id="itwPreview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                                <!-- Image previews will be rendered here -->
+                            </div>
+                            
+                            <div class="progress-bar-wrapper d-none" id="itwProgressWrapper" style="margin-bottom: 20px;">
+                                <div class="progress-bar" id="itwProgress" style="width: 0%; transition: width 0.3s; background: linear-gradient(90deg, #00d4ff, #b829f9); height: 8px; border-radius: 4px;"></div>
+                                <p id="itwProgressText" style="text-align: center; margin-top: 5px; font-size: 14px; color: #aaa;">Processing...</p>
+                            </div>
+
+                            <button class="btn btn-primary w-100" id="btnConvertImageToWord" style="padding: 15px; font-size: 16px;">
+                                <i data-lucide="file-output"></i> Convert to Word
+                            </button>
+                        </div>
+                    </div>
                 </section>
             </div>
         </main>
@@ -1509,6 +1566,7 @@
     <script src="converters/image-converter.js"></script>
     <script src="converters/image-to-word.js"></script>
     <script src="converters/html-to-pdf.js"></script>
+    <script src="converters/image-to-word.js"></script>
 
     <!-- ui/ : ইন্টারফেস -->
     <script src="ui/toolbar.js"></script>
