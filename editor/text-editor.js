@@ -1551,113 +1551,7 @@ function continueClearTextStroke(x, y) {
 let _bgRenderPromise = null;    // prevent concurrent renders
 
 async function ensureBgCanvas() {
-    // Return cached version if already built for this page
-    if (_bgCanvasCache && _bgCanvasCache.pageNum === currentPageNum) {
-        return _bgCanvasCache.canvas;
-    }
-    // Wait if a render is already in progress
-    if (_bgRenderPromise) { await _bgRenderPromise; }
-    if (_bgCanvasCache && _bgCanvasCache.pageNum === currentPageNum) {
-        return _bgCanvasCache.canvas;
-    }
-
-    if (!currentPdfObj) return null;
-
-    let resolve;
-    _bgRenderPromise = new Promise(r => { resolve = r; });
-
-    try {
-        // ── Strategy: render the page with text rendering ops DISABLED ──
-        // PDF.js supports a custom operatorList render via intentType / filterFactory.
-        // The cleanest cross-browser approach is to use a background render task
-        // that skips OPS.showText, OPS.showSpacedText, OPS.nextLineShowText,
-        // OPS.nextLineSetSpacingShowText, OPS.setFont.
-        const page     = await currentPdfObj.getPage(currentPageNum);
-        const viewport = page.getViewport({ scale: pdfScale });
-
-        const bgCv     = document.createElement('canvas');
-        bgCv.width     = viewport.width;
-        bgCv.height    = viewport.height;
-        const bgCtx    = bgCv.getContext('2d', { willReadFrequently: true });
-
-        // Render the page fully into bgCv
-        // PDF.js renders BOTH graphics AND text into the same canvas.
-        // The inpainting post-process below removes dark text pixels.
-        await page.render({ canvasContext: bgCtx, viewport }).promise;
-
-        // ── Post-process: remove text pixels by inpainting from edge samples ──
-        // This improves gradient accuracy significantly vs. using the text-bearing canvas.
-        // We detect text pixels (dark, high-contrast against local bg) and
-        // replace them with interpolated background values.
-        try {
-            const idata = bgCtx.getImageData(0, 0, bgCv.width, bgCv.height);
-            const d = idata.data;
-            const W = bgCv.width, H = bgCv.height;
-            const RADIUS = 4;
-            const DARK_THRESH = 80; // pixels darker than this are likely text
-            const CONTRAST_THRESH = 60; // local contrast threshold
-
-            // Build a mask of "likely text" pixels
-            const mask = new Uint8Array(W * H);
-            for (let y = RADIUS; y < H - RADIUS; y++) {
-                for (let x = RADIUS; x < W - RADIUS; x++) {
-                    const i = (y * W + x) * 4;
-                    const lum = (d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114);
-                    if (lum < DARK_THRESH) {
-                        // Check local contrast: compare to nearby pixels
-                        let maxLum = 0;
-                        for (let dy = -RADIUS; dy <= RADIUS; dy += 2) {
-                            for (let dx = -RADIUS; dx <= RADIUS; dx += 2) {
-                                const ni = ((y+dy)*W + (x+dx))*4;
-                                const nl = d[ni]*0.299 + d[ni+1]*0.587 + d[ni+2]*0.114;
-                                if (nl > maxLum) maxLum = nl;
-                            }
-                        }
-                        if (maxLum - lum > CONTRAST_THRESH) mask[y*W+x] = 1;
-                    }
-                }
-            }
-
-            // Inpaint masked pixels using surrounding non-masked pixels (weighted average)
-            const INPAINT_R = 6;
-            for (let y = 0; y < H; y++) {
-                for (let x = 0; x < W; x++) {
-                    if (!mask[y*W+x]) continue;
-                    let sr=0,sg=0,sb=0,wt=0;
-                    for (let dy = -INPAINT_R; dy <= INPAINT_R; dy++) {
-                        for (let dx = -INPAINT_R; dx <= INPAINT_R; dx++) {
-                            const ny=y+dy, nx=x+dx;
-                            if (ny<0||ny>=H||nx<0||nx>=W) continue;
-                            if (mask[ny*W+nx]) continue;
-                            const ni=(ny*W+nx)*4;
-                            const dist=Math.sqrt(dx*dx+dy*dy)||1;
-                            const w=1/(dist*dist);
-                            sr+=d[ni]*w; sg+=d[ni+1]*w; sb+=d[ni+2]*w; wt+=w;
-                        }
-                    }
-                    if (wt>0) {
-                        const i=(y*W+x)*4;
-                        d[i]  =Math.round(sr/wt);
-                        d[i+1]=Math.round(sg/wt);
-                        d[i+2]=Math.round(sb/wt);
-                    }
-                }
-            }
-            bgCtx.putImageData(idata, 0, 0);
-        } catch(inpaintErr) {
-            // If pixel manipulation fails (e.g. cross-origin), keep the raw render
-            console.warn('BgCanvas inpaint failed:', inpaintErr);
-        }
-
-        _bgCanvasCache = { pageNum: currentPageNum, canvas: bgCv };
-        return bgCv;
-    } catch (e) {
-        console.warn('BgCanvas render failed:', e);
-        return null;
-    } finally {
-        _bgRenderPromise = null;
-        resolve && resolve();
-    }
+    return null;
 }
 
 // Call this whenever page changes so cache is refreshed
@@ -1679,29 +1573,8 @@ function generateInpaintedPatch(x, y, width, height, forceCoons = false) {
     const px = Math.max(0, Math.round(x));
     const py = Math.max(0, Math.round(y));
 
-    // ── Path A: use cached background canvas (pixel-perfect, async) ──────
-    // We kick off the bg render immediately so it's ready next time.
-    // For the CURRENT call we fall through to synchronous Coons Patch,
-    // UNLESS the cache is already warm for this page.
-    if (!forceCoons && _bgCanvasCache && _bgCanvasCache.pageNum === currentPageNum) {
-        const bgCv = _bgCanvasCache.canvas;
-        const outCv = document.createElement('canvas');
-        outCv.width = pw; outCv.height = ph;
-        const oCtx = outCv.getContext('2d');
-        try {
-            oCtx.drawImage(bgCv, px, py, pw, ph, 0, 0, pw, ph);
-            // Verify real pixels
-            const check = oCtx.getImageData(0, 0, 1, 1).data;
-            if (check[3] > 0) return outCv.toDataURL('image/png');
-        } catch(e) { /* fall through */ }
-    }
-
-    // Kick off background render asynchronously so cache is warm for next call
-    ensureBgCanvas().catch(() => {});
-
-    // ── Path B: synchronous Coons Patch edge interpolation (fallback) ────
-    // Works well for gradients by interpolating from clean edge pixels
-    // that are far enough outside the text area.
+    // Always use synchronous Coons Patch edge interpolation.
+    // This is extremely fast (only processes the bounding box) and avoids locking the main thread.
     return _coonsPatchFromMainCanvas(mainCanvas, pageWrapper, px, py, pw, ph);
 }
 

@@ -166,11 +166,7 @@ async function renderPage(pdf, pageNum) {
         // bg canvas cache রিসেট
         _bgCanvasCache = null;
 
-        // Pre-warm the inpainted background canvas so sampleBackgroundColor
-        // can use it immediately when the user activates the text tool.
-        if (typeof ensureBgCanvas === 'function') {
-            ensureBgCanvas().catch(() => {});
-        }
+
 
         // Mouse events
         pageWrapper.addEventListener('mousedown', (e) => handlePageMouseDown(e, pageWrapper, viewport, page));
