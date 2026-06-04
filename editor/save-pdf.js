@@ -34,6 +34,9 @@ async function savePdfChanges() {
         for (const stroke of clearStrokes) {
             const pg = pages[stroke.page - 1];
             if (!pg) continue;
+            const cropBox = pg.getCropBox() || { x: 0, y: 0 };
+            const cropX = cropBox.x || 0;
+            const cropY = cropBox.y || 0;
             for (const r of stroke.rects) {
                 if (r.patch && r.patch.startsWith('data:')) {
                     try {
@@ -41,12 +44,12 @@ async function savePdfChanges() {
                         const embeddedPatch = imgFormat.includes('png')
                             ? await pdfDoc.embedPng(r.patch)
                             : await pdfDoc.embedJpg(r.patch);
-                        pg.drawImage(embeddedPatch, { x: r.x, y: r.y, width: r.w, height: r.h });
+                        pg.drawImage(embeddedPatch, { x: r.x + cropX, y: r.y + cropY, width: r.w, height: r.h });
                         continue;
                     } catch (e) {}
                 }
                 pg.drawRectangle({
-                    x: r.x, y: r.y, width: r.w, height: r.h,
+                    x: r.x + cropX, y: r.y + cropY, width: r.w, height: r.h,
                     color: rgb(r.r ?? 1, r.g ?? 1, r.b ?? 1)
                 });
             }
@@ -71,8 +74,11 @@ async function savePdfChanges() {
                     image.src = img.dataUrl;
                 });
                 const embeddedImg = await pdfDoc.embedPng(pngDataUrl);
+                const cropBox = pg.getCropBox() || { x: 0, y: 0 };
+                const cropX = cropBox.x || 0;
+                const cropY = cropBox.y || 0;
                 const drawOpts = {
-                    x: img.x, y: img.y,
+                    x: img.x + cropX, y: img.y + cropY,
                     width: img.width, height: img.height,
                     opacity: img.opacity ?? 1
                 };
@@ -83,7 +89,9 @@ async function savePdfChanges() {
             } catch (e) {
                 console.error('Image embed error:', e);
             }
-        }// ── Shape এডিট সেভ ─────────────────────────────────────────────
+        }
+
+        // ── Shape এডিট সেভ ─────────────────────────────────────────────
         for (const edit of shapeEdits) {
             const pg = pages[edit.page - 1];
             if (!pg) continue;
@@ -91,12 +99,17 @@ async function savePdfChanges() {
             if (colorHex === 'transparent') continue;
             const color = hexToRgb(colorHex);
             const rot   = edit.rotation ? PDFLib.degrees(edit.rotation) : PDFLib.degrees(0);
-            const cx    = edit.x + edit.width  / 2;
-            const cy    = edit.y + edit.height / 2;
+            
+            const cropBox = pg.getCropBox() || { x: 0, y: 0 };
+            const cropX = cropBox.x || 0;
+            const cropY = cropBox.y || 0;
+            
+            const cx    = edit.x + cropX + edit.width  / 2;
+            const cy    = edit.y + cropY + edit.height / 2;
 
             if (edit.type === 'rect' || edit.type === 'round-rect') {
                 pg.drawRectangle({
-                    x: edit.x, y: edit.y, width: edit.width, height: edit.height,
+                    x: edit.x + cropX, y: edit.y + cropY, width: edit.width, height: edit.height,
                     color: rgb(color.r, color.g, color.b),
                     rotate: rot,
                     opacity: edit.opacity ?? 1,
@@ -112,7 +125,7 @@ async function savePdfChanges() {
                     opacity: edit.opacity ?? 1
                 });
             } else {
-                const left = edit.x, bottomY = edit.y, w = edit.width, h = edit.height;
+                const left = edit.x + cropX, bottomY = edit.y + cropY, w = edit.width, h = edit.height;
                 let pts = [];
                 if (edit.type === 'triangle') pts = [[0.5,1],[1,0],[0,0]];
                 else if (edit.type === 'star') pts = [[0.5,1],[0.61,0.65],[0.98,0.65],[0.68,0.43],[0.79,0.09],[0.5,0.3],[0.21,0.09],[0.32,0.43],[0.02,0.65],[0.39,0.65]];
@@ -168,9 +181,28 @@ async function savePdfChanges() {
                 }
             }
 
-            // Draw background cover rect to hide original text underneath
-            // FIXED: Use solid color rect (never patch images which contain old text pixels)
-            // FIXED: Position rect properly relative to text baseline with padding
+            const cropBox = pg.getCropBox() || { x: 0, y: 0 };
+            const cropX = cropBox.x || 0;
+            const cropY = cropBox.y || 0;
+
+            // 1. Draw background cover rectangle at the ORIGINAL position for edited original text
+            if (!edit.isNew) {
+                const coverBgHex = (edit.bgHex && edit.bgHex !== 'transparent') ? edit.bgHex : '#ffffff';
+                const bgColor = hexToRgb(coverBgHex);
+                const descent = edit.size * 0.25;
+                const coverHeight = Math.max(edit.originalHeight || edit.height || edit.size, edit.size + descent + 2);
+                const coverWidth = edit.originalWidth || edit.width || 40;
+                const padding = 2;
+                pg.drawRectangle({
+                    x: edit.originalX - padding,
+                    y: edit.originalY - descent - padding,
+                    width: coverWidth + padding * 2,
+                    height: coverHeight + padding * 2,
+                    color: rgb(bgColor.r, bgColor.g, bgColor.b)
+                });
+            }
+
+            // 2. Draw background cover rectangle at the NEW position (only if background color is set)
             if (edit.bgHex && edit.bgHex !== 'transparent') {
                 const bgColor = hexToRgb(edit.bgHex);
                 // Calculate accurate text width from font metrics when possible
@@ -186,8 +218,8 @@ async function savePdfChanges() {
                 const coverHeight = Math.max(edit.height || edit.size, edit.size + descent + 2);
                 const padding = 2;
                 pg.drawRectangle({
-                    x: edit.x - padding,
-                    y: edit.y - descent - padding,
+                    x: edit.x - padding + (edit.isNew ? cropX : 0),
+                    y: edit.y - descent - padding + (edit.isNew ? cropY : 0),
                     width: coverWidth + padding * 2,
                     height: coverHeight + padding * 2,
                     color: rgb(bgColor.r, bgColor.g, bgColor.b)
@@ -198,15 +230,17 @@ async function savePdfChanges() {
             if (font && edit.text && edit.text.trim()) {
                 const color = hexToRgb(edit.color);
                 pg.drawText(edit.text, {
-                    x: edit.x, y: edit.y, size: edit.size,
+                    x: edit.x + (edit.isNew ? cropX : 0),
+                    y: edit.y + (edit.isNew ? cropY : 0),
+                    size: edit.size,
                     font, color: rgb(color.r, color.g, color.b)
                 });
 
                 if (edit.isUnderline) {
                     const tw = font.widthOfTextAtSize(edit.text, edit.size);
                     pg.drawLine({
-                        start: { x: edit.x,      y: edit.y - 2 },
-                        end:   { x: edit.x + tw,  y: edit.y - 2 },
+                        start: { x: edit.x + (edit.isNew ? cropX : 0),      y: edit.y + (edit.isNew ? cropY : 0) - 2 },
+                        end:   { x: edit.x + (edit.isNew ? cropX : 0) + tw,  y: edit.y + (edit.isNew ? cropY : 0) - 2 },
                         thickness: 1,
                         color: rgb(color.r, color.g, color.b)
                     });

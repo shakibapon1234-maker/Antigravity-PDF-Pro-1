@@ -7,13 +7,13 @@
 // ─────────────────────────────────────────────
 
 function startEditing(e, originalItem, transform, viewport, page) {
-    const el        = e.target;
+    const el        = e.target.closest('.editable-text-unit') || e.target;
     // Always resolve to the pdf-page-wrapper, regardless of which child was clicked
     const container = el.closest('.pdf-page-wrapper');
     if (!container) return;
     const isNewItem = originalItem.isNew || false;
 
-    // â”€â”€ Store the absolute position for the wrapper (editWrap will be absolute)
+    // store the absolute position for the wrapper (editWrap will be absolute)
     // Use getBoundingClientRect — reliable regardless of el's parent/wrapper state
     const _elRect  = el.getBoundingClientRect();
     const _cRect   = container.getBoundingClientRect();
@@ -35,8 +35,8 @@ function startEditing(e, originalItem, transform, viewport, page) {
         patchHeight = originalItem.height;
         patchData   = originalItem.patch;
     } else {
-        patchWidth  = (originalItem.width  || el.offsetWidth  / pdfScale);
-        patchHeight = (originalItem.height || el.offsetHeight / pdfScale);
+        patchWidth  = (originalItem.originalWidth || originalItem.width  || el.offsetWidth  / pdfScale);
+        patchHeight = (originalItem.originalHeight || originalItem.height || el.offsetHeight / pdfScale);
 
         if (transform) {
             // Sample the actual background pixels from the canvas
@@ -60,7 +60,47 @@ function startEditing(e, originalItem, transform, viewport, page) {
         bgColor = { hex, ...(hex === 'transparent' ? {r:1,g:1,b:1} : hexToRgb(hex)) };
     }
 
-    // â”€â”€ Create the floating editor div â”€â”€
+    // Immediately create cover patch at the original position of the original text item
+    if (!isNewItem) {
+        if (el._coverPatch && el._coverPatch.parentNode) {
+            el._coverPatch.parentNode.removeChild(el._coverPatch);
+            el._coverPatch = null;
+        }
+
+        const origX = originalItem.transform ? originalItem.transform[4] : originalItem.originalX;
+        const origY = originalItem.transform ? originalItem.transform[5] : originalItem.originalY;
+        const origH = originalItem.transform
+            ? (originalItem.height || el.offsetHeight / viewport.scale)
+            : (originalItem.originalHeight || originalItem.height || originalItem.size || 12);
+        const origW = originalItem.transform
+            ? (originalItem.width || el.offsetWidth / viewport.scale)
+            : (originalItem.originalWidth || originalItem.width || 40);
+
+        const txOriginal = pdfjsLib.Util.transform(viewport.transform, [1, 0, 0, 1, origX, origY]);
+        const origLeft = txOriginal[4];
+        const origTop = txOriginal[5] - origH * viewport.scale;
+        const origWidth = origW * viewport.scale;
+        const origHeight = origH * viewport.scale;
+
+        const _cpBgHex = (bgColor.hex && bgColor.hex !== 'transparent') ? bgColor.hex : '#ffffff';
+
+        const coverPatch = document.createElement('div');
+        coverPatch.className = 'clear-patch text-cover-patch';
+        coverPatch.style.cssText = `
+            position: absolute;
+            left: ${origLeft}px;
+            top:  ${origTop}px;
+            width: ${origWidth}px;
+            height: ${origHeight}px;
+            background-color: ${_cpBgHex};
+            pointer-events: none;
+            z-index: 8;
+        `;
+        el._coverPatch = coverPatch;
+        container.appendChild(coverPatch);
+    }
+
+    // Create the floating editor div
     const input = document.createElement('div');
     input.contentEditable = 'true';
     input.className       = 'floating-editor';
@@ -77,13 +117,14 @@ function startEditing(e, originalItem, transform, viewport, page) {
     input.style.width        = 'auto';
     input.style.minWidth     = `${patchWidth * pdfScale}px`;
 
-    // FIXED BUG: Always use solid white/opaque background while editing so
+    // FIXED BUG: Always use solid background while editing so
     // typed text is never obscured by the PDF content behind it.
     if (patchData) {
         input.dataset.patch = patchData;
     }
     input.style.backgroundImage = 'none';
-    input.style.backgroundColor = '#ffffff';
+    const editorBg = (bgColor.hex && bgColor.hex !== 'transparent') ? bgColor.hex : '#ffffff';
+    input.style.backgroundColor = editorBg;
 
     input.dataset.bgHex = bgColor.hex;
     input.dataset.bgR   = bgColor.r;
@@ -117,10 +158,41 @@ function startEditing(e, originalItem, transform, viewport, page) {
     } else {
         currentStyle.bgColor = bgColor.hex;
         document.getElementById('bgColor').value = bgColor.hex;
+        
+        // Extract style from the clicked element (el)
+        if (el) {
+            const fsPx = parseFloat(el.style.fontSize);
+            if (!isNaN(fsPx) && fsPx > 0) {
+                currentStyle.fontSize = Math.round(fsPx / pdfScale);
+                const fsInput = document.getElementById('fontSize');
+                if (fsInput) fsInput.value = currentStyle.fontSize;
+            }
+            
+            if (el.style.fontFamily) {
+                const ff = el.style.fontFamily.replace(/['"]/g, '');
+                currentStyle.fontFamily = ff;
+                const ffSelect = document.getElementById('fontFamily');
+                if (ffSelect) ffSelect.value = ff;
+            }
+            
+            // Check bold / italic / underline from styles
+            currentStyle.isBold = el.style.fontWeight === 'bold' || el.style.fontWeight === '700';
+            currentStyle.isItalic = el.style.fontStyle === 'italic';
+            currentStyle.isUnderline = el.style.textDecoration && el.style.textDecoration.includes('underline');
+            
+            const btnBold = document.getElementById('btnBold');
+            if (btnBold) btnBold.classList.toggle('active', currentStyle.isBold);
+            const btnItalic = document.getElementById('btnItalic');
+            if (btnItalic) btnItalic.classList.toggle('active', currentStyle.isItalic);
+            const btnUnderline = document.getElementById('btnUnderline');
+            if (btnUnderline) btnUnderline.classList.toggle('active', currentStyle.isUnderline);
+        }
     }
 
     input.style.fontSize       = `${currentStyle.fontSize * viewport.scale}px`;
     input.style.lineHeight     = '1';
+    input.style.padding        = '0';
+    input.style.margin         = '0';
     let fnEdit = (currentStyle.fontFamily || 'Helvetica');
     if (fnEdit.includes(' ') && !fnEdit.includes("'")) fnEdit = "'" + fnEdit + "'";
     input.style.fontFamily     = fnEdit;
@@ -315,33 +387,49 @@ function startEditing(e, originalItem, transform, viewport, page) {
         el.style.backgroundImage = 'none';
 
         if (!newText) {
-            // User cleared the text â€” hide the span visually, no background
-            el.style.color           = 'transparent';
-            el.style.backgroundColor = 'transparent';
-            el.textContent           = '';
-            return;
+            if (isNewItem) {
+                // New item cleared -> just clean up and exit
+                if (el && el.parentNode) {
+                    el.parentNode.removeChild(el);
+                }
+                return;
+            }
         }
 
-        // Calculate exact PDF coordinates using delta from original position
+        const origX = isNewItem
+            ? originalItem.originalX
+            : (originalItem.transform ? originalItem.transform[4] : originalItem.originalX);
+        const origY = isNewItem
+            ? originalItem.originalY
+            : (originalItem.transform ? originalItem.transform[5] : originalItem.originalY);
+
+        const currentPdfX = edit ? edit.x : origX;
+        const currentPdfY = edit ? edit.y : origY;
+
+        // Calculate exact PDF coordinates using delta from current position
         const deltaX = wrapLeft2 - _inputAbsLeftNum;
         const deltaY = wrapTop2 - _inputAbsTopNum;
-        const trueX = (isNewItem ? originalItem.originalX : originalItem.transform[4]) + (deltaX / pdfScale);
-        const trueY = (isNewItem ? originalItem.originalY : originalItem.transform[5]) - (deltaY / pdfScale);
+        const trueX = currentPdfX + (deltaX / pdfScale);
+        const trueY = currentPdfY - (deltaY / pdfScale);
 
         const editData = {
             id: isNewItem
                 ? originalItem.id
-                : `${currentPageNum}-${originalItem.transform[4]}-${originalItem.transform[5]}`,
+                : (originalItem.transform
+                    ? `${currentPageNum}-${originalItem.transform[4]}-${originalItem.transform[5]}`
+                    : originalItem.id),
             page:      currentPageNum,
             isNew:     isNewItem,
-            originalX: isNewItem ? originalItem.originalX : originalItem.transform[4],
-            originalY: isNewItem ? originalItem.originalY : originalItem.transform[5],
+            originalX: origX,
+            originalY: origY,
+            originalWidth: edit ? edit.originalWidth : (isNewItem ? finalWidth : (originalItem.transform ? (originalItem.width || el.offsetWidth / pdfScale) : (originalItem.originalWidth || el.offsetWidth / pdfScale))),
+            originalHeight: edit ? edit.originalHeight : (isNewItem ? finalHeight : (originalItem.transform ? (originalItem.height || el.offsetHeight / pdfScale) : (originalItem.originalHeight || el.offsetHeight / pdfScale))),
             x:     trueX,
             y:     trueY,
             text:  newText,
-            html:  editorHTML || newText,
+            html:  newText ? (editorHTML || newText) : '',
             size:  currentStyle.fontSize,
-            color: currentStyle.color,
+            color: newText ? currentStyle.color : 'transparent',
             // Store bgHex only for PDF save (whiteout rect), NOT for visual display
             patch: input.dataset.patch,
             bgHex: input.dataset.bgHex,
@@ -360,9 +448,9 @@ function startEditing(e, originalItem, transform, viewport, page) {
         if (idx > -1) textEdits[idx] = editData;
         else textEdits.push(editData);
 
-        // Update the span in place â€” preserve innerHTML (bold/italic/size spans) from editor
+        // Update the span in place — preserve innerHTML (bold/italic/size spans) from editor
         // Use innerHTML to keep any styled child spans (bold, italic, fontSize wraps)
-        el.innerHTML = editorHTML || newText;
+        el.innerHTML = newText ? (editorHTML || newText) : '';
         // Apply styles without overwriting innerHTML (restoreEditOnSpan would use textContent)
         el.style.color           = editData.color;
         // wrapLeft2/wrapTop2 are container-relative; el may be in a text-layer with its own offset
@@ -391,15 +479,35 @@ function startEditing(e, originalItem, transform, viewport, page) {
         // This correctly handles PDFs with any background color.
         const _coverPatch = document.createElement('div');
         _coverPatch.className = 'clear-patch text-cover-patch';
-        const _coverW = Math.max((editData.width  || 10) * viewport.scale, el.offsetWidth  || 40);
-        const _coverH = Math.max((editData.height || editData.size) * viewport.scale, el.offsetHeight || 20);
-        const _cpBgHex = input.dataset.bgHex || '#ffffff';
+        
+        let cpLeft, cpTop, cpWidth, cpHeight;
+        if (isNewItem) {
+            cpLeft = wrapLeft2 - _tlOffL;
+            cpTop = wrapTop2 - _tlOffT;
+            cpWidth = Math.max((editData.width || 10) * viewport.scale, el.offsetWidth || 40);
+            cpHeight = Math.max((editData.height || editData.size) * viewport.scale, el.offsetHeight || 20);
+        } else {
+            const origH = originalItem.transform ? (originalItem.height || 12) : (originalItem.height || originalItem.size || 12);
+            const origW = originalItem.transform ? (originalItem.width || 40) : (originalItem.width || 40);
+
+            const txOriginal = pdfjsLib.Util.transform(viewport.transform, [1, 0, 0, 1, origX, origY]);
+            cpLeft = txOriginal[4];
+            cpTop = txOriginal[5] - origH * viewport.scale;
+            cpWidth = origW * viewport.scale;
+            cpHeight = origH * viewport.scale;
+        }
+
+        let _cpBgHex = input.dataset.bgHex || '#ffffff';
+        if (!isNewItem && _cpBgHex === 'transparent') {
+            _cpBgHex = '#ffffff';
+        }
+
         _coverPatch.style.cssText = `
             position: absolute;
-            left: ${wrapLeft2 - _tlOffL}px;
-            top:  ${wrapTop2  - _tlOffT}px;
-            width: ${_coverW}px;
-            height: ${_coverH}px;
+            left: ${cpLeft}px;
+            top:  ${cpTop}px;
+            width: ${cpWidth}px;
+            height: ${cpHeight}px;
             background-color: ${_cpBgHex};
             pointer-events: none;
             z-index: 8;
@@ -413,14 +521,16 @@ function startEditing(e, originalItem, transform, viewport, page) {
         _tlParentSE.appendChild(_coverPatch);
 
         // ── Sync cover-patch size to el's actual rendered size (after layout) ──
-        // Handles cases where typed text is wider than the initial patch estimate.
-        requestAnimationFrame(() => {
-            if (!_coverPatch.parentNode) return;
-            const _actualW = Math.max(el.offsetWidth  || _coverW, _coverW);
-            const _actualH = Math.max(el.offsetHeight || _coverH, _coverH);
-            _coverPatch.style.width  = `${_actualW}px`;
-            _coverPatch.style.height = `${_actualH}px`;
-        });
+        // Handles cases where typed text is wider than the initial patch estimate (only for destination covers).
+        if (isNewItem) {
+            requestAnimationFrame(() => {
+                if (!_coverPatch.parentNode) return;
+                const _actualW = Math.max(el.offsetWidth  || cpWidth, cpWidth);
+                const _actualH = Math.max(el.offsetHeight || cpHeight, cpHeight);
+                _coverPatch.style.width  = `${_actualW}px`;
+                _coverPatch.style.height = `${_actualH}px`;
+            });
+        }
     };
 }
 
@@ -439,6 +549,7 @@ function handlePageMouseDown(e, container, viewport, page) {
     if (activeTool === 'text') {
         // Check if target is NOT an editable text unit or floating editor (blank area)
         if (!e.target.classList.contains('editable-text-unit') && 
+            !e.target.closest('.editable-text-unit') &&
             !e.target.classList.contains('floating-editor') &&
             !e.target.closest('.floating-editor') &&
             !e.target.closest('.floating-editor-handle')) {
@@ -452,7 +563,9 @@ function handlePageMouseDown(e, container, viewport, page) {
         }
     } else if (activeTool === 'select') {
         if (!e.target.classList.contains('editable-text-unit') &&
-            !e.target.classList.contains('floating-editor')) {
+            !e.target.closest('.editable-text-unit') &&
+            !e.target.classList.contains('floating-editor') &&
+            !e.target.closest('.floating-editor')) {
             deselectTextItem();
         }
     } else if (activeTool === 'clear') {
@@ -618,6 +731,8 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
 
     input.style.fontSize       = `${currentStyle.fontSize * viewport.scale}px`;
     input.style.lineHeight     = '1';
+    input.style.padding        = '0';
+    input.style.margin         = '0';
     let fnAdd = (currentStyle.fontFamily || 'Helvetica');
     if (fnAdd.includes(' ') && !fnAdd.includes("'")) fnAdd = "'" + fnAdd + "'";
     input.style.fontFamily     = fnAdd;
@@ -783,6 +898,8 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
             isNew: true,
             originalX: x / pdfScale,
             originalY: (container.offsetHeight - y) / pdfScale - currentStyle.fontSize,
+            originalWidth: finalWidth,
+            originalHeight: finalHeight,
             x:     wrapLeft / pdfScale,
             y:     (container.offsetHeight - wrapTop) / pdfScale - currentStyle.fontSize,
             text:  newText,
@@ -1701,6 +1818,7 @@ function endClearTextStroke(container) {
         const clearEntry = {
             id: editId, page: currentPageNum, isNew: false,
             originalX: sl / pdfScale, originalY: (container.offsetHeight - st - sh) / pdfScale,
+            originalWidth: sw / pdfScale, originalHeight: sh / pdfScale,
             x: sl / pdfScale, y: (container.offsetHeight - st - sh) / pdfScale,
             text: '', size: parseFloat(span.style.fontSize) / pdfScale || 12,
             color: 'transparent', bgHex: 'transparent',

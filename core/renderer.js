@@ -185,11 +185,76 @@ async function renderPage(pdf, pageNum) {
 }
 
 // ════════════════════════════════════════════
-// টেক্সট লেয়ার সেটআপ
+// টেক্সট লেয়ার সেটআপ (Merges split text lines for seamless editing & whiteout)
 // ════════════════════════════════════════════
+
+function mergeTextItems(items) {
+    if (!items || items.length === 0) return [];
+
+    // Group items into horizontal rows based on Y coordinate
+    const rows = [];
+    items.forEach(item => {
+        if (!item.str || !item.str.trim()) return;
+
+        const y = item.transform[5];
+        let foundRow = rows.find(r => Math.abs(r.y - y) < 4);
+        if (foundRow) {
+            foundRow.items.push(item);
+        } else {
+            rows.push({ y, items: [item] });
+        }
+    });
+
+    const mergedItems = [];
+
+    rows.forEach(row => {
+        // Sort items in the row from left to right
+        row.items.sort((a, b) => a.transform[4] - b.transform[4]);
+
+        let currentItem = null;
+
+        row.items.forEach(item => {
+            if (!currentItem) {
+                currentItem = {
+                    ...item,
+                    transform: [...item.transform],
+                };
+                return;
+            }
+
+            const currentEndX = currentItem.transform[4] + currentItem.width;
+            const itemStartX = item.transform[4];
+            const gap = itemStartX - currentEndX;
+
+            // Merging threshold: if gap is small (e.g. < 15 points)
+            if (gap >= -5 && gap < 15) {
+                const needsSpace = gap > 1.5 && 
+                                   !currentItem.str.endsWith(' ') && 
+                                   !item.str.startsWith(' ');
+                
+                currentItem.str += (needsSpace ? ' ' : '') + item.str;
+                currentItem.width = (item.transform[4] + item.width) - currentItem.transform[4];
+                currentItem.height = Math.max(currentItem.height, item.height);
+            } else {
+                mergedItems.push(currentItem);
+                currentItem = {
+                    ...item,
+                    transform: [...item.transform],
+                };
+            }
+        });
+
+        if (currentItem) {
+            mergedItems.push(currentItem);
+        }
+    });
+
+    return mergedItems;
+}
 
 async function setupTextLayer(page, viewport, container) {
     const textContent = await page.getTextContent();
+    const mergedItems = mergeTextItems(textContent.items);
 
     const textLayerDiv = document.createElement('div');
     textLayerDiv.className           = 'text-layer';
@@ -202,7 +267,7 @@ async function setupTextLayer(page, viewport, container) {
     textLayerDiv.style.pointerEvents = 'none'; // div itself doesn't catch events
     textLayerDiv.style.zIndex        = '10';
 
-    textContent.items.forEach(item => {
+    mergedItems.forEach(item => {
         if (!item.str || !item.str.trim()) return;
 
         const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
@@ -238,7 +303,34 @@ async function setupTextLayer(page, viewport, container) {
             Math.abs(ed.originalX - item.transform[4]) < 1 &&
             Math.abs(ed.originalY - item.transform[5]) < 1
         );
-        if (edit) restoreEditOnSpan(textItem, edit, viewport);
+        if (edit) {
+            restoreEditOnSpan(textItem, edit, viewport);
+
+            // Draw cover patch at the original position to hide the canvas text
+            const coverPatch = document.createElement('div');
+            coverPatch.className = 'clear-patch text-cover-patch';
+            const _cpBgHex = (edit.bgHex && edit.bgHex !== 'transparent') ? edit.bgHex : '#ffffff';
+
+            // Convert original PDF coordinates to viewport pixels
+            const txOriginal = pdfjsLib.Util.transform(viewport.transform, item.transform);
+            const origLeft = txOriginal[4];
+            const origTop = txOriginal[5] - (edit.originalHeight || item.height || 12) * viewport.scale;
+            const origWidth = (edit.originalWidth || item.width || 40) * viewport.scale;
+            const origHeight = (edit.originalHeight || item.height || 12) * viewport.scale;
+
+            coverPatch.style.cssText = `
+                position: absolute;
+                left: ${origLeft}px;
+                top:  ${origTop}px;
+                width: ${origWidth}px;
+                height: ${origHeight}px;
+                background-color: ${_cpBgHex};
+                pointer-events: none;
+                z-index: 8;
+            `;
+            textItem._coverPatch = coverPatch;
+            container.appendChild(coverPatch);
+        }
 
         // Click handlers
         textItem.addEventListener('click', (e) => {
@@ -296,6 +388,7 @@ async function setupTextLayer(page, viewport, container) {
             const editData = {
                 id: editId, page: currentPageNum, isNew: false,
                 originalX: item.transform[4], originalY: item.transform[5],
+                originalWidth: item.width || 40, originalHeight: item.height || 12,
                 x: 0, y: 0, text: '', size: item.height || 12,
                 color: 'transparent', bgHex: 'transparent',
                 bgR: 1, bgG: 1, bgB: 1, font: 'Helvetica',
@@ -337,6 +430,8 @@ async function setupTextLayer(page, viewport, container) {
             const clearEntry = {
                 id: editId, page: currentPageNum, isNew: false,
                 originalX: item.transform[4], originalY: item.transform[5],
+                originalWidth: item.width || (renderedW / pdfScale),
+                originalHeight: item.height || (renderedH / pdfScale),
                 x: relLeft / pdfScale,
                 y: (pw.offsetHeight - relTop - renderedH) / pdfScale,
                 text: '', size: item.height || 12,

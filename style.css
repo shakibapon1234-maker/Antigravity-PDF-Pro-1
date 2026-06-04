@@ -988,7 +988,7 @@ body {
 .floating-editor:focus { caret-color: var(--primary); }
 
 /* When no patch, editor shows solid background color */
-.floating-editor[data-patch] { background-color: transparent !important; }
+/* .floating-editor[data-patch] { background-color: transparent !important; } */
 
 /* Resize handle — bottom-right corner of floating editor wrapper */
 .floating-editor-resize {
