@@ -990,8 +990,18 @@
                                         <input type="radio" name="cropMode" value="all" checked> Crop All Pages
                                     </label>
                                     <label class="radio-label" style="display: flex; align-items: center; gap: 5px; color: var(--text);">
-                                        <input type="radio" name="cropMode" value="current"> Crop First Page Only
+                                        <input type="radio" name="cropMode" value="current"> Crop Current Page Only
                                     </label>
+                                    
+                                    <div id="cropPageNavigation" style="display: flex; align-items: center; gap: 8px; margin-left: 15px; border-left: 1px solid #444; padding-left: 15px;">
+                                        <button class="btn btn-outline btn-icon" id="btnCropPrevPage" style="padding: 4px 8px;" title="Previous Page">
+                                            <i data-lucide="chevron-left"></i>
+                                        </button>
+                                        <span id="cropPageIndicator" style="font-size: 14px; color: var(--text); min-width: 80px; text-align: center;">Page 1 of 1</span>
+                                        <button class="btn btn-outline btn-icon" id="btnCropNextPage" style="padding: 4px 8px;" title="Next Page">
+                                            <i data-lucide="chevron-right"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div style="display: flex; align-items: center;">
                                     <small style="color: var(--text-dim); margin-right: 15px;">Draw a rectangle on the preview to select crop area</small>
