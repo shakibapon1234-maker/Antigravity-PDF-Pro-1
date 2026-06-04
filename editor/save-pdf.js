@@ -99,6 +99,7 @@ async function savePdfChanges() {
                     x: edit.x, y: edit.y, width: edit.width, height: edit.height,
                     color: rgb(color.r, color.g, color.b),
                     rotate: rot,
+                    opacity: edit.opacity ?? 1,
                     borderRadius: edit.type === 'round-rect' ? 8 : 0
                 });
             } else if (edit.type === 'circle') {
@@ -107,7 +108,8 @@ async function savePdfChanges() {
                     xScale: edit.width  / 2,
                     yScale: edit.height / 2,
                     color: rgb(color.r, color.g, color.b),
-                    rotate: rot
+                    rotate: rot,
+                    opacity: edit.opacity ?? 1
                 });
             } else {
                 const left = edit.x, bottomY = edit.y, w = edit.width, h = edit.height;
@@ -126,8 +128,11 @@ async function savePdfChanges() {
                             cy + px * Math.sin(rad) + py * Math.cos(rad)
                         ];
                     });
-                    const pathStr = 'M ' + rotated.map(p => `${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(' L ') + ' Z';
-                    pg.drawSvgPath(pathStr, { color: rgb(color.r, color.g, color.b) });
+                    const pathStr = 'M ' + rotated.map(p => `${p[0].toFixed(2)} ${(-p[1]).toFixed(2)}`).join(' L ') + ' Z';
+                    pg.drawSvgPath(pathStr, {
+                        color: rgb(color.r, color.g, color.b),
+                        opacity: edit.opacity ?? 1
+                    });
                 }
             }
         }

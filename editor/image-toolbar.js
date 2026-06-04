@@ -50,41 +50,26 @@ function addImageToPdf(dataUrl, fileName, initialRect = null) {
     }
 
     // ── Drag to move ─────────────────────────────────────────────────────────
-    let _iDrag = false, _iSX = 0, _iSY = 0, _iOL = 0, _iOT = 0;
+    let _iDrag = false, _iHasDragged = false, _iSX = 0, _iSY = 0, _iOL = 0, _iOT = 0;
     wrap.addEventListener('mousedown', (e) => {
         const tb = wrap.querySelector('.image-toolbar');
         if (e.target.classList.contains('image-resize-handle')) return;
         if (tb && tb.contains(e.target)) return;
 
-        // TEXT TOOL: Type tool active হলে image-এর উপরে text editor open করো
-        if (typeof activeTool !== 'undefined' && activeTool === 'text') {
-            e.stopPropagation();
-            e.preventDefault();
-            const cont = wrap.closest('.pdf-page-wrapper');
-            if (cont && typeof addNewText === 'function' && typeof currentPdfObj !== 'undefined') {
-                const imgLeft = parseFloat(wrap.style.left) + 8;
-                const imgTop = parseFloat(wrap.style.top) + (currentStyle ? currentStyle.fontSize * pdfScale + 8 : 24);
-                // Commit any existing floating editor first
-                document.querySelectorAll('.floating-editor').forEach(fe => {
-                    if (fe._commit) fe._commit();
-                });
-                currentPdfObj.getPage(currentPageNum).then(page => {
-                    const viewport = page.getViewport({ scale: pdfScale });
-                    addNewText(imgLeft, imgTop, viewport, page, cont, 'transparent');
-                });
-            }
-            return;
-        }
-
-        _iDrag = true; _iSX = e.clientX; _iSY = e.clientY;
+        _iDrag = true; _iHasDragged = false; _iSX = e.clientX; _iSY = e.clientY;
         _iOL = parseFloat(wrap.style.left) || 0;
         _iOT = parseFloat(wrap.style.top)  || 0;
         e.stopPropagation();
     });
     document.addEventListener('mousemove', (e) => {
         if (!_iDrag) return;
-        wrap.style.left = `${_iOL + (e.clientX - _iSX)}px`;
-        wrap.style.top  = `${_iOT + (e.clientY - _iSY)}px`;
+        const dx = e.clientX - _iSX;
+        const dy = e.clientY - _iSY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+            _iHasDragged = true;
+        }
+        wrap.style.left = `${_iOL + dx}px`;
+        wrap.style.top  = `${_iOT + dy}px`;
     });
     document.addEventListener('mouseup', () => {
         if (!_iDrag) return; _iDrag = false;
@@ -94,6 +79,22 @@ function addImageToPdf(dataUrl, fileName, initialRect = null) {
             if (ed) {
                 ed.x = parseFloat(wrap.style.left) / pdfScale;
                 ed.y = (cont.offsetHeight - parseFloat(wrap.style.top) - wrap.offsetHeight) / pdfScale;
+            }
+
+            // If the text tool is active and they DID NOT drag the image, open the text editor on the image
+            if (typeof activeTool !== 'undefined' && activeTool === 'text' && !_iHasDragged) {
+                const imgLeft = parseFloat(wrap.style.left) + 8;
+                const imgTop = parseFloat(wrap.style.top) + (currentStyle ? currentStyle.fontSize * pdfScale + 8 : 24);
+                // Commit any existing floating editor first
+                document.querySelectorAll('.floating-editor').forEach(fe => {
+                    if (fe._commit) fe._commit();
+                });
+                if (typeof currentPdfObj !== 'undefined' && typeof addNewText === 'function') {
+                    currentPdfObj.getPage(currentPageNum).then(page => {
+                        const viewport = page.getViewport({ scale: pdfScale });
+                        addNewText(imgLeft, imgTop, viewport, page, cont, 'transparent');
+                    });
+                }
             }
         }
     });

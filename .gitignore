@@ -1,0 +1,6 @@
+node_modules/
+archive/
+*.log
+test_output.pdf
+test_output_with_triangle.pdf
+test_uncompressed.pdf

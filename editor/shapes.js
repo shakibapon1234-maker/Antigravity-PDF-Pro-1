@@ -276,11 +276,11 @@ function createShapeNode(edit, container) {
             }
         }
 
-        // Trigger addNewText at the center of the shape, passing shape bg color
+        // Trigger addNewText at the center of the shape, passing transparent bg so it overlays nicely
         if (typeof addNewText === 'function' && typeof currentPdfObj !== 'undefined') {
             currentPdfObj.getPage(currentPageNum).then(page => {
                 const viewport = page.getViewport({ scale: pdfScale });
-                addNewText(shapeCenterX, shapeCenterY, viewport, page, cont, shapeBgColor);
+                addNewText(shapeCenterX, shapeCenterY, viewport, page, cont, 'transparent');
             });
         }
     });
@@ -346,35 +346,13 @@ function createShapeNode(edit, container) {
 
     // ── Drag (works in ALL tool modes) ────────────────────────────────────────
     let isDraggingShape = false;
+    let hasDragged = false;
     let dragSX = 0, dragSY = 0, dragOrigL = 0, dragOrigT = 0;
 
     wrapper.addEventListener('mousedown', (e) => {
         // Don't drag when clicking resize handle or toolbar buttons
         if (e.target === handle) return;
         if (toolbar.contains(e.target)) return;
-
-        // TEXT TOOL: Type tool active হলে shape-এর উপরে text editor open করো
-        if (typeof activeTool !== 'undefined' && activeTool === 'text') {
-            e.stopPropagation();
-            e.preventDefault();
-            // Open text editor at shape center
-            const cont = wrapper.closest('.pdf-page-wrapper');
-            if (cont && typeof addNewText === 'function' && typeof currentPdfObj !== 'undefined') {
-                const shapeCenterX = parseFloat(wrapper.style.left) + wrapper.offsetWidth / 2;
-                const shapeCenterY = parseFloat(wrapper.style.top) + wrapper.offsetHeight / 2;
-                const ed = shapeEdits.find(s => s.id === edit.id);
-                const shapeBgColor = ed ? (ed.bgHex || ed.color || '#7c3aed') : '#7c3aed';
-                // Commit any existing floating editor first
-                document.querySelectorAll('.floating-editor').forEach(fe => {
-                    if (fe._commit) fe._commit();
-                });
-                currentPdfObj.getPage(currentPageNum).then(page => {
-                    const viewport = page.getViewport({ scale: pdfScale });
-                    addNewText(shapeCenterX, shapeCenterY, viewport, page, cont, shapeBgColor);
-                });
-            }
-            return;
-        }
 
         // CRITICAL: stop propagation so the page's mousedown doesn't
         // create a new text box or trigger other tools
@@ -386,6 +364,7 @@ function createShapeNode(edit, container) {
 
         // Start drag
         isDraggingShape = true;
+        hasDragged = false;
         dragSX    = e.clientX;
         dragSY    = e.clientY;
         dragOrigL = parseFloat(wrapper.style.left) || 0;
@@ -394,8 +373,13 @@ function createShapeNode(edit, container) {
 
     document.addEventListener('mousemove', (e) => {
         if (!isDraggingShape) return;
-        const newL = dragOrigL + (e.clientX - dragSX);
-        const newT = dragOrigT + (e.clientY - dragSY);
+        const dx = e.clientX - dragSX;
+        const dy = e.clientY - dragSY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+            hasDragged = true;
+        }
+        const newL = dragOrigL + dx;
+        const newT = dragOrigT + dy;
         wrapper.style.left = newL + 'px';
         wrapper.style.top  = newT + 'px';
 
@@ -415,6 +399,25 @@ function createShapeNode(edit, container) {
             isDraggingShape = false;
             // Capture undo after drag ends
             _shapeCaptureUndo('Move shape');
+
+            // If the text tool is active and they DID NOT drag the shape, open the text editor at shape center
+            if (typeof activeTool !== 'undefined' && activeTool === 'text' && !hasDragged) {
+                const cont = wrapper.closest('.pdf-page-wrapper');
+                if (cont && typeof addNewText === 'function' && typeof currentPdfObj !== 'undefined') {
+                    const shapeCenterX = parseFloat(wrapper.style.left) + wrapper.offsetWidth / 2;
+                    const shapeCenterY = parseFloat(wrapper.style.top) + wrapper.offsetHeight / 2;
+                    const ed = shapeEdits.find(s => s.id === edit.id);
+                    const shapeBgColor = ed ? (ed.bgHex || ed.color || '#7c3aed') : '#7c3aed';
+                    // Commit any existing floating editor first
+                    document.querySelectorAll('.floating-editor').forEach(fe => {
+                        if (fe._commit) fe._commit();
+                    });
+                    currentPdfObj.getPage(currentPageNum).then(page => {
+                        const viewport = page.getViewport({ scale: pdfScale });
+                        addNewText(shapeCenterX, shapeCenterY, viewport, page, cont, 'transparent');
+                    });
+                }
+            }
         }
     });
 
@@ -475,8 +478,8 @@ function addShapeToPdf(type) {
         zIndex:  _shapeZCounter,
         x:       cxPx / pdfScale,
         y:       (pageWrapper.offsetHeight - cyPx - height) / pdfScale,
-        width,
-        height
+        width:   width / pdfScale,
+        height:  height / pdfScale
     };
 
     shapeEdits.push(shapeEdit);
