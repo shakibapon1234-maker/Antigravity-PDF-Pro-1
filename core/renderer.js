@@ -11,7 +11,56 @@ let _bgCanvasCache = null;
 // PDF লোড
 // ════════════════════════════════════════════
 
-async function loadAndRenderPDF(file) {
+async function decryptPdf(file, password = '') {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (password) fd.append('password', password);
+
+    const res = await fetch('/api/tools/decrypt-pdf', {
+        method: 'POST',
+        body: fd
+    });
+    if (!res.ok) {
+        let errText = 'Decryption failed';
+        try {
+            const errData = await res.json();
+            errText = errData.error || errText;
+        } catch (e) {}
+        throw new Error(errText);
+    }
+    const blob = await res.blob();
+    return new File([blob], file.name, { type: 'application/pdf' });
+}
+
+async function loadAndRenderPDF(file, password = '') {
+    // Check if PDF is encrypted using PDF-lib
+    let isEncrypted = false;
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        await PDFLib.PDFDocument.load(arrayBuffer);
+    } catch (e) {
+        if (e.message.includes('encrypted') || e.name === 'EncryptedPDFError') {
+            isEncrypted = true;
+        }
+    }
+
+    if (isEncrypted) {
+        try {
+            const decryptedFile = await decryptPdf(file, password);
+            file = decryptedFile;
+            currentPdfFile = file; // Update global reference
+        } catch (err) {
+            // Prompt for password if decryption fails
+            const userPassword = prompt(err.message + '\n\nPlease enter the PDF password:');
+            if (userPassword === null) {
+                // User cancelled, reset global file reference if needed
+                currentPdfFile = null;
+                return;
+            }
+            return loadAndRenderPDF(file, userPassword);
+        }
+    }
+
     const reader = new FileReader();
     reader.onload = async function () {
         try {

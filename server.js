@@ -158,6 +158,47 @@ app.post('/api/tools/protect-pdf', upload.single('file'), (req, res) => {
   });
 });
 
+// PDF Decrypting via qpdf
+app.post('/api/tools/decrypt-pdf', upload.single('file'), (req, res) => {
+  const file = req.file;
+  const password = req.body.password || '';
+
+  if (!file) {
+    return res.status(400).json({ error: 'Missing file' });
+  }
+
+  const inputPath = file.path;
+  const outputPath = path.join(ARCHIVE_DIR, `decrypted_${Date.now()}.pdf`);
+  const qpdfPath = path.join(__dirname, 'bin', 'qpdf.exe');
+
+  let command = `"${qpdfPath}" --decrypt`;
+  if (password) {
+    const escapedPassword = password.replace(/"/g, '\\"');
+    command += ` --password="${escapedPassword}"`;
+  }
+  command += ` -- "${inputPath}" "${outputPath}"`;
+
+  console.log('[decrypt-pdf] Running command:', command);
+
+  exec(command, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`qpdf error: ${stderr}`);
+      if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+      
+      let userMsg = 'Decryption failed.';
+      if (stderr.includes('password') || stderr.includes('Password') || stderr.includes('incorrect') || stderr.includes('Invalid password')) {
+        userMsg = 'Incorrect password. Please enter the correct password.';
+      }
+      return res.status(500).json({ error: userMsg, details: stderr });
+    }
+
+    res.download(outputPath, `decrypted_${file.originalname}`, (err) => {
+      if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+      if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+    });
+  });
+});
+
 app.post('/archive/:id/restore', (req, res) => {
   const id = req.params.id;
   const index = readIndex();

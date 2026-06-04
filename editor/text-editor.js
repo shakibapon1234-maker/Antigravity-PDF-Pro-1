@@ -1554,9 +1554,13 @@ async function ensureBgCanvas() {
     return null;
 }
 
+// Simple cache for inpainted patches to avoid duplicate heavy computations
+const inpaintedPatchCache = new Map();
+
 // Call this whenever page changes so cache is refreshed
 function invalidateBgCanvas() {
     _bgCanvasCache = null;
+    inpaintedPatchCache.clear();
 }
 
 // ── generateInpaintedPatch ───────────────────────────────────────────────────
@@ -1573,9 +1577,19 @@ function generateInpaintedPatch(x, y, width, height, forceCoons = false) {
     const px = Math.max(0, Math.round(x));
     const py = Math.max(0, Math.round(y));
 
+    // Cache key includes page number, coordinates and dimensions
+    const cacheKey = `${currentPageNum}_${px}_${py}_${pw}_${ph}`;
+    if (inpaintedPatchCache.has(cacheKey)) {
+        return inpaintedPatchCache.get(cacheKey);
+    }
+
     // Always use synchronous Coons Patch edge interpolation.
     // This is extremely fast (only processes the bounding box) and avoids locking the main thread.
-    return _coonsPatchFromMainCanvas(mainCanvas, pageWrapper, px, py, pw, ph);
+    const result = _coonsPatchFromMainCanvas(mainCanvas, pageWrapper, px, py, pw, ph);
+    if (result) {
+        inpaintedPatchCache.set(cacheKey, result);
+    }
+    return result;
 }
 
 function _coonsPatchFromMainCanvas(mainCanvas, pageWrapper, px, py, pw, ph) {
@@ -1607,10 +1621,10 @@ function _coonsPatchFromMainCanvas(mainCanvas, pageWrapper, px, py, pw, ph) {
         return { r: imgData[i], g: imgData[i+1], b: imgData[i+2] };
     }
 
-    // Large-radius median filter — radius proportional to font size
-    // so thick strokes don't pollute the edge sample
+    // Small-radius median filter — radius fixed to 2
+    // to filter out noise, while avoiding astronomical complexity
     function getCleanEdgeColor(cx, cy) {
-        const radius = Math.max(8, Math.round(offset * 0.5));
+        const radius = 2;
         const rArr = [], gArr = [], bArr = [];
         for (let dy = -radius; dy <= radius; dy++)
             for (let dx = -radius; dx <= radius; dx++) {
@@ -1624,21 +1638,24 @@ function _coonsPatchFromMainCanvas(mainCanvas, pageWrapper, px, py, pw, ph) {
         return { r: rArr[mid], g: gArr[mid], b: bArr[mid] };
     }
 
-    // Sample edges from OUTSIDE the text bounding box (offset band)
-    // Left/right: sample at x = offset-2 and x = offset+pw+2 (well outside text)
-    const sampleLeft  = Math.max(2, offset - 4);
-    const sampleRight = Math.min(ew - 3, offset + pw + 4);
-    const sampleTop   = Math.max(2, offset - 4);
-    const sampleBot   = Math.min(eh - 3, offset + ph + 4);
+    // Calculate exact text position relative to temp canvas
+    const textLeft = px - ex;
+    const textTop  = py - ey;
+
+    // Sample edges from the middle of the buffer zone to be far away from any text strokes
+    const sampleLeft  = Math.max(2, Math.min(ew - 3, Math.round(textLeft * 0.5)));
+    const sampleRight = Math.max(2, Math.min(ew - 3, Math.round(textLeft + pw + (ew - textLeft - pw) * 0.5)));
+    const sampleTop   = Math.max(2, Math.min(eh - 3, Math.round(textTop * 0.5)));
+    const sampleBot   = Math.max(2, Math.min(eh - 3, Math.round(textTop + ph + (eh - textTop - ph) * 0.5)));
 
     const leftEdge = [], rightEdge = [], topEdge = [], bottomEdge = [];
     for (let cy = 0; cy < ph; cy++) {
-        leftEdge.push(getCleanEdgeColor(sampleLeft,  offset + cy));
-        rightEdge.push(getCleanEdgeColor(sampleRight, offset + cy));
+        leftEdge.push(getCleanEdgeColor(sampleLeft,  textTop + cy));
+        rightEdge.push(getCleanEdgeColor(sampleRight, textTop + cy));
     }
     for (let cx = 0; cx < pw; cx++) {
-        topEdge.push(getCleanEdgeColor(offset + cx, sampleTop));
-        bottomEdge.push(getCleanEdgeColor(offset + cx, sampleBot));
+        topEdge.push(getCleanEdgeColor(textLeft + cx, sampleTop));
+        bottomEdge.push(getCleanEdgeColor(textLeft + cx, sampleBot));
     }
 
     const TL = leftEdge[0], BL = leftEdge[ph-1];
