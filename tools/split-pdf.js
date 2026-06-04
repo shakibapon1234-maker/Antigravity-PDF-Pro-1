@@ -115,6 +115,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('btnSelectRange').click();
             }
         });
+        
+        pageRangeInput.addEventListener('change', () => {
+            const input = pageRangeInput.value.trim();
+            if (!input) return;
+            
+            const pages = parsePageRange(input);
+            if (pages.length > 0) {
+                pages.forEach(p => {
+                    if (p >= 1 && p <= splitTotalPages) {
+                        selectedPageNumbers.add(p);
+                    }
+                });
+                renderSplitPreview();
+            }
+        });
     }
 
     const btnSelectRange = document.getElementById('btnSelectRange');
@@ -141,8 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function parsePageRange(input) {
+        const sanitized = input.replace(/[^0-9\-,\s]/g, '');
         const pages = new Set();
-        const parts = input.split(',');
+        const parts = sanitized.split(',');
         
         parts.forEach(part => {
             part = part.trim();
@@ -185,6 +201,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnDownloadSplit = document.getElementById('btnDownloadSplit');
     if (btnDownloadSplit) {
         btnDownloadSplit.onclick = async () => {
+            if (pageRangeInput && pageRangeInput.value.trim()) {
+                const input = pageRangeInput.value.trim();
+                const pages = parsePageRange(input);
+                if (pages.length === 0) {
+                    alert('Invalid page range. Use format: 1-3, 5, 7-10');
+                    return;
+                }
+                pages.forEach(p => {
+                    if (p >= 1 && p <= splitTotalPages) {
+                        selectedPageNumbers.add(p);
+                    }
+                });
+                renderSplitPreview();
+            }
+            
             if (selectedPageNumbers.size === 0) {
                 alert('Please select at least one page.');
                 return;

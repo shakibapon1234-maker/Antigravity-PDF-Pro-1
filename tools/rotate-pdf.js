@@ -78,7 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const direction = document.querySelector('input[name="rotateDirection"]:checked').value;
             const finalAngle = direction === 'clockwise' ? angleVal : -angleVal;
             
-            const rangeStr = pageRangeInput.value.trim();
+            const rawRangeStr = pageRangeInput.value.trim();
+            const rangeStr = rawRangeStr.replace(/[^0-9\-,\s]/g, '');
             let pagesToRotate = [];
             
             if (!rangeStr) {
