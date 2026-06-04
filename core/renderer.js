@@ -309,7 +309,7 @@ async function setupTextLayer(page, viewport, container) {
             // Draw cover patch at the original position to hide the canvas text
             const coverPatch = document.createElement('div');
             coverPatch.className = 'clear-patch text-cover-patch';
-            const _cpBgHex = (edit.bgHex && edit.bgHex !== 'transparent') ? edit.bgHex : '#ffffff';
+            const _cpBgHex = edit.coverBgHex || ((edit.bgHex && edit.bgHex !== 'transparent') ? edit.bgHex : '#ffffff');
 
             // Convert original PDF coordinates to viewport pixels
             const txOriginal = pdfjsLib.Util.transform(viewport.transform, item.transform);
@@ -318,6 +318,17 @@ async function setupTextLayer(page, viewport, container) {
             const origWidth = (edit.originalWidth || item.width || 40) * viewport.scale;
             const origHeight = (edit.originalHeight || item.height || 12) * viewport.scale;
 
+            const mc  = container.querySelector('canvas');
+            const csx = mc ? mc.width  / container.offsetWidth  : 1;
+            const csy = mc ? mc.height / container.offsetHeight : 1;
+            const patchDataUrl = typeof generateInpaintedPatch === 'function'
+                ? generateInpaintedPatch(
+                    Math.round(origLeft * csx), Math.round(origTop * csy),
+                    Math.round(origWidth * csx), Math.round(origHeight * csy),
+                    true // forceCoons
+                  )
+                : null;
+
             coverPatch.style.cssText = `
                 position: absolute;
                 left: ${origLeft}px;
@@ -325,6 +336,7 @@ async function setupTextLayer(page, viewport, container) {
                 width: ${origWidth}px;
                 height: ${origHeight}px;
                 background-color: ${_cpBgHex};
+                ${patchDataUrl ? `background-image:url(${patchDataUrl});background-size:100% 100%;background-repeat:no-repeat;` : ''}
                 pointer-events: none;
                 z-index: 8;
             `;
@@ -501,7 +513,7 @@ function restoreEditOnSpan(el, edit, viewport) {
     el.style.fontWeight     = edit.isBold      ? 'bold'      : 'normal';
     el.style.fontStyle      = edit.isItalic    ? 'italic'    : 'normal';
     el.style.textDecoration = edit.isUnderline ? 'underline' : 'none';
-    el.style.backgroundColor = (!edit.text || !edit.text.trim()) ? (edit.bgHex || 'white') : 'transparent';
+    el.style.backgroundColor = (!edit.text || !edit.text.trim()) ? (edit.coverBgHex || edit.bgHex || 'white') : 'transparent';
     el.style.backgroundImage = 'none';
     el.style.display    = 'inline-block';
     el.style.minWidth   = `${(edit.width  || 10) * viewport.scale}px`;

@@ -185,21 +185,44 @@ async function savePdfChanges() {
             const cropX = cropBox.x || 0;
             const cropY = cropBox.y || 0;
 
-            // 1. Draw background cover rectangle at the ORIGINAL position for edited original text
+            // 1. Draw background cover rectangle or image patch at the ORIGINAL position for edited original text
             if (!edit.isNew) {
-                const coverBgHex = (edit.bgHex && edit.bgHex !== 'transparent') ? edit.bgHex : '#ffffff';
-                const bgColor = hexToRgb(coverBgHex);
-                const descent = edit.size * 0.25;
-                const coverHeight = Math.max(edit.originalHeight || edit.height || edit.size, edit.size + descent + 2);
-                const coverWidth = edit.originalWidth || edit.width || 40;
-                const padding = 2;
-                pg.drawRectangle({
-                    x: edit.originalX - padding,
-                    y: edit.originalY - descent - padding,
-                    width: coverWidth + padding * 2,
-                    height: coverHeight + padding * 2,
-                    color: rgb(bgColor.r, bgColor.g, bgColor.b)
-                });
+                let drewPatch = false;
+                if (edit.patch && edit.patch.startsWith('data:')) {
+                    try {
+                        const imgFormat = edit.patch.split(';')[0].replace('data:', '');
+                        const embeddedPatch = imgFormat.includes('png')
+                            ? await pdfDoc.embedPng(edit.patch)
+                            : await pdfDoc.embedJpg(edit.patch);
+                        const coverHeight = edit.originalHeight || edit.height || edit.size;
+                        const coverWidth = edit.originalWidth || edit.width || 40;
+                        pg.drawImage(embeddedPatch, {
+                            x: edit.originalX,
+                            y: edit.originalY,
+                            width: coverWidth,
+                            height: coverHeight
+                        });
+                        drewPatch = true;
+                    } catch (e) {
+                        console.error('Failed to draw edit background patch in PDF:', e);
+                    }
+                }
+                
+                if (!drewPatch) {
+                    const coverBgHex = edit.coverBgHex || ((edit.bgHex && edit.bgHex !== 'transparent') ? edit.bgHex : '#ffffff');
+                    const bgColor = hexToRgb(coverBgHex);
+                    const descent = edit.size * 0.25;
+                    const coverHeight = Math.max(edit.originalHeight || edit.height || edit.size, edit.size + descent + 2);
+                    const coverWidth = edit.originalWidth || edit.width || 40;
+                    const padding = 2;
+                    pg.drawRectangle({
+                        x: edit.originalX - padding,
+                        y: edit.originalY - descent - padding,
+                        width: coverWidth + padding * 2,
+                        height: coverHeight + padding * 2,
+                        color: rgb(bgColor.r, bgColor.g, bgColor.b)
+                    });
+                }
             }
 
             // 2. Draw background cover rectangle at the NEW position (only if background color is set)

@@ -66,6 +66,11 @@ function initEventListeners() {
     });
 
     document.getElementById('bgColor').addEventListener('input', (e) => {
+        const btnTransBg = document.getElementById('btnTransparentBg');
+        if (btnTransBg) {
+            btnTransBg.classList.remove('active');
+            document.getElementById('bgColor').style.opacity = '1';
+        }
         currentStyle.bgColor = e.target.value;
         const rc = hexToRgb(currentStyle.bgColor);
         const ae = document.querySelector('.floating-editor');
@@ -269,11 +274,45 @@ function initEventListeners() {
 
     document.getElementById('btnTransparentBg').addEventListener('click', function() {
         this.classList.toggle('active');
-        if (this.classList.contains('active')) {
+        const isActive = this.classList.contains('active');
+        if (isActive) {
             // Disable BG color picker visually
             document.getElementById('bgColor').style.opacity = '0.5';
         } else {
             document.getElementById('bgColor').style.opacity = '1';
+        }
+
+        // Apply transparency / solid bg to active floating editor or selected text item
+        const ae = document.querySelector('.floating-editor');
+        if (ae) {
+            if (isActive) {
+                ae.style.backgroundColor = 'transparent';
+                ae.style.backgroundImage = 'none';
+                ae.dataset.bgHex = 'transparent';
+                ae.dataset.bgR   = 1;
+                ae.dataset.bgG   = 1;
+                ae.dataset.bgB   = 1;
+            } else {
+                const pickerVal = document.getElementById('bgColor').value || '#ffffff';
+                const rc = hexToRgb(pickerVal);
+                ae.style.backgroundColor = pickerVal;
+                ae.style.backgroundImage = 'none';
+                ae.dataset.bgHex = pickerVal;
+                ae.dataset.bgR   = rc.r;
+                ae.dataset.bgG   = rc.g;
+                ae.dataset.bgB   = rc.b;
+            }
+            delete ae.dataset.patch;
+        } else if (selectedTextItem) {
+            const finalHex = isActive ? 'transparent' : (document.getElementById('bgColor').value || '#ffffff');
+            const rc = hexToRgb(finalHex === 'transparent' ? '#ffffff' : finalHex);
+            if (selectedTextItem.classList.contains('pdf-shape-element')) {
+                const inner = selectedTextItem.querySelector('div:first-child');
+                if (inner) inner.style.backgroundColor = finalHex;
+            } else {
+                selectedTextItem.style.backgroundColor = finalHex;
+            }
+            syncEditData(selectedTextItem, { bgHex: finalHex, bgR: rc.r, bgG: rc.g, bgB: rc.b });
         }
     });
 

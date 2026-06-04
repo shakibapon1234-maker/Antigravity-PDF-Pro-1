@@ -60,6 +60,10 @@ function startEditing(e, originalItem, transform, viewport, page) {
         bgColor = { hex, ...(hex === 'transparent' ? {r:1,g:1,b:1} : hexToRgb(hex)) };
     }
 
+    const mc  = container.querySelector('canvas');
+    const csx = mc ? mc.width  / container.offsetWidth  : 1;
+    const csy = mc ? mc.height / container.offsetHeight : 1;
+
     // Immediately create cover patch at the original position of the original text item
     if (!isNewItem) {
         if (el._coverPatch && el._coverPatch.parentNode) {
@@ -84,6 +88,15 @@ function startEditing(e, originalItem, transform, viewport, page) {
 
         const _cpBgHex = (bgColor.hex && bgColor.hex !== 'transparent') ? bgColor.hex : '#ffffff';
 
+        // ── Generate inpainted patch for cover patch ──
+        const cpPatchUrl = typeof generateInpaintedPatch === 'function'
+            ? generateInpaintedPatch(
+                Math.round(origLeft * csx), Math.round(origTop * csy),
+                Math.round(origWidth * csx), Math.round(origHeight * csy),
+                true // forceCoons
+              )
+            : null;
+
         const coverPatch = document.createElement('div');
         coverPatch.className = 'clear-patch text-cover-patch';
         coverPatch.style.cssText = `
@@ -93,6 +106,7 @@ function startEditing(e, originalItem, transform, viewport, page) {
             width: ${origWidth}px;
             height: ${origHeight}px;
             background-color: ${_cpBgHex};
+            ${cpPatchUrl ? `background-image:url(${cpPatchUrl});background-size:100% 100%;background-repeat:no-repeat;` : ''}
             pointer-events: none;
             z-index: 8;
         `;
@@ -117,14 +131,31 @@ function startEditing(e, originalItem, transform, viewport, page) {
     input.style.width        = 'auto';
     input.style.minWidth     = `${patchWidth * pdfScale}px`;
 
-    // FIXED BUG: Always use solid background while editing so
-    // typed text is never obscured by the PDF content behind it.
     if (patchData) {
         input.dataset.patch = patchData;
     }
-    input.style.backgroundImage = 'none';
-    const editorBg = (bgColor.hex && bgColor.hex !== 'transparent') ? bgColor.hex : '#ffffff';
-    input.style.backgroundColor = editorBg;
+
+    // Use inpainted background patch if editing existing text on gradient background
+    const editW_css = patchWidth * pdfScale;
+    const editH_css = patchHeight * pdfScale;
+    const inpaintedPatchUrl = (!isNewItem && typeof generateInpaintedPatch === 'function')
+        ? generateInpaintedPatch(
+            Math.round(_inputAbsLeftNum * csx), Math.round(_inputAbsTopNum * csy),
+            Math.round(editW_css * csx), Math.round(editH_css * csy),
+            true // forceCoons
+          )
+        : null;
+
+    if (inpaintedPatchUrl) {
+        input.style.backgroundImage = `url(${inpaintedPatchUrl})`;
+        input.style.backgroundSize = '100% 100%';
+        input.style.backgroundRepeat = 'no-repeat';
+        input.style.backgroundColor = 'transparent';
+    } else {
+        input.style.backgroundImage = 'none';
+        const editorBg = (bgColor.hex && bgColor.hex !== 'transparent') ? bgColor.hex : '#ffffff';
+        input.style.backgroundColor = editorBg;
+    }
 
     input.dataset.bgHex = bgColor.hex;
     input.dataset.bgR   = bgColor.r;
@@ -278,10 +309,14 @@ function startEditing(e, originalItem, transform, viewport, page) {
                         input.dataset.bgG = rc.g;
                         input.dataset.bgB = rc.b;
                         delete input.dataset.patch;
+                        input.style.backgroundImage = 'none';
+                        input.style.backgroundColor = newBg.hex;
                     }
                 } else {
                     input.dataset.bgHex = 'transparent';
                     delete input.dataset.patch;
+                    input.style.backgroundImage = 'none';
+                    input.style.backgroundColor = 'transparent';
                 }
             }
         }
@@ -412,6 +447,45 @@ function startEditing(e, originalItem, transform, viewport, page) {
         const trueX = currentPdfX + (deltaX / pdfScale);
         const trueY = currentPdfY - (deltaY / pdfScale);
 
+        // Pre-calculate cover patch coordinates relative to viewport
+        const _tl = el.closest('.text-layer');
+        const _tlOffL = _tl ? _tl.offsetLeft : 0;
+        const _tlOffT = _tl ? _tl.offsetTop  : 0;
+
+        let cpLeft, cpTop, cpWidth, cpHeight;
+        if (isNewItem) {
+            cpLeft = wrapLeft2 - _tlOffL;
+            cpTop = wrapTop2 - _tlOffT;
+            cpWidth = Math.max(finalWidth * viewport.scale, el.offsetWidth || 40);
+            cpHeight = Math.max(finalHeight * viewport.scale, el.offsetHeight || 20);
+        } else {
+            const origH = originalItem.transform ? (originalItem.height || 12) : (originalItem.originalHeight || originalItem.height || originalItem.size || 12);
+            const origW = originalItem.transform ? (originalItem.width || 40) : (originalItem.originalWidth || originalItem.width || 40);
+
+            const txOriginal = pdfjsLib.Util.transform(viewport.transform, [1, 0, 0, 1, origX, origY]);
+            cpLeft = txOriginal[4];
+            cpTop = txOriginal[5] - origH * viewport.scale;
+            cpWidth = origW * viewport.scale;
+            cpHeight = origH * viewport.scale;
+        }
+
+        const mc  = container.querySelector('canvas');
+        const csx = mc ? mc.width  / container.offsetWidth  : 1;
+        const csy = mc ? mc.height / container.offsetHeight : 1;
+
+        const committedCpPatchUrl = (!isNewItem && typeof generateInpaintedPatch === 'function')
+            ? generateInpaintedPatch(
+                Math.round(cpLeft * csx), Math.round(cpTop * csy),
+                Math.round(cpWidth * csx), Math.round(cpHeight * csy),
+                true // forceCoons
+              )
+            : null;
+
+        const btnTransBg = document.getElementById('btnTransparentBg');
+        const isTransparent = btnTransBg && btnTransBg.classList.contains('active');
+        const finalBgHex = isTransparent ? 'transparent' : (input.dataset.bgHex || '#ffffff');
+        const coverBgHex = input.dataset.bgHex || '#ffffff';
+
         const editData = {
             id: isNewItem
                 ? originalItem.id
@@ -422,20 +496,21 @@ function startEditing(e, originalItem, transform, viewport, page) {
             isNew:     isNewItem,
             originalX: origX,
             originalY: origY,
-            originalWidth: edit ? edit.originalWidth : (isNewItem ? finalWidth : (originalItem.transform ? (originalItem.width || el.offsetWidth / pdfScale) : (originalItem.originalWidth || el.offsetWidth / pdfScale))),
-            originalHeight: edit ? edit.originalHeight : (isNewItem ? finalHeight : (originalItem.transform ? (originalItem.height || el.offsetHeight / pdfScale) : (originalItem.originalHeight || el.offsetHeight / pdfScale))),
+            originalWidth: edit ? edit.originalWidth : (isNewItem ? finalWidth : (originalItem.transform ? (originalItem.width || 40) : (originalItem.originalWidth || originalItem.width || 40))),
+            originalHeight: edit ? edit.originalHeight : (isNewItem ? finalHeight : (originalItem.transform ? (originalItem.height || 12) : (originalItem.originalHeight || originalItem.height || 12))),
             x:     trueX,
             y:     trueY,
             text:  newText,
             html:  newText ? (editorHTML || newText) : '',
             size:  currentStyle.fontSize,
             color: newText ? currentStyle.color : 'transparent',
-            // Store bgHex only for PDF save (whiteout rect), NOT for visual display
-            patch: input.dataset.patch,
-            bgHex: input.dataset.bgHex,
-            bgR:   parseFloat(input.dataset.bgR),
-            bgG:   parseFloat(input.dataset.bgG),
-            bgB:   parseFloat(input.dataset.bgB),
+            // Store clean inpainted/Coons patch directly for PDF-lib embedding in save-pdf.js
+            patch: committedCpPatchUrl || input.dataset.patch,
+            bgHex: finalBgHex,
+            bgR:   finalBgHex === 'transparent' ? 1 : parseFloat(input.dataset.bgR),
+            bgG:   finalBgHex === 'transparent' ? 1 : parseFloat(input.dataset.bgG),
+            bgB:   finalBgHex === 'transparent' ? 1 : parseFloat(input.dataset.bgB),
+            coverBgHex: coverBgHex,
             font:  currentStyle.fontFamily,
             isBold:      currentStyle.isBold,
             isItalic:    currentStyle.isItalic,
@@ -453,10 +528,6 @@ function startEditing(e, originalItem, transform, viewport, page) {
         el.innerHTML = newText ? (editorHTML || newText) : '';
         // Apply styles without overwriting innerHTML (restoreEditOnSpan would use textContent)
         el.style.color           = editData.color;
-        // wrapLeft2/wrapTop2 are container-relative; el may be in a text-layer with its own offset
-        const _tl = el.closest('.text-layer');
-        const _tlOffL = _tl ? _tl.offsetLeft : 0;
-        const _tlOffT = _tl ? _tl.offsetTop  : 0;
         el.style.left            = `${wrapLeft2 - _tlOffL}px`;
         el.style.top             = `${wrapTop2  - _tlOffT}px`;
         el.style.fontSize        = `${editData.size * viewport.scale}px`;
@@ -475,28 +546,11 @@ function startEditing(e, originalItem, transform, viewport, page) {
         el.style.zIndex          = '9999';
 
         // ── FIX: Insert cover-patch BEHIND el using sampled bgHex color ──
-        // Uses solid color instead of patchData image to avoid duplicating adjacent text.
+        // Uses solid color or inpainted background patch.
         // This correctly handles PDFs with any background color.
         const _coverPatch = document.createElement('div');
         _coverPatch.className = 'clear-patch text-cover-patch';
         
-        let cpLeft, cpTop, cpWidth, cpHeight;
-        if (isNewItem) {
-            cpLeft = wrapLeft2 - _tlOffL;
-            cpTop = wrapTop2 - _tlOffT;
-            cpWidth = Math.max((editData.width || 10) * viewport.scale, el.offsetWidth || 40);
-            cpHeight = Math.max((editData.height || editData.size) * viewport.scale, el.offsetHeight || 20);
-        } else {
-            const origH = originalItem.transform ? (originalItem.height || 12) : (originalItem.height || originalItem.size || 12);
-            const origW = originalItem.transform ? (originalItem.width || 40) : (originalItem.width || 40);
-
-            const txOriginal = pdfjsLib.Util.transform(viewport.transform, [1, 0, 0, 1, origX, origY]);
-            cpLeft = txOriginal[4];
-            cpTop = txOriginal[5] - origH * viewport.scale;
-            cpWidth = origW * viewport.scale;
-            cpHeight = origH * viewport.scale;
-        }
-
         let _cpBgHex = input.dataset.bgHex || '#ffffff';
         if (!isNewItem && _cpBgHex === 'transparent') {
             _cpBgHex = '#ffffff';
@@ -509,6 +563,7 @@ function startEditing(e, originalItem, transform, viewport, page) {
             width: ${cpWidth}px;
             height: ${cpHeight}px;
             background-color: ${_cpBgHex};
+            ${committedCpPatchUrl ? `background-image:url(${committedCpPatchUrl});background-size:100% 100%;background-repeat:no-repeat;` : ''}
             pointer-events: none;
             z-index: 8;
         `;
@@ -801,10 +856,14 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
                     input.dataset.bgG = rc.g;
                     input.dataset.bgB = rc.b;
                     delete input.dataset.patch;
+                    input.style.backgroundImage = 'none';
+                    input.style.backgroundColor = newBg.hex;
                 }
             } else if (!overrideBgHex && btnTransBg && btnTransBg.classList.contains('active')) {
                 input.dataset.bgHex = 'transparent';
                 delete input.dataset.patch;
+                input.style.backgroundImage = 'none';
+                input.style.backgroundColor = 'transparent';
             }
         }
     }
@@ -892,6 +951,10 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         const wrapLeft = wrap ? parseFloat(wrap.style.left) : x;
         const wrapTop  = wrap ? parseFloat(wrap.style.top)  : (y - currentStyle.fontSize * pdfScale);
 
+        const btnTransBg = document.getElementById('btnTransparentBg');
+        const isTransparent = btnTransBg && btnTransBg.classList.contains('active');
+        const finalBgHex = isTransparent ? 'transparent' : (input.dataset.bgHex || '#ffffff');
+
         const editData = {
             id: 'new-' + Date.now(),
             page:  currentPageNum,
@@ -906,10 +969,10 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
             size:  currentStyle.fontSize,
             color: currentStyle.color,
             patch: input.dataset.patch,
-            bgHex: input.dataset.bgHex,
-            bgR:   parseFloat(input.dataset.bgR),
-            bgG:   parseFloat(input.dataset.bgG),
-            bgB:   parseFloat(input.dataset.bgB),
+            bgHex: finalBgHex,
+            bgR:   finalBgHex === 'transparent' ? 1 : parseFloat(input.dataset.bgR),
+            bgG:   finalBgHex === 'transparent' ? 1 : parseFloat(input.dataset.bgG),
+            bgB:   finalBgHex === 'transparent' ? 1 : parseFloat(input.dataset.bgB),
             font:  currentStyle.fontFamily,
             isBold:      currentStyle.isBold,
             isItalic:    currentStyle.isItalic,
@@ -1606,7 +1669,7 @@ function invalidateBgCanvas() {
 // Returns a dataURL of the background patch at (x,y,width,height) in CANVAS
 // pixel coordinates. Uses the background canvas cache for pixel-perfect results.
 // Falls back to Coons-patch edge interpolation if re-render is not ready yet.
-function generateInpaintedPatch(x, y, width, height) {
+function generateInpaintedPatch(x, y, width, height, forceCoons = false) {
     const pageWrapper = document.querySelector('.pdf-page-wrapper');
     const mainCanvas  = pageWrapper?.querySelector('canvas');
     if (!mainCanvas) return null;
@@ -1620,7 +1683,7 @@ function generateInpaintedPatch(x, y, width, height) {
     // We kick off the bg render immediately so it's ready next time.
     // For the CURRENT call we fall through to synchronous Coons Patch,
     // UNLESS the cache is already warm for this page.
-    if (_bgCanvasCache && _bgCanvasCache.pageNum === currentPageNum) {
+    if (!forceCoons && _bgCanvasCache && _bgCanvasCache.pageNum === currentPageNum) {
         const bgCv = _bgCanvasCache.canvas;
         const outCv = document.createElement('canvas');
         outCv.width = pw; outCv.height = ph;
