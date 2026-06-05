@@ -2179,9 +2179,6 @@ function finalizeMoveArea() {
 }
 
 // ────────────────────────────────────────────────────────────
-// Create Table - কাস্টমাইজেবল টেবিল তৈরি করা + রিসাইজ করা যায়
-// ────────────────────────────────────────────────────────────
-
 function createTable(columns, rows, cellWidth, cellHeight, container, viewport, page) {
     const tableContainer = document.createElement('div');
     tableContainer.className = 'created-table';
@@ -2192,6 +2189,11 @@ function createTable(columns, rows, cellWidth, cellHeight, container, viewport, 
         border: 1px solid #555;
         box-shadow: 0 0 5px rgba(0,0,0,0.2);
     `;
+    
+    // Stop mousedown from bubbling to page wrapper to prevent spawning text boxes
+    tableContainer.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+    });
     
     // টেবিল HTML তৈরি করুন
     let tableHTML = '<table style="width:100%; border-collapse: collapse; border: 1px solid #333;">';
