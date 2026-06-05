@@ -73,11 +73,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const pageSize = pageSizeSelect ? pageSizeSelect.value : 'a4';
                 const margin = parseInt(marginInput ? marginInput.value : 10) || 10;
 
-                // Create a temporary container element for html2pdf
+                // Create a hidden parent wrapper to hide the content from view
+                const wrapper = document.createElement('div');
+                wrapper.style.cssText = 'position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: hidden; z-index: -9999;';
+
+                // Create a temporary container element with fixed width and white background
                 const container = document.createElement('div');
                 container.innerHTML = htmlContent;
-                container.style.cssText = 'position: absolute; left: -9999px; top: 0; width: 794px;';
-                document.body.appendChild(container);
+                const containerW = pageSize === 'letter' || pageSize === 'legal' ? 816 : 794;
+                container.style.cssText = `width: ${containerW}px; background: #ffffff; min-height: 100px; display: block;`;
+
+                wrapper.appendChild(container);
+                document.body.appendChild(wrapper);
 
                 const opt = {
                     margin:      [margin, margin, margin, margin],
@@ -89,14 +96,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         letterRendering: true,
                         allowTaint: true,
                         backgroundColor: '#ffffff',
-                        logging: false
+                        logging: false,
+                        scrollX: 0,
+                        scrollY: 0
                     },
                     jsPDF:       { unit: 'mm', format: pageSize, orientation: 'portrait' },
                     pagebreak:   { mode: ['avoid-all', 'css', 'legacy'] }
                 };
 
                 await html2pdf().set(opt).from(container).save();
-                document.body.removeChild(container);
+                document.body.removeChild(wrapper);
 
                 // Success feedback
                 convertBtn.innerHTML = '<i data-lucide="check-circle"></i> Converted!';
