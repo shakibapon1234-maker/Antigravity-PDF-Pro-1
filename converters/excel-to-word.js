@@ -51,6 +51,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return { w:(pw - MARGIN*2)*MM2PX, h:(ph - MARGIN*2)*MM2PX };
     }
 
+    function getAutoClipRange() {
+        if(!currentWorksheet || !trueRange) return null;
+        const printable = getPrintablePx();
+        if(!printable) return trueRange;
+
+        const limitPx = printable.w;
+        let cumPx = 0;
+        let maxCol = trueRange.s.c - 1;
+        for(let C = trueRange.s.c; C <= trueRange.e.c; C++) {
+            const colPx = cw(C);
+            // Include column if more than 50% of its width fits
+            if(cumPx + colPx / 2 > limitPx) break;
+            cumPx += colPx;
+            maxCol = C;
+        }
+        if(maxCol < trueRange.s.c) maxCol = trueRange.s.c;
+        return {
+            s: { r: trueRange.s.r, c: trueRange.s.c },
+            e: { r: trueRange.e.r, c: maxCol }
+        };
+    }
+
     function colLetter(n) {
         let s = '';
         while(n >= 0) { s = String.fromCharCode((n % 26) + 65) + s; n = Math.floor(n / 26) - 1; }
@@ -220,7 +242,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const dataW = table.scrollWidth  - cornerW;
         const dataH = table.scrollHeight - headerH;
 
-        const bW = Math.min(printable.w, dataW);
+        // Calculate exact border width based on columns in auto-clip range
+        const clipRange = getAutoClipRange();
+        let borderW = 0;
+        if (clipRange) {
+            for(let C = clipRange.s.c; C <= clipRange.e.c; C++) {
+                borderW += cw(C);
+            }
+        } else {
+            borderW = dataW;
+        }
+
+        const bW = Math.min(borderW, dataW);
         const bH = Math.min(printable.h, dataH);
 
         overlay.style.display = 'block';
@@ -229,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         overlay.style.width   = Math.round(bW) + 'px';
         overlay.style.height  = Math.round(bH) + 'px';
 
-        const overflows = dataW > printable.w || dataH > printable.h;
+        const overflows = (clipRange && clipRange.e.c < trueRange.e.c) || dataH > printable.h;
         if(notice) {
             const szLabel = pageSizeSelect ? pageSizeSelect.value.toUpperCase() : 'A4';
             const orLabel = orientationSelect ? orientationSelect.value : 'portrait';
@@ -391,12 +424,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const isLandscape   = orientationSelect && orientationSelect.value === 'landscape';
             const pageSz        = pageSizeSelect ? pageSizeSelect.value : 'a4';
 
-            let outW, outH;
-            if     (pageSz === 'letter') { outW = 12240; outH = 15840; }
-            else if(pageSz === 'legal')  { outW = 12240; outH = 20160; }
-            else                         { outW = 11906; outH = 16838; } 
+            // 1. Get standard portrait dimensions in twips
+            let portW, portH;
+            if     (pageSz === 'letter') { portW = 12240; portH = 15840; }
+            else if(pageSz === 'legal')  { portW = 12240; portH = 20160; }
+            else                         { portW = 11906; portH = 16838; }
 
-            if(isLandscape && pageSz !== 'fit') [outW, outH] = [outH, outW];
+            // 2. Determine layout page width/height in twips
+            let pageWidthTwips, pageHeightTwips;
+            if (pageSz === 'fit') {
+                pageWidthTwips  = 11906; // will be updated dynamically below
+                pageHeightTwips = 16838;
+            } else {
+                pageWidthTwips  = isLandscape ? portH : portW;
+                pageHeightTwips = isLandscape ? portW : portH;
+            }
 
             let exportRange;
             const iv = areaSelectInput ? areaSelectInput.value.trim().toUpperCase() : '';
@@ -411,23 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             } else {
                 if(pageSz !== 'fit') {
-                    // ── Auto-clip: use EXACTLY the same pixel boundary as the orange border ──
-                    // Include a column only if adding its full width still fits within
-                    // the printable area (same as: column is fully visible in the preview).
-                    // Partially-visible columns (cut by the orange border) are excluded.
-                    // All included columns are then proportionally scaled to fill the page.
-                    const printable = getPrintablePx();       // same function as the border overlay
-                    const limitPx   = printable ? printable.w : 99999;
-                    let cumPx = 0;
-                    let maxCol = trueRange.s.c - 1;           // start: no column yet
-                    for(let C = trueRange.s.c; C <= trueRange.e.c; C++) {
-                        const colPx = cw(C);
-                        if(cumPx + colPx > limitPx) break;   // adding this col would overflow → stop
-                        cumPx += colPx;
-                        maxCol  = C;
-                    }
-                    if(maxCol < trueRange.s.c) maxCol = trueRange.s.c; // ensure at least 1 col
-                    exportRange = { s: { r: trueRange.s.r, c: trueRange.s.c }, e: { r: trueRange.e.r, c: maxCol } };
+                    exportRange = getAutoClipRange() || trueRange;
                 } else {
                     exportRange = trueRange;
                 }
@@ -461,8 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const numCols     = exportRange.e.c - exportRange.s.c + 1;
             const marginTwips = numCols > 10 ? 360 : numCols > 6 ? 540 : 720;
-            const availTwips  = outW - marginTwips * 2;
-
+            let availTwips    = pageWidthTwips - marginTwips * 2;
 
             const rawPx = [];
             let totalPx = 0;
@@ -478,7 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Fit-to-content: page expands to column widths
                 scale      = 1.0;
                 finalAvail = Math.round(totalRawTwips);
-                outW       = finalAvail + marginTwips * 2;
+                pageWidthTwips = finalAvail + marginTwips * 2;
             } else {
                 // Always fill the full available page width proportionally.
                 // This ensures Word layout matches the orange-border proportions:
@@ -550,9 +575,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     properties: {
                         page: {
                             size: {
-                                width:       Math.round(outW),
-                                height:      Math.round(outH),
-                                orientation: isLandscape
+                                width:  Math.round(pageSz === 'fit' ? pageWidthTwips : portW),
+                                height: Math.round(pageSz === 'fit' ? pageHeightTwips : portH),
+                                orientation: (isLandscape && pageSz !== 'fit')
                                     ? docx.PageOrientation.LANDSCAPE
                                     : docx.PageOrientation.PORTRAIT
                             },
