@@ -103,7 +103,7 @@ function performRedo() {
 
 document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') return;
-    const k = e.key.toLowerCase();
+    const k = e.key ? e.key.toLowerCase() : '';
 
     // Ctrl+Z → Undo
     if (e.ctrlKey && k === 'z' && !e.shiftKey) {

@@ -146,12 +146,7 @@ function initEventListeners() {
         }
     });
 
-    // ── Undo বাটন (core/undo.js তে ওয়্যার করা, এখানে backup) ──────────
-    const _undoBtn = document.getElementById('btnUndo');
-    if (_undoBtn && !_undoBtn._wired) {
-        _undoBtn.addEventListener('click', () => performUndo());
-        _undoBtn._wired = true;
-    }
+    // ── Undo বাটন (core/undo.js তে ওয়্যার করা) ──────────────────────────
 
     // ── Eraser cursor dot ────────────────────────────────────────────────
     const eraserDot = document.createElement('div');
@@ -427,8 +422,7 @@ function initEventListeners() {
     // ── কীবোর্ড শর্টকাট ─────────────────────────────────────────────────
     window.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') return;
-        const k = e.key.toLowerCase();
-        if (e.ctrlKey && k === 'z') { e.preventDefault(); performUndo(); return; }
+        const k = e.key ? e.key.toLowerCase() : '';
         if (k === 'v') document.getElementById('btnSelect').click();
         else if (k === 't') document.getElementById('btnTypeText').click();
         else if (k === 'e') document.getElementById('btnClearText').click();

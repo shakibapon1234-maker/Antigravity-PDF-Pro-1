@@ -1568,33 +1568,38 @@ function invalidateBgCanvas() {
 // pixel coordinates. Uses the background canvas cache for pixel-perfect results.
 // Falls back to Coons-patch edge interpolation if re-render is not ready yet.
 function generateInpaintedPatch(x, y, width, height, forceCoons = false) {
-    const pageWrapper = document.querySelector('.pdf-page-wrapper');
-    const mainCanvas  = pageWrapper?.querySelector('canvas');
-    if (!mainCanvas) return null;
+    try {
+        const pageWrapper = document.querySelector('.pdf-page-wrapper');
+        const mainCanvas  = pageWrapper?.querySelector('canvas');
+        if (!mainCanvas) return null;
 
-    const pw = Math.max(2, Math.round(width));
-    const ph = Math.max(2, Math.round(height));
-    const px = Math.max(0, Math.round(x));
-    const py = Math.max(0, Math.round(y));
+        const pw = Math.max(2, Math.round(width));
+        const ph = Math.max(2, Math.round(height));
+        const px = Math.max(0, Math.round(x));
+        const py = Math.max(0, Math.round(y));
 
-    // Cache key includes page number, coordinates and dimensions
-    const cacheKey = `${currentPageNum}_${px}_${py}_${pw}_${ph}`;
-    if (inpaintedPatchCache.has(cacheKey)) {
-        return inpaintedPatchCache.get(cacheKey);
+        // Cache key includes page number, coordinates and dimensions
+        const cacheKey = `${currentPageNum}_${px}_${py}_${pw}_${ph}`;
+        if (inpaintedPatchCache.has(cacheKey)) {
+            return inpaintedPatchCache.get(cacheKey);
+        }
+
+        // Always use synchronous Coons Patch edge interpolation.
+        // This is extremely fast (only processes the bounding box) and avoids locking the main thread.
+        const result = _coonsPatchFromMainCanvas(mainCanvas, pageWrapper, px, py, pw, ph);
+        if (result) {
+            inpaintedPatchCache.set(cacheKey, result);
+        }
+        return result;
+    } catch (err) {
+        console.error("Error generating inpainted patch:", err);
+        return null;
     }
-
-    // Always use synchronous Coons Patch edge interpolation.
-    // This is extremely fast (only processes the bounding box) and avoids locking the main thread.
-    const result = _coonsPatchFromMainCanvas(mainCanvas, pageWrapper, px, py, pw, ph);
-    if (result) {
-        inpaintedPatchCache.set(cacheKey, result);
-    }
-    return result;
 }
 
 function _coonsPatchFromMainCanvas(mainCanvas, pageWrapper, px, py, pw, ph) {
-    // Use a large offset so edge samples land well outside any text stroke
-    const offset = Math.max(20, Math.round(Math.max(pw, ph) * 0.4));
+    // Clamp offset to avoid sampling other lines of text or elements
+    const offset = Math.max(10, Math.min(25, Math.round(Math.max(pw, ph) * 0.15)));
     const ex = Math.max(0, px - offset);
     const ey = Math.max(0, py - offset);
     const ew = Math.min(mainCanvas.width  - ex, pw + 2 * offset);
@@ -1626,11 +1631,12 @@ function _coonsPatchFromMainCanvas(mainCanvas, pageWrapper, px, py, pw, ph) {
     function getCleanEdgeColor(cx, cy) {
         const radius = 2;
         const rArr = [], gArr = [], bArr = [];
-        for (let dy = -radius; dy <= radius; dy++)
+        for (let dy = -radius; dy <= radius; dy++) {
             for (let dx = -radius; dx <= radius; dx++) {
                 const p = getPix(cx + dx, cy + dy);
                 rArr.push(p.r); gArr.push(p.g); bArr.push(p.b);
             }
+        }
         rArr.sort((a, b) => a - b);
         gArr.sort((a, b) => a - b);
         bArr.sort((a, b) => a - b);
@@ -1648,18 +1654,80 @@ function _coonsPatchFromMainCanvas(mainCanvas, pageWrapper, px, py, pw, ph) {
     const sampleTop   = Math.max(2, Math.min(eh - 3, Math.round(textTop * 0.5)));
     const sampleBot   = Math.max(2, Math.min(eh - 3, Math.round(textTop + ph + (eh - textTop - ph) * 0.5)));
 
-    const leftEdge = [], rightEdge = [], topEdge = [], bottomEdge = [];
+    const leftEdgeRaw = [], rightEdgeRaw = [], topEdgeRaw = [], bottomEdgeRaw = [];
     for (let cy = 0; cy < ph; cy++) {
-        leftEdge.push(getCleanEdgeColor(sampleLeft,  textTop + cy));
-        rightEdge.push(getCleanEdgeColor(sampleRight, textTop + cy));
+        leftEdgeRaw.push(getCleanEdgeColor(sampleLeft,  textTop + cy));
+        rightEdgeRaw.push(getCleanEdgeColor(sampleRight, textTop + cy));
     }
     for (let cx = 0; cx < pw; cx++) {
-        topEdge.push(getCleanEdgeColor(textLeft + cx, sampleTop));
-        bottomEdge.push(getCleanEdgeColor(textLeft + cx, sampleBot));
+        topEdgeRaw.push(getCleanEdgeColor(textLeft + cx, sampleTop));
+        bottomEdgeRaw.push(getCleanEdgeColor(textLeft + cx, sampleBot));
     }
 
-    const TL = leftEdge[0], BL = leftEdge[ph-1];
-    const TR = rightEdge[0], BR = rightEdge[ph-1];
+    // Extrapolate/interpolate raw samples to the actual boundaries of the text box (to fit gradient backgrounds perfectly)
+    const L_est = [], R_est = [], T_est = [], B_est = [];
+
+    // X interpolation parameters
+    const xDenom = (sampleRight - sampleLeft) || 1;
+    const t_L = (textLeft - sampleLeft) / xDenom;
+    const t_R = (textLeft + pw - 1 - sampleLeft) / xDenom;
+
+    for (let cy = 0; cy < ph; cy++) {
+        const L_raw = leftEdgeRaw[cy];
+        const R_raw = rightEdgeRaw[cy];
+        L_est.push({
+            r: L_raw.r * (1 - t_L) + R_raw.r * t_L,
+            g: L_raw.g * (1 - t_L) + R_raw.g * t_L,
+            b: L_raw.b * (1 - t_L) + R_raw.b * t_L
+        });
+        R_est.push({
+            r: L_raw.r * (1 - t_R) + R_raw.r * t_R,
+            g: L_raw.g * (1 - t_R) + R_raw.g * t_R,
+            b: L_raw.b * (1 - t_R) + R_raw.b * t_R
+        });
+    }
+
+    // Y interpolation parameters
+    const yDenom = (sampleBot - sampleTop) || 1;
+    const s_T = (textTop - sampleTop) / yDenom;
+    const s_B = (textTop + ph - 1 - sampleTop) / yDenom;
+
+    for (let cx = 0; cx < pw; cx++) {
+        const T_raw = topEdgeRaw[cx];
+        const B_raw = bottomEdgeRaw[cx];
+        T_est.push({
+            r: T_raw.r * (1 - s_T) + B_raw.r * s_T,
+            g: T_raw.g * (1 - s_T) + B_raw.g * s_T,
+            b: T_raw.b * (1 - s_T) + B_raw.b * s_T
+        });
+        B_est.push({
+            r: T_raw.r * (1 - s_B) + B_raw.r * s_B,
+            g: T_raw.g * (1 - s_B) + B_raw.g * s_B,
+            b: T_raw.b * (1 - s_B) + B_raw.b * s_B
+        });
+    }
+
+    // Blend corners consistently
+    const TL = {
+        r: (L_est[0].r + T_est[0].r) / 2,
+        g: (L_est[0].g + T_est[0].g) / 2,
+        b: (L_est[0].b + T_est[0].b) / 2
+    };
+    const TR = {
+        r: (R_est[0].r + T_est[pw - 1].r) / 2,
+        g: (R_est[0].g + T_est[pw - 1].g) / 2,
+        b: (R_est[0].b + T_est[pw - 1].b) / 2
+    };
+    const BL = {
+        r: (L_est[ph - 1].r + B_est[0].r) / 2,
+        g: (L_est[ph - 1].g + B_est[0].g) / 2,
+        b: (L_est[ph - 1].b + B_est[0].b) / 2
+    };
+    const BR = {
+        r: (R_est[ph - 1].r + B_est[pw - 1].r) / 2,
+        g: (R_est[ph - 1].g + B_est[pw - 1].g) / 2,
+        b: (R_est[ph - 1].b + B_est[pw - 1].b) / 2
+    };
 
     const outCv = document.createElement('canvas');
     outCv.width = pw; outCv.height = ph;
@@ -1671,14 +1739,17 @@ function _coonsPatchFromMainCanvas(mainCanvas, pageWrapper, px, py, pw, ph) {
         for (let cx = 0; cx < pw; cx++) {
             const u = pw > 1 ? cx / (pw - 1) : 0.5;
             const v = ph > 1 ? cy / (ph - 1) : 0.5;
-            const L = leftEdge[cy], R = rightEdge[cy];
-            const T = topEdge[cx],  B = bottomEdge[cx];
-            const wTL=(1-u)*(1-v), wTR=u*(1-v), wBL=(1-u)*v, wBR=u*v;
+            const L = L_est[cy], R = R_est[cy];
+            const T = T_est[cx], B = B_est[cx];
+            const wTL = (1 - u) * (1 - v);
+            const wTR = u * (1 - v);
+            const wBL = (1 - u) * v;
+            const wBR = u * v;
             const i = (cy * pw + cx) * 4;
-            data[i]  =Math.max(0,Math.min(255, L.r*(1-u)+R.r*u + T.r*(1-v)+B.r*v - (TL.r*wTL+TR.r*wTR+BL.r*wBL+BR.r*wBR)));
-            data[i+1]=Math.max(0,Math.min(255, L.g*(1-u)+R.g*u + T.g*(1-v)+B.g*v - (TL.g*wTL+TR.g*wTR+BL.g*wBL+BR.g*wBR)));
-            data[i+2]=Math.max(0,Math.min(255, L.b*(1-u)+R.b*u + T.b*(1-v)+B.b*v - (TL.b*wTL+TR.b*wTR+BL.b*wBL+BR.b*wBR)));
-            data[i+3]=255;
+            data[i]   = Math.max(0, Math.min(255, L.r * (1 - u) + R.r * u + T.r * (1 - v) + B.r * v - (TL.r * wTL + TR.r * wTR + BL.r * wBL + BR.r * wBR)));
+            data[i+1] = Math.max(0, Math.min(255, L.g * (1 - u) + R.g * u + T.g * (1 - v) + B.g * v - (TL.g * wTL + TR.g * wTR + BL.g * wBL + BR.g * wBR)));
+            data[i+2] = Math.max(0, Math.min(255, L.b * (1 - u) + R.b * u + T.b * (1 - v) + B.b * v - (TL.b * wTL + TR.b * wTR + BL.b * wBL + BR.b * wBR)));
+            data[i+3] = 255;
         }
     }
     oCtx.putImageData(outImg, 0, 0);
