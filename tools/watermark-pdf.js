@@ -137,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
             emptyState.classList.add('d-none');
             workspace.classList.remove('d-none');
             workspace.style.display = 'flex';
+            previewContainer.style.cursor = 'grab';
             updatePreview();
         };
         reader.readAsArrayBuffer(file);
@@ -164,6 +165,111 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Drag-to-move watermark on preview canvas ---
+    let isDragging = false;
+    let dragStartX = 0, dragStartY = 0;
+    let dragStartPosX = 50, dragStartPosY = 50;
+    let dragHintFaded = false;
+
+    function getCanvasFromPreview() {
+        return previewContainer.querySelector('canvas');
+    }
+
+    previewContainer.addEventListener('mousedown', (e) => {
+        const canvas = getCanvasFromPreview();
+        if (!canvas || !currentFileData) return;
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        dragStartPosX = parseFloat(wmPosX.value);
+        dragStartPosY = parseFloat(wmPosY.value);
+        previewContainer.style.cursor = 'grabbing';
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const canvas = getCanvasFromPreview();
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+
+        // Convert pixel delta → percentage of canvas size
+        const newX = Math.min(100, Math.max(0, dragStartPosX + (dx / rect.width) * 100));
+        // Y axis: canvas top = 0%, bottom = 100% but PDF Y is inverted → handle in updatePreview already
+        const newY = Math.min(100, Math.max(0, dragStartPosY - (dy / rect.height) * 100));
+
+        wmPosX.value = Math.round(newX);
+        wmPosY.value = Math.round(newY);
+        updatePreview();
+
+        // Fade hint after first drag
+        if (!dragHintFaded) {
+            dragHintFaded = true;
+            const hint = document.getElementById('wmDragHint');
+            if (hint) {
+                hint.style.opacity = '0';
+                setTimeout(() => hint.style.display = 'none', 500);
+            }
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            previewContainer.style.cursor = 'grab';
+            pushWmState();
+        }
+    });
+
+    // Touch support for mobile
+    previewContainer.addEventListener('touchstart', (e) => {
+        const canvas = getCanvasFromPreview();
+        if (!canvas || !currentFileData) return;
+        const touch = e.touches[0];
+        isDragging = true;
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+        dragStartPosX = parseFloat(wmPosX.value);
+        dragStartPosY = parseFloat(wmPosY.value);
+        e.preventDefault();
+    }, { passive: false });
+
+    previewContainer.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        const canvas = getCanvasFromPreview();
+        if (!canvas) return;
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        const dx = touch.clientX - dragStartX;
+        const dy = touch.clientY - dragStartY;
+        const newX = Math.min(100, Math.max(0, dragStartPosX + (dx / rect.width) * 100));
+        const newY = Math.min(100, Math.max(0, dragStartPosY - (dy / rect.height) * 100));
+        wmPosX.value = Math.round(newX);
+        wmPosY.value = Math.round(newY);
+        updatePreview();
+        if (!dragHintFaded) {
+            dragHintFaded = true;
+            const hint = document.getElementById('wmDragHint');
+            if (hint) { hint.style.opacity = '0'; setTimeout(() => hint.style.display = 'none', 500); }
+        }
+        e.preventDefault();
+    }, { passive: false });
+
+    previewContainer.addEventListener('touchend', () => {
+        if (isDragging) { isDragging = false; pushWmState(); }
+    });
+
+
+    function setPreviewCanvas(canvas) {
+        // Remove old canvas but keep other elements like the drag hint
+        const old = previewContainer.querySelector('canvas');
+        if (old) old.remove();
+        previewContainer.appendChild(canvas);
+    }
+
     // --- Preview Logic (canvas overlay preview) ---
     async function updatePreview() {
         if (!currentFileData) return;
@@ -176,6 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const ctx = canvas.getContext('2d');
             canvas.width = viewport.width;
             canvas.height = viewport.height;
+            canvas.style.display = 'block';
             await page.render({ canvasContext: ctx, viewport }).promise;
 
             ctx.save();
@@ -201,15 +308,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     const imgScale = (baseSize / Math.max(img.width, img.height)) * scale;
                     ctx.drawImage(img, -img.width * imgScale / 2, -img.height * imgScale / 2, img.width * imgScale, img.height * imgScale);
                     ctx.restore();
-                    previewContainer.innerHTML = '';
-                    previewContainer.appendChild(canvas);
+                    setPreviewCanvas(canvas);
                 };
                 img.src = URL.createObjectURL(new Blob([currentWatermarkImage]));
                 return;
             }
             ctx.restore();
-            previewContainer.innerHTML = '';
-            previewContainer.appendChild(canvas);
+            setPreviewCanvas(canvas);
         } catch (e) { console.error('Preview error', e); }
     }
 
