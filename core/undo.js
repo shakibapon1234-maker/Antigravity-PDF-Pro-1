@@ -29,7 +29,8 @@ function captureUndoSnapshot(description) {
 }
 
 function performUndo() {
-    if (undoHistory.length === 0) return;
+    // Keep at least the 'Initial state' snapshot — never undo past it
+    if (undoHistory.length <= 1) return;
 
     // বর্তমান স্টেট redo-তে রাখো
     const currentSnap = {
@@ -63,9 +64,11 @@ function _applySnapshot(snapshot) {
 function updateUndoButtonState() {
     const btn = document.getElementById('btnUndo');
     if (!btn) return;
-    btn.disabled = undoHistory.length === 0;
-    btn.title = undoHistory.length > 0
-        ? `Undo: ${undoHistory[undoHistory.length - 1].description} (${undoHistory.length} steps)`
+    // Disable when only the initial snapshot remains (nothing to undo)
+    const canUndo = undoHistory.length > 1;
+    btn.disabled = !canUndo;
+    btn.title = canUndo
+        ? `Undo: ${undoHistory[undoHistory.length - 1].description} (${undoHistory.length - 1} step${undoHistory.length > 2 ? 's' : ''})`
         : 'Nothing to undo';
 }
 

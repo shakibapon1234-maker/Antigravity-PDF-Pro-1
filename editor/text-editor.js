@@ -1789,6 +1789,7 @@ function endClearTextStroke(container) {
         : { r: 1, g: 1, b: 1, hex: '#ffffff' };
 
     // 2. Create ONE visual patch covering EXACTLY the dragged area
+    // z-index:50 ensures patch appears above text layer spans (z-index ~2-10)
     const patchEl = document.createElement('div');
     patchEl.className = 'clear-patch';
     patchEl.style.cssText = `
@@ -1796,7 +1797,7 @@ function endClearTextStroke(container) {
         width:${w}px; height:${h}px;
         background-color:${bgSample.hex};
         ${patchDataUrl ? `background-image:url(${patchDataUrl});background-size:100% 100%;background-repeat:no-repeat;` : ''}
-        pointer-events:none; z-index:5;
+        pointer-events:none; z-index:50;
     `;
     container.appendChild(patchEl);
 
@@ -1813,7 +1814,7 @@ function endClearTextStroke(container) {
         isTextClear: true
     });
 
-    // 4. Find and hide all text spans that overlap the selection rectangle
+    // 4a. Hide user-added editable text spans that overlap the selection rectangle
     container.querySelectorAll('.editable-text-unit').forEach(span => {
         if (span.classList.contains('floating-editor')) return;
         if (span.classList.contains('span-drag-handle')) return;
@@ -1829,7 +1830,7 @@ function endClearTextStroke(container) {
         if (!(sl < l + w && sl + sw > l && st < t + h && st + sh > t)) return;
 
         clearedCount++;
-        
+
         span._cleared = true;
         span._textCleared = true;
         span.textContent = '';
@@ -1855,6 +1856,23 @@ function endClearTextStroke(container) {
         else textEdits.push(clearEntry);
     });
 
+    // 4b. Also visually hide native PDF text-layer spans within the rectangle
+    // (the patch already covers them visually, but hiding prevents selection cursor showing through)
+    container.querySelectorAll('.text-layer span, .textLayer span').forEach(span => {
+        if (span._textCleared) return;
+        const sr = span.getBoundingClientRect();
+        if (sr.width === 0 && sr.height === 0) return;
+        const sl = sr.left - contRect.left;
+        const st = sr.top  - contRect.top;
+        const sw = sr.width  || 10;
+        const sh = sr.height || 10;
+        if (!(sl < l + w && sl + sw > l && st < t + h && st + sh > t)) return;
+        span._textCleared = true;
+        span.style.color = 'transparent';
+        span.style.visibility = 'hidden';
+        clearedCount++;
+    });
+
     if (clearedCount > 0) {
         // Show subtle visual indicator that text was cleared
         const indicator = document.createElement('div');
@@ -1864,16 +1882,16 @@ function endClearTextStroke(container) {
             width:${w}px; height:${h}px;
             border: 2px dashed rgba(0,200,100,0.6);
             background: rgba(0,200,100,0.1);
-            pointer-events:none; z-index:5;
+            pointer-events:none; z-index:51;
             transition: opacity 2s ease;
         `;
         container.appendChild(indicator);
         setTimeout(() => { indicator.style.opacity = '0'; }, 2000);
         setTimeout(() => { indicator.remove(); }, 4000);
-    }
-
-    if (clearedCount === 0) {
-        undoHistory.pop();
+    } else {
+        // No spans found but patch was still applied (gradient/image background case)
+        // Keep the undo snapshot — the background patch itself is a meaningful change
+        // Only pop undo if the selection was truly too tiny to matter (w<3||h<3 guard above)
     }
 
     clearTextContainer = null;

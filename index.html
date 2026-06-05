@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Antigravity PDF Editor | Premium Office Tool</title>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Hind+Siliguri:wght@400;600&family=Noto+Sans+Bengali:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Hind+Siliguri:wght@400;600&family=Noto+Sans+Bengali:wght@400;600&family=Dancing+Script:wght@500;700&family=Great+Vibes&family=Pacifico&display=swap" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- Lucide Icons -->
@@ -436,6 +436,28 @@
                                         <i data-lucide="grid-3x3"></i>
                                         <span class="tool-label">Table</span>
                                     </button>
+                                    <button class="btn-tool tool-green" id="btnSignature" title="Digital Signature — স্বাক্ষর যোগ করুন">
+                                        <i data-lucide="pen-line"></i>
+                                        <span class="tool-label">Sign</span>
+                                    </button>
+                                    <div class="v-separator"></div>
+                                    <button class="btn-tool" id="btnFreehand" title="Freehand Pencil — স্বাধীনভাবে আঁকুন" style="background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(220,38,38,0.08));border:1px solid rgba(239,68,68,0.3);color:#f87171;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                                        <span class="tool-label">Pencil</span>
+                                    </button>
+                                    <input type="color" id="freehandColor" value="#e53e3e" title="Pencil Color" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;background:transparent;">
+                                    <input type="range" id="freehandSize" min="1" max="20" value="3" style="width:60px;accent-color:#f87171;" title="Pencil Size">
+                                    <div class="v-separator"></div>
+                                    <button class="btn-tool" id="btnHighlight" title="Highlight — টেক্সট হাইলাইট করুন" style="background:linear-gradient(135deg,rgba(250,204,21,0.15),rgba(234,179,8,0.08));border:1px solid rgba(250,204,21,0.4);color:#fde047;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+                                        <span class="tool-label">Highlight</span>
+                                    </button>
+                                    <input type="color" id="highlightColor" value="#ffff00" title="Highlight Color" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;background:transparent;">
+                                    <div class="v-separator"></div>
+                                    <button class="btn-tool" id="btnRedact" title="Permanent Redaction — কালো করে মুছুন (PDF-এ স্থায়ী)" style="background:linear-gradient(135deg,rgba(17,17,17,0.8),rgba(0,0,0,0.6));border:1px solid rgba(255,255,255,0.2);color:#aaa;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                                        <span class="tool-label">Redact</span>
+                                    </button>
                                     <div class="v-separator"></div>
                                     <button class="btn-tool" id="btnLayerToFront" title="Bring to Front" style="display:none;"><i data-lucide="chevrons-up"></i></button>
                                     <button class="btn-tool" id="btnLayerUp"      title="Bring Forward"  style="display:none;"><i data-lucide="chevron-up"></i></button>
@@ -465,6 +487,14 @@
                                     <button class="btn btn-primary px-4" id="btnSavePdf" title="Save and Download PDF">
                                         <i data-lucide="save"></i>
                                         <span>Download PDF</span>
+                                    </button>
+                                    <button class="btn btn-draft" id="btnSaveDraft" title="Save Draft (সেভ করুন, পরে আবার খুলুন)">
+                                        <i data-lucide="bookmark"></i>
+                                        <span>Save Draft</span>
+                                    </button>
+                                    <button class="btn btn-outline" id="btnDraftPanel" title="My Drafts (আমার সেভ করা কাজ)">
+                                        <i data-lucide="folder-open"></i>
+                                        <span>Drafts</span>
                                     </button>
                                     <button class="btn btn-outline" id="btnArchiveCurrent" title="Archive current PDF">
                                         <i data-lucide="archive"></i>
@@ -510,6 +540,97 @@
                                         <button id="btnCreateTableConfirm" class="btn btn-primary" style="flex: 1; padding: 12px; border-radius: 6px; font-weight: 600;">টেবিল তৈরি করুন</button>
                                         <button id="btnCancelTable" class="btn btn-outline" style="flex: 1; padding: 12px; border-radius: 6px; font-weight: 600;">বাতিল</button>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- Signature Modal -->
+                        <div id="signatureModal" style="display:none; position:fixed; inset:0; z-index:20000; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); align-items:center; justify-content:center;">
+                            <div style="background:linear-gradient(180deg,#0f0f1a,#12121f); border:1px solid rgba(99,102,241,0.4); border-radius:16px; padding:28px; width:560px; max-width:95vw; box-shadow:0 30px 80px rgba(0,0,0,0.6), 0 0 40px rgba(99,102,241,0.15);">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                                    <h3 style="color:#fff; margin:0; font-size:18px; font-weight:700; display:flex; align-items:center; gap:10px;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg>
+                                        Digital Signature
+                                    </h3>
+                                    <button id="btnCloseSigModal" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#aaa; width:32px; height:32px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px;">&times;</button>
+                                </div>
+
+                                <!-- Tabs -->
+                                <div style="display:flex; gap:4px; margin-bottom:16px; background:rgba(255,255,255,0.04); border-radius:10px; padding:4px;">
+                                    <button id="sigTab_draw"   class="sig-tab active" onclick="_switchSigTab('draw')">✏️ Draw</button>
+                                    <button id="sigTab_type"   class="sig-tab"        onclick="_switchSigTab('type')">🔤 Type</button>
+                                    <button id="sigTab_upload" class="sig-tab"        onclick="_switchSigTab('upload')">📁 Upload</button>
+                                </div>
+
+                                <!-- Draw Pane -->
+                                <div id="sigPane_draw" style="display:flex; flex-direction:column; gap:12px;">
+                                    <p style="color:var(--text-dim); font-size:13px; margin:0;">নিচের বাক্সে মাউস দিয়ে আপনার স্বাক্ষর আঁকুন।</p>
+                                    <canvas id="sigDrawCanvas" width="500" height="150" style="background:#fff; border-radius:8px; border:2px solid rgba(99,102,241,0.4); cursor:crosshair; width:100%; touch-action:none;"></canvas>
+                                    <button id="btnClearSigCanvas" style="align-self:flex-start; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#f87171; padding:6px 16px; border-radius:8px; cursor:pointer; font-size:13px; font-family:'Outfit',sans-serif;">🗑 Clear</button>
+                                </div>
+
+                                <!-- Type Pane -->
+                                <div id="sigPane_type" style="display:none; flex-direction:column; gap:12px;">
+                                    <p style="color:var(--text-dim); font-size:13px; margin:0;">আপনার নাম লিখুন — সুন্দর হাতের লেখায় রূপান্তরিত হবে।</p>
+                                    <input id="sigTypeInput" type="text" placeholder="আপনার নাম লিখুন..." style="background:rgba(255,255,255,0.06); border:1px solid rgba(99,102,241,0.3); color:#fff; padding:12px 16px; border-radius:8px; font-size:15px; font-family:'Dancing Script', cursive; outline:none; width:100%; box-sizing:border-box;">
+                                    <div style="display:flex; gap:12px; align-items:center;">
+                                        <label style="color:var(--text-dim); font-size:13px; flex-shrink:0;">Font:</label>
+                                        <select id="sigTypeFont" style="background:var(--bg-raised); border:1px solid var(--border); color:#fff; padding:8px 12px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:13px;">
+                                            <option value="Dancing Script">Dancing Script</option>
+                                            <option value="Great Vibes">Great Vibes</option>
+                                            <option value="Pacifico">Pacifico</option>
+                                        </select>
+                                        <label style="color:var(--text-dim); font-size:13px; flex-shrink:0;">Color:</label>
+                                        <input id="sigTypeColor" type="color" value="#1a1a2e" style="width:36px; height:36px; border-radius:6px; border:1px solid var(--border); cursor:pointer;">
+                                    </div>
+                                </div>
+
+                                <!-- Upload Pane -->
+                                <div id="sigPane_upload" style="display:none; flex-direction:column; gap:12px; align-items:center; padding:20px;">
+                                    <p style="color:var(--text-dim); font-size:13px; margin:0;">স্বাক্ষরের ছবি আপলোড করুন (PNG transparent পছন্দের)।</p>
+                                    <label style="background:rgba(99,102,241,0.15); border:2px dashed rgba(99,102,241,0.4); border-radius:10px; padding:24px 40px; cursor:pointer; color:#818cf8; font-size:14px; text-align:center; width:100%; box-sizing:border-box;">
+                                        📁 ছবি বেছে নিন
+                                        <input id="sigUploadInput" type="file" accept="image/*" hidden>
+                                    </label>
+                                </div>
+
+                                <!-- Preview Strip -->
+                                <div id="sigPreviewStrip" style="display:none; align-items:center; justify-content:center; padding:12px; background:rgba(255,255,255,0.04); border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-top:8px; min-height:70px;"></div>
+
+                                <!-- Action -->
+                                <div style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
+                                    <button onclick="closeSignatureModal()" style="background:transparent; border:1px solid rgba(255,255,255,0.15); color:#aaa; padding:10px 20px; border-radius:8px; cursor:pointer; font-family:'Outfit',sans-serif; font-size:14px;">বাতিল</button>
+                                    <button id="btnPlaceSig" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); border:none; color:#fff; padding:10px 24px; border-radius:8px; cursor:pointer; font-family:'Outfit',sans-serif; font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                                        PDF-এ বসান
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Draft Panel (Slide-over from right) -->
+                        <div id="draftPanelOverlay" class="draft-overlay"></div>
+                        <div id="draftPanel" class="draft-panel">
+                            <div class="draft-panel-header">
+                                <div class="draft-panel-title">
+                                    <i data-lucide="bookmark"></i>
+                                    <h3>My Drafts</h3>
+                                    <span class="draft-panel-hint">Auto-save: ৩০ সেকেন্ড</span>
+                                </div>
+                                <button id="btnCloseDraftPanel" class="draft-close-btn" title="Close">
+                                    <i data-lucide="x"></i>
+                                </button>
+                            </div>
+                            <div class="draft-panel-actions">
+                                <button class="btn btn-draft w-100" onclick="saveDraft()">
+                                    <i data-lucide="bookmark-plus"></i>
+                                    <span>বর্তমান কাজ সেভ করুন</span>
+                                </button>
+                            </div>
+                            <div id="draftListContainer" class="draft-list-container">
+                                <div class="draft-empty">
+                                    <div class="draft-empty-icon">📄</div>
+                                    <p>কোনো draft সেভ নেই।</p>
                                 </div>
                             </div>
                         </div>
@@ -1534,6 +1655,9 @@
     <script src="editor/image-toolbar.js"></script>
     <script src="editor/eraser.js"></script>
     <script src="editor/save-pdf.js"></script>
+    <script src="editor/draft.js"></script>
+    <script src="editor/signature.js"></script>
+    <script src="editor/freehand.js"></script>
     <script src="editor/init.js"></script>
 
     <!-- tools/ : PDF টুলসমূহ -->
@@ -1866,3 +1990,6 @@
     <!-- toolbar-layout-toggle.js → ui/toolbar.js তে সরানো হয়েছে -->
 </body>
 </html>
+
+
+

@@ -73,8 +73,23 @@ async function loadAndRenderPDF(file, password = '') {
             document.getElementById('pdfEditorContainer').classList.remove('d-none');
             document.getElementById('pdfEditorContainer').style.display = 'flex';
 
+            // Reset edit state for fresh PDF load
+            textEdits    = [];
+            shapeEdits   = [];
+            clearStrokes = [];
+            if (typeof imageEdits !== 'undefined') imageEdits = [];
+            undoHistory  = [];
+            redoHistory  = [];
+
             currentPageNum = 1;
-            renderPage(currentPdfObj, currentPageNum);
+            await renderPage(currentPdfObj, currentPageNum);
+
+            // ── Initial snapshot: Undo cannot go before this point ──────────
+            // This ensures Undo always steps back ONE action at a time and
+            // never reverts to a blank/empty state.
+            if (typeof captureUndoSnapshot === 'function') {
+                captureUndoSnapshot('Initial state');
+            }
         } catch (err) {
             alert('Could not load PDF: ' + err.message);
         }
@@ -197,7 +212,7 @@ async function renderPage(pdf, pageNum) {
                     width:${w}px; height:${h}px;
                     background-color:rgb(${Math.round(r.r*255)},${Math.round(r.g*255)},${Math.round(r.b*255)});
                     ${r.patch ? `background-image:url(${r.patch});background-size:100% 100%;background-repeat:no-repeat;` : ''}
-                    pointer-events:none; z-index:5;
+                    pointer-events:none; z-index:50;
                 `;
                 pageWrapper.appendChild(patchEl);
             }));
