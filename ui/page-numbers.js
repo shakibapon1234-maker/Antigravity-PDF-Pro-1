@@ -113,12 +113,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const { PDFDocument, rgb, StandardFonts } = PDFLib;
-            const pdfDoc = await PDFDocument.load(currentFileData.slice(0), { ignoreEncryption: true });
+            let pdfDoc;
+            let usedFallback = false;
+
+            // Strategy 1: Try direct pdf-lib load (works for unencrypted PDFs)
+            try {
+                pdfDoc = await PDFDocument.load(currentFileData.slice(0));
+                if (pdfDoc.isEncrypted) {
+                    throw new Error('PDF is encrypted/restricted');
+                }
+                // Quick validation: try to access first page content
+                const testPages = pdfDoc.getPages();
+                if (testPages.length === 0) throw new Error('No pages found');
+            } catch (directErr) {
+                console.warn('Direct load failed or PDF is encrypted. Using pdf.js fallback:', directErr);
+                pdfDoc = null;
+            }
+
+            // Strategy 2: Fallback — render via pdf.js then rebuild
+            if (!pdfDoc) {
+                pdfDoc = await rebuildPdfFromPdfJs(currentFileData);
+                usedFallback = true;
+            }
+
             const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
             const pages = pdfDoc.getPages();
             const total = pages.length;
 
             for (let i = 0; i < total; i++) {
+                applyBtn.innerHTML = `Processing ${i + 1}/${total}...`;
                 const page = pages[i];
                 const { width, height } = page.getSize();
                 const text = pnFormat.value.replace('{n}', (i + 1).toString()).replace('{total}', total.toString());
@@ -143,9 +166,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            const pdfBytes = await pdfDoc.save();
+            const pdfBytes = await pdfDoc.save({ useObjectStreams: false });
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-            saveAs(blob, currentFile.name.replace(/\.pdf$/i, '_numbered.pdf'));
+            const fileName = currentFile.name.replace(/\.pdf$/i, '_numbered.pdf');
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
 
             applyBtn.innerHTML = '<i data-lucide="check-circle"></i> Done!';
             setTimeout(() => {
@@ -163,6 +194,36 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.lucide) lucide.createIcons();
         }
     });
+
+    // Rebuild PDF from pdf.js rendering (handles encrypted/complex PDFs)
+    async function rebuildPdfFromPdfJs(fileData) {
+        const { PDFDocument } = PDFLib;
+        const pdfJsDoc = await pdfjsLib.getDocument({ data: fileData.slice(0) }).promise;
+        const newDoc = await PDFDocument.create();
+
+        for (let i = 1; i <= pdfJsDoc.numPages; i++) {
+            applyBtn.innerHTML = `Rendering page ${i}/${pdfJsDoc.numPages}...`;
+            const page = await pdfJsDoc.getPage(i);
+            const viewport = page.getViewport({ scale: 2.0 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+            const base64 = jpegDataUrl.split(',')[1];
+            const imgBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+            const jpegImg = await newDoc.embedJpg(imgBytes);
+
+            // Page size = viewport / scale factor so it matches original PDF dimensions
+            const pageWidth = viewport.width / 2;
+            const pageHeight = viewport.height / 2;
+            const newPage = newDoc.addPage([pageWidth, pageHeight]);
+            newPage.drawImage(jpegImg, { x: 0, y: 0, width: pageWidth, height: pageHeight });
+        }
+        return newDoc;
+    }
 
     function hexToRgbLib(hex, rgbFunc) {
         const r = parseInt(hex.slice(1, 3), 16) / 255;
