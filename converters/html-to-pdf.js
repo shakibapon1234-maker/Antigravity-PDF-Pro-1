@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Create a hidden parent wrapper to hide the content from view
                 const wrapper = document.createElement('div');
-                wrapper.style.cssText = 'position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: hidden; z-index: -9999;';
+                wrapper.style.cssText = 'position: absolute; left: -9999px; top: -9999px; z-index: -9999;';
 
                 // Create a temporary container element with fixed width and white background
                 const container = document.createElement('div');
