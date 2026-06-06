@@ -5,9 +5,6 @@ const fs = require('fs');
 
 // Disable hardware acceleration to prevent GPU crashes on systems with missing/incompatible graphics drivers
 app.disableHardwareAcceleration();
-app.commandLine.appendSwitch('disable-gpu');
-app.commandLine.appendSwitch('disable-software-rasterizer');
-app.commandLine.appendSwitch('disable-gpu-compositing');
 
 
 // ─── Constants ───────────────────────────────────────────────────────────────
