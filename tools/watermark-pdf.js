@@ -283,6 +283,11 @@ document.addEventListener('DOMContentLoaded', () => {
             canvas.width = viewport.width;
             canvas.height = viewport.height;
             canvas.style.display = 'block';
+
+            // Fill white background to support transparent PDF pages and avoid black-on-black invisibility
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
             await page.render({ canvasContext: ctx, viewport }).promise;
 
             ctx.save();

@@ -73,6 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
             canvas.height = viewport.height;
             canvas.width = viewport.width;
             
+            // Fill white background to support transparent PDF pages
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
             await page.render({
                 canvasContext: ctx,
                 viewport: viewport
@@ -124,6 +128,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ctx = canvas.getContext('2d');
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
+                
+                // Fill white background to support transparent PDF pages
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
                 await page.render({
                     canvasContext: ctx,

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -120,6 +120,10 @@
                 <button class="nav-item" data-tab="protect-pdf">
                     <i data-lucide="lock"></i>
                     <span>Protect PDF</span>
+                </button>
+                <button class="nav-item" data-tab="ocr-pdf">
+                    <i data-lucide="scan-text"></i>
+                    <span>OCR — PDF to Text</span>
                 </button>
             </nav>
 
@@ -281,6 +285,12 @@
                             <div class="card-icon"><i data-lucide="file-output"></i></div>
                             <h3>Excel to Word</h3>
                             <p>Convert Excel spreadsheets perfectly into editable Word tables.</p>
+                            <span class="tool-tag">New</span>
+                        </div>
+                        <div class="tool-card cyan" onclick="switchTab('ocr-pdf')">
+                            <div class="card-icon"><i data-lucide="scan-text"></i></div>
+                            <h3>OCR — PDF to Text</h3>
+                            <p>Extract Bengali &amp; English text from scanned PDFs using AI-powered OCR.</p>
                             <span class="tool-tag">New</span>
                         </div>
 
@@ -604,6 +614,15 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- Draft Panel (Slide-over from right) -->
+                        <div id="draftPanelOverlay" class="draft-overlay"></div>
+                        <div id="draftPanel" class="draft-panel">
+                            <div class="draft-panel-header">
+                                <div class="draft-panel-title">
+                                    <i data-lucide="bookmark"></i>
+                                    <h3>My Drafts</h3>
+                                    <span class="draft-panel-hint">Auto-save: ৩০ সেকেন্ড</span>
+                                </div>
                                 <button id="btnCloseDraftPanel" class="draft-close-btn" title="Close">
                                     <i data-lucide="x"></i>
                                 </button>
@@ -1669,6 +1688,120 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- OCR — PDF to Text Section -->
+                <section id="ocr-pdf" class="tab-content">
+                    <div class="section-header">
+                        <h2>OCR — Scan &amp; Extract Text from PDF</h2>
+                        <button class="btn btn-primary" id="btnUploadOcrPdf">
+                            <i data-lucide="upload-cloud"></i> Upload PDF
+                        </button>
+                        <input type="file" id="ocrPdfFileInput" accept=".pdf" hidden>
+                    </div>
+
+                    <div class="ocr-pdf-container">
+                        <!-- Empty State -->
+                        <div class="no-file-state" id="ocrEmptyState" style="cursor:pointer;">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-tri); top: 40%; left: 30%; width: 400px; height: 400px; animation-delay: -10s;"></div>
+                            </div>
+                            <i data-lucide="scan-text" class="large-icon"></i>
+                            <h3>No File Selected</h3>
+                            <p>Upload or drag &amp; drop a scanned PDF to extract Bengali &amp; English text using OCR.</p>
+                        </div>
+
+                        <!-- Workspace -->
+                        <div class="d-none" id="ocrWorkspace" style="padding: 20px; display: flex; flex-direction: column; gap: 20px;">
+
+                            <!-- File Info Bar -->
+                            <div id="ocrFileInfo" style="background: var(--bg-surface); border: 1px solid rgba(0,212,255,0.2); border-radius: 10px; padding: 14px 20px; font-size: 14px;"></div>
+
+                            <!-- Options Row -->
+                            <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center; background: var(--bg-surface); padding: 18px 20px; border-radius: 12px; border: 1px solid var(--border);">
+                                <div style="display: flex; flex-direction: column; gap: 6px;">
+                                    <label style="font-size: 12px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">OCR Language</label>
+                                    <select id="ocrLangSelect" class="form-input" style="width: auto; min-width: 200px;">
+                                        <option value="eng+ben" selected>English + Bengali</option>
+                                        <option value="eng">English Only</option>
+                                        <option value="ben">Bengali Only</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 6px;">
+                                    <label style="font-size: 12px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Render Quality</label>
+                                    <select id="ocrScaleSelect" class="form-input" style="width: auto; min-width: 160px;">
+                                        <option value="1.5">Standard (faster)</option>
+                                        <option value="2.0" selected>High (recommended)</option>
+                                        <option value="3.0">Ultra (slower)</option>
+                                    </select>
+                                </div>
+                                <div style="margin-left: auto; display: flex; gap: 10px; align-items: flex-end;">
+                                    <button class="btn btn-primary" id="btnStartOcr" style="padding: 12px 28px; font-size: 15px; gap: 8px;">
+                                        <i data-lucide="scan-text"></i> Start OCR
+                                    </button>
+                                    <button class="btn btn-outline" id="btnResetOcr" style="padding: 12px 18px;" title="Upload another file">
+                                        <i data-lucide="refresh-cw"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Progress Section -->
+                            <div class="d-none" id="ocrProgressSection" style="background: var(--bg-surface); padding: 20px 24px; border-radius: 12px; border: 1px solid var(--border);">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                    <span id="ocrProgressText" style="font-size: 13px; color: var(--text-dim);">Initializing OCR engine...</span>
+                                    <span id="ocrPageStatus" style="font-size: 13px; color: var(--accent-cyan); font-weight: 600;"></span>
+                                </div>
+                                <div style="width: 100%; height: 10px; background: rgba(255,255,255,0.05); border-radius: 5px; overflow: hidden;">
+                                    <div id="ocrProgressBar" style="width: 0%; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #00d4ff, #b829f9); transition: width 0.3s ease;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Results Section -->
+                            <div class="d-none" id="ocrResultSection" style="display: flex; flex-direction: column; gap: 16px;">
+
+                                <!-- Stats Row -->
+                                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                    <div style="flex: 1; min-width: 120px; background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(0,212,255,0.03)); border: 1px solid rgba(0,212,255,0.2); border-radius: 10px; padding: 14px 18px; text-align: center;">
+                                        <div style="font-size: 22px; font-weight: 700; color: #00d4ff;" id="ocrPageCountResult">0</div>
+                                        <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">Pages Scanned</div>
+                                    </div>
+                                    <div style="flex: 1; min-width: 120px; background: linear-gradient(135deg, rgba(184,41,249,0.08), rgba(184,41,249,0.03)); border: 1px solid rgba(184,41,249,0.2); border-radius: 10px; padding: 14px 18px; text-align: center;">
+                                        <div style="font-size: 22px; font-weight: 700; color: #b829f9;" id="ocrWordCount">0</div>
+                                        <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">Words Extracted</div>
+                                    </div>
+                                    <div style="flex: 1; min-width: 120px; background: linear-gradient(135deg, rgba(0,255,136,0.08), rgba(0,255,136,0.03)); border: 1px solid rgba(0,255,136,0.2); border-radius: 10px; padding: 14px 18px; text-align: center;">
+                                        <div style="font-size: 22px; font-weight: 700; color: #00ff88;" id="ocrCharCount">0</div>
+                                        <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">Characters</div>
+                                    </div>
+                                </div>
+
+                                <!-- Text Output -->
+                                <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02);">
+                                        <span style="font-weight: 600; font-size: 14px; color: #fff;"><i data-lucide="file-text" style="width:16px;height:16px;vertical-align:middle;margin-right:6px;"></i>Extracted Text</span>
+                                        <div style="display: flex; gap: 8px;">
+                                            <button class="btn btn-outline" id="btnCopyOcrText" style="padding: 7px 14px; font-size: 13px;">
+                                                <i data-lucide="clipboard"></i> Copy
+                                            </button>
+                                            <button class="btn btn-outline" id="btnDownloadOcrTxt" style="padding: 7px 14px; font-size: 13px;">
+                                                <i data-lucide="file-down"></i> .TXT
+                                            </button>
+                                            <button class="btn btn-primary" id="btnDownloadOcrDocx" style="padding: 7px 14px; font-size: 13px;">
+                                                <i data-lucide="file-output"></i> .DOCX
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <textarea id="ocrOutputText" readonly
+                                        style="width: 100%; min-height: 400px; padding: 20px; background: transparent; border: none; outline: none; resize: vertical; font-family: 'Noto Sans Bengali', 'Hind Siliguri', monospace; font-size: 14px; line-height: 1.8; color: #e0e0e0; white-space: pre-wrap;"
+                                        placeholder="OCR extracted text will appear here..."></textarea>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </section>
+
             </div>
         </main>
     </div>
@@ -1739,7 +1872,7 @@
     <script src="converters/image-converter.js"></script>
     <script src="converters/image-to-word.js"></script>
     <script src="converters/html-to-pdf.js"></script>
-    <script src="converters/image-to-word.js"></script>
+    <script src="converters/ocr-pdf.js"></script>
 
     <!-- ui/ : ইন্টারফেস -->
     <script src="ui/toolbar.js"></script>

@@ -133,6 +133,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const ctx = canvas.getContext('2d');
                     canvas.width = viewport.width;
                     canvas.height = viewport.height;
+                    
+                    // Fill white background to support transparent PDF pages and optimize for OCR
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
                     await page.render({ canvasContext: ctx, viewport }).promise;
                     const imageData = canvas.toDataURL('image/png');
 

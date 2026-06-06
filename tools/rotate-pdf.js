@@ -56,6 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const context = canvas.getContext('2d');
             canvas.height = viewport.height;
             canvas.width = viewport.width;
+
+            // Fill white background to support transparent PDF pages and avoid black-on-black invisibility in preview
+            context.fillStyle = '#ffffff';
+            context.fillRect(0, 0, canvas.width, canvas.height);
             
             await page.render({ canvasContext: context, viewport }).promise;
             rotatePreview.appendChild(canvas);

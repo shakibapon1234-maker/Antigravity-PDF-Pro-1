@@ -59,6 +59,7 @@ npm install → start.bat ডাবল ক্লিক → http://localhost:3000
 | Watermark | tools/watermark-pdf.js | ⬜ |
 | PDF to Word | converters/pdf-to-word.js | ⬜ |
 | Page Numbers | ui/page-numbers.js | ⬜ |
+| OCR — PDF to Text | converters/ocr-pdf.js | ✅ implemented & fixed v4 |
 
 ---
 

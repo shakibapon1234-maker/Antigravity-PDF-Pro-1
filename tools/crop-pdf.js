@@ -123,6 +123,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 scale: scale 
             };
 
+            // Fill white background to support transparent PDF pages and avoid black-on-black invisibility in preview
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
             await page.render({
                 canvasContext: ctx,
                 viewport: viewport

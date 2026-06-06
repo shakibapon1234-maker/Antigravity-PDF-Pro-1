@@ -130,6 +130,11 @@ document.addEventListener('DOMContentLoaded', () => {
             canvas.width = viewport.width;
             canvas.height = viewport.height;
             const ctx = canvas.getContext('2d');
+
+            // Fill white background to support transparent PDF pages and avoid black background after JPEG conversion
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
             await page.render({ canvasContext: ctx, viewport }).promise;
 
             const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
