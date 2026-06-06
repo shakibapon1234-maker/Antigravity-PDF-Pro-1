@@ -1,16 +1,77 @@
 {
   "name": "antigravity-pdf-pro",
-  "version": "0.1.0",
-  "description": "Local tools for PDF operations with archive server",
-  "main": "server.js",
+  "version": "1.0.0",
+  "description": "Antigravity PDF Pro - Desktop Application",
+  "main": "main.js",
   "scripts": {
-    "start": "node server.js",
-    "test-archive": "node test-archive.js"
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder --win --x64",
+    "build-portable": "electron-builder --win portable --x64",
+    "server-only": "node server.js"
+  },
+  "build": {
+    "appId": "com.antigravity.pdf-pro",
+    "productName": "Antigravity PDF Pro",
+    "copyright": "Copyright © 2026 Antigravity",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "server.js",
+      "index.html",
+      "style.css",
+      "package.json",
+      "core/**",
+      "editor/**",
+      "tools/**",
+      "converters/**",
+      "ui/**",
+      "assets/**",
+      "bin/**",
+      "archive/index.json",
+      "node_modules/**"
+    ],
+    "extraResources": [
+      {
+        "from": "bin",
+        "to": "bin",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Antigravity PDF Pro"
+    },
+    "portable": {
+      "artifactName": "Antigravity-PDF-Pro-Portable.exe"
+    }
   },
   "dependencies": {
     "express": "^4.22.1",
     "multer": "^1.4.5-lts.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^3.11.174"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
   }
 }

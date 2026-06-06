@@ -6,30 +6,59 @@ const { exec } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ARCHIVE_DIR = path.join(__dirname, 'archive');
+
+// ─── Path resolution (works in both dev and Electron packaged app) ────────────
+// When packaged: process.env.APP_ROOT points to resources/app/
+// When dev: APP_ROOT = __dirname
+const APP_ROOT = process.env.APP_ROOT || __dirname;
+
+const ARCHIVE_DIR = process.env.ELECTRON_APP
+  ? path.join(require('os').homedir(), '.antigravity-pdf-pro', 'archive')
+  : path.join(APP_ROOT, 'archive');
+
 const INDEX_FILE = path.join(ARCHIVE_DIR, 'index.json');
 
+// Ensure archive directory exists
 if (!fs.existsSync(ARCHIVE_DIR)) fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
 if (!fs.existsSync(INDEX_FILE)) fs.writeFileSync(INDEX_FILE, JSON.stringify([]));
 
+// ─── qpdf binary path ─────────────────────────────────────────────────────────
+// In packaged app: extraResources copies bin/ to resources/bin/
+// In dev: bin/ is next to server.js
+function getQpdfPath() {
+  if (process.env.ELECTRON_APP && require('electron') !== undefined) {
+    try {
+      const { app: electronApp } = require('electron');
+      return path.join(process.resourcesPath, 'bin', 'qpdf.exe');
+    } catch (e) {
+      // electron not available in fork context, use APP_ROOT
+    }
+  }
+  if (process.env.APP_ROOT) {
+    const p = path.join(process.env.APP_ROOT, 'bin', 'qpdf.exe');
+    if (fs.existsSync(p)) return p;
+  }
+  return path.join(APP_ROOT, 'bin', 'qpdf.exe');
+}
+
+// ─── Multer storage ───────────────────────────────────────────────────────────
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, ARCHIVE_DIR);
   },
   filename: (req, file, cb) => {
-    // store with temp name; we'll move into item folder
     cb(null, Date.now() + '_' + file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_'));
   }
 });
 const upload = multer({ storage });
 
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(APP_ROOT));
 
 // Suppress favicon 404
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// Allow CORS so Live Server (different origin) can call the API during development
+// CORS (for dev with Live Server on different port)
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
@@ -38,6 +67,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// ─── Archive helpers ──────────────────────────────────────────────────────────
 function readIndex() {
   try { return JSON.parse(fs.readFileSync(INDEX_FILE, 'utf8')); }
   catch (e) { return []; }
@@ -46,6 +76,7 @@ function writeIndex(data) {
   fs.writeFileSync(INDEX_FILE, JSON.stringify(data, null, 2));
 }
 
+// ─── Archive routes ───────────────────────────────────────────────────────────
 app.post('/archive', upload.single('file'), (req, res) => {
   try {
     const file = req.file;
@@ -58,7 +89,7 @@ app.post('/archive', upload.single('file'), (req, res) => {
       mimetype: file.mimetype
     });
 
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     const itemDir = path.join(ARCHIVE_DIR, id);
     fs.mkdirSync(itemDir);
     const destPath = path.join(itemDir, file.originalname);
@@ -73,7 +104,9 @@ app.post('/archive', upload.single('file'), (req, res) => {
       createdAt: new Date().toISOString(),
       sourceTool: req.body.sourceTool || 'unknown',
       notes: req.body.notes || '',
-      tags: (req.body.tags && typeof req.body.tags === 'string') ? req.body.tags.split(',').map(t => t.trim()).filter(Boolean) : []
+      tags: (req.body.tags && typeof req.body.tags === 'string')
+        ? req.body.tags.split(',').map(t => t.trim()).filter(Boolean)
+        : []
     };
 
     const index = readIndex();
@@ -88,17 +121,14 @@ app.post('/archive', upload.single('file'), (req, res) => {
 });
 
 app.get('/archive', (req, res) => {
-  const index = readIndex();
-  res.json(index);
+  res.json(readIndex());
 });
 
 app.get('/archive/:id', (req, res) => {
   const id = req.params.id;
-  const index = readIndex();
-  const item = index.find(i => i.id === id);
+  const item = readIndex().find(i => i.id === id);
   if (!item) return res.status(404).json({ error: 'Not found' });
   const filePath = path.join(ARCHIVE_DIR, id, item.storedName);
-  // Log file existence and size for diagnostics
   try {
     const st = fs.statSync(filePath);
     console.log('[archive] Serving', item.originalName, { id, path: filePath, size: st.size });
@@ -123,7 +153,15 @@ app.delete('/archive/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// PDF Protecting via qpdf
+app.post('/archive/:id/restore', (req, res) => {
+  const id = req.params.id;
+  const item = readIndex().find(i => i.id === id);
+  if (!item) return res.status(404).json({ error: 'Not found' });
+  const filePath = path.join(ARCHIVE_DIR, id, item.storedName);
+  res.download(filePath, item.originalName);
+});
+
+// ─── PDF Protect via qpdf ─────────────────────────────────────────────────────
 app.post('/api/tools/protect-pdf', upload.single('file'), (req, res) => {
   const file = req.file;
   const password = req.body.password;
@@ -134,31 +172,24 @@ app.post('/api/tools/protect-pdf', upload.single('file'), (req, res) => {
 
   const inputPath = file.path;
   const outputPath = path.join(ARCHIVE_DIR, `protected_${Date.now()}.pdf`);
+  const qpdfPath = getQpdfPath();
 
-  // Path to local qpdf binary
-  const qpdfPath = path.join(__dirname, 'bin', 'qpdf.exe');
-
-  // qpdf --encrypt user-password owner-password key-length [restrictions] -- input-file output-file
-  // Using 256-bit encryption which is industry standard
   const command = `"${qpdfPath}" --encrypt "${password}" "${password}" 256 -- "${inputPath}" "${outputPath}"`;
 
   exec(command, (error, stdout, stderr) => {
     if (error) {
       console.error(`qpdf error: ${stderr}`);
-      // Cleanup input file
       if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
       return res.status(500).json({ error: 'Encryption failed. Ensure qpdf is installed.', details: stderr });
     }
-
     res.download(outputPath, `protected_${file.originalname}`, (err) => {
-      // Cleanup both files after download
       if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
       if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
     });
   });
 });
 
-// PDF Decrypting via qpdf
+// ─── PDF Decrypt via qpdf ─────────────────────────────────────────────────────
 app.post('/api/tools/decrypt-pdf', upload.single('file'), (req, res) => {
   const file = req.file;
   const password = req.body.password || '';
@@ -169,7 +200,7 @@ app.post('/api/tools/decrypt-pdf', upload.single('file'), (req, res) => {
 
   const inputPath = file.path;
   const outputPath = path.join(ARCHIVE_DIR, `decrypted_${Date.now()}.pdf`);
-  const qpdfPath = path.join(__dirname, 'bin', 'qpdf.exe');
+  const qpdfPath = getQpdfPath();
 
   let command = `"${qpdfPath}" --decrypt`;
   if (password) {
@@ -184,14 +215,12 @@ app.post('/api/tools/decrypt-pdf', upload.single('file'), (req, res) => {
     if (error) {
       console.error(`qpdf error: ${stderr}`);
       if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
-      
       let userMsg = 'Decryption failed.';
-      if (stderr.includes('password') || stderr.includes('Password') || stderr.includes('incorrect') || stderr.includes('Invalid password')) {
+      if (stderr.includes('password') || stderr.includes('incorrect') || stderr.includes('Invalid password')) {
         userMsg = 'Incorrect password. Please enter the correct password.';
       }
       return res.status(500).json({ error: userMsg, details: stderr });
     }
-
     res.download(outputPath, `decrypted_${file.originalname}`, (err) => {
       if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
       if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
@@ -199,16 +228,7 @@ app.post('/api/tools/decrypt-pdf', upload.single('file'), (req, res) => {
   });
 });
 
-app.post('/archive/:id/restore', (req, res) => {
-  const id = req.params.id;
-  const index = readIndex();
-  const item = index.find(i => i.id === id);
-  if (!item) return res.status(404).json({ error: 'Not found' });
-  const filePath = path.join(ARCHIVE_DIR, id, item.storedName);
-  // For now: return the file for download; client can choose what to do
-  res.download(filePath, item.originalName);
-});
-
+// ─── Start server ─────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`Archive server running on http://localhost:${PORT}`);
 });
