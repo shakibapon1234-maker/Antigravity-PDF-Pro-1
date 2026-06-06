@@ -5,6 +5,8 @@ const fs = require('fs');
 
 // Disable hardware acceleration to prevent GPU crashes on systems with missing/incompatible graphics drivers
 app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('no-sandbox');
+app.commandLine.appendSwitch('disable-gpu-sandbox');
 
 
 // ─── Constants ───────────────────────────────────────────────────────────────
