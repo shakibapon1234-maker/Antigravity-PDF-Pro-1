@@ -38,8 +38,14 @@
         "from": "bin",
         "to": "bin",
         "filter": ["**/*"]
+      },
+      {
+        "from": "assets",
+        "to": "assets",
+        "filter": ["**/*"]
       }
     ],
+    "asar": false,
     "win": {
       "target": [
         {
@@ -51,7 +57,7 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "assets/icon.ico"
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
