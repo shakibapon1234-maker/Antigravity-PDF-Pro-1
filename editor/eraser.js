@@ -455,6 +455,8 @@ function _showColorToast(hex, targetField) {
 function activateWhiteEraser() {
     if (_eyeMode !== 'idle') _eyeCancel();
 
+    if (typeof deactivateAllTools === 'function') deactivateAllTools();
+
     whiteEraserActive = true;
     activeTool = 'whiteEraser';
     _weUpdateToolbar('btnWhiteEraser');

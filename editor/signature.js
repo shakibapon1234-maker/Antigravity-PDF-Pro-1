@@ -188,6 +188,9 @@ function _startSigPlacement() {
     }
     closeSignatureModal();
 
+    if (typeof deactivateAllTools === 'function') deactivateAllTools();
+    activeTool = 'signature';
+
     _sigPlacing = true;
     const pageWrapper = document.querySelector('.pdf-page-wrapper');
     if (!pageWrapper) return;

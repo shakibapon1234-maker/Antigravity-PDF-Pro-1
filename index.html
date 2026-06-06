@@ -440,6 +440,10 @@
                                         <i data-lucide="pen-line"></i>
                                         <span class="tool-label">Sign</span>
                                     </button>
+                                    <button class="btn-tool tool-blue" id="btnFormCreator" title="Form Creator — ফর্ম ফিল্ড তৈরি করুন">
+                                        <i data-lucide="form-input"></i>
+                                        <span class="tool-label">Form Fields</span>
+                                    </button>
                                     <div class="v-separator"></div>
                                     <button class="btn-tool" id="btnFreehand" title="Freehand Pencil — স্বাধীনভাবে আঁকুন" style="background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(220,38,38,0.08));border:1px solid rgba(239,68,68,0.3);color:#f87171;">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
@@ -487,14 +491,6 @@
                                     <button class="btn btn-primary px-4" id="btnSavePdf" title="Save and Download PDF">
                                         <i data-lucide="save"></i>
                                         <span>Download PDF</span>
-                                    </button>
-                                    <button class="btn btn-draft" id="btnSaveDraft" title="Save Draft (সেভ করুন, পরে আবার খুলুন)">
-                                        <i data-lucide="bookmark"></i>
-                                        <span>Save Draft</span>
-                                    </button>
-                                    <button class="btn btn-outline" id="btnDraftPanel" title="My Drafts (আমার সেভ করা কাজ)">
-                                        <i data-lucide="folder-open"></i>
-                                        <span>Drafts</span>
                                     </button>
                                     <button class="btn btn-outline" id="btnArchiveCurrent" title="Archive current PDF">
                                         <i data-lucide="archive"></i>
@@ -608,15 +604,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- Draft Panel (Slide-over from right) -->
-                        <div id="draftPanelOverlay" class="draft-overlay"></div>
-                        <div id="draftPanel" class="draft-panel">
-                            <div class="draft-panel-header">
-                                <div class="draft-panel-title">
-                                    <i data-lucide="bookmark"></i>
-                                    <h3>My Drafts</h3>
-                                    <span class="draft-panel-hint">Auto-save: ৩০ সেকেন্ড</span>
-                                </div>
                                 <button id="btnCloseDraftPanel" class="draft-close-btn" title="Close">
                                     <i data-lucide="x"></i>
                                 </button>
@@ -632,6 +619,76 @@
                                     <div class="draft-empty-icon">📄</div>
                                     <p>কোনো draft সেভ নেই।</p>
                                 </div>
+                            </div>
+                        </div>
+
+                        
+                        <!-- Form Creator Panel (Slide-over from right) -->
+                        <div id="formCreatorPanelOverlay" class="draft-overlay"></div>
+                        <div id="formCreatorPanel" class="draft-panel">
+                            <div class="draft-panel-header">
+                                <div class="draft-panel-title">
+                                    <i data-lucide="form-input"></i>
+                                    <h3>Form Creator</h3>
+                                </div>
+                                <button id="btnCloseFormPanel" class="draft-close-btn" title="Close">
+                                    <i data-lucide="x"></i>
+                                </button>
+                            </div>
+                            <div class="draft-panel-actions" style="display: flex; flex-direction: column; gap: 10px;">
+                                <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Click elements below to add them to the PDF page as interactive fields:</p>
+                                
+                                <button class="btn btn-outline w-100" id="btnAddFormText" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: #fff; cursor: pointer; border-radius: 6px;">
+                                    <i data-lucide="text-cursor-input"></i>
+                                    <span>Text Input Field</span>
+                                </button>
+                                <button class="btn btn-outline w-100" id="btnAddFormCheckbox" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: #fff; cursor: pointer; border-radius: 6px;">
+                                    <i data-lucide="check-square"></i>
+                                    <span>Checkbox Field</span>
+                                </button>
+                                <button class="btn btn-outline w-100" id="btnAddFormRadio" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: #fff; cursor: pointer; border-radius: 6px;">
+                                    <i data-lucide="circle-dot"></i>
+                                    <span>Radio Button</span>
+                                </button>
+                                <button class="btn btn-outline w-100" id="btnAddFormDropdown" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: #fff; cursor: pointer; border-radius: 6px;">
+                                    <i data-lucide="list-ordered"></i>
+                                    <span>Dropdown Selection</span>
+                                </button>
+                                <button class="btn btn-outline w-100" id="btnAddFormSignature" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: #fff; cursor: pointer; border-radius: 6px;">
+                                    <i data-lucide="signature"></i>
+                                    <span>Interactive Signature Field</span>
+                                </button>
+                            </div>
+                            
+                            <div id="formFieldSettings" class="draft-list-container" style="display:none; padding:15px; border-top:1px solid rgba(255,255,255,0.1); margin-top:15px;">
+                                <h4 style="margin-bottom:15px; font-family:'Outfit'; color:#fff;">Field Settings</h4>
+                                <input type="hidden" id="settingFieldId">
+                                
+                                <label class="form-label" style="display:block; margin-bottom:6px; font-size:12px; color:#aaa;">Field Name (Unique)</label>
+                                <input type="text" id="settingFieldName" class="form-input" style="width:100%; padding:8px; border-radius:6px; background:#1e1e2f; border:1px solid rgba(255,255,255,0.1); color:#fff; margin-bottom: 15px; box-sizing:border-box;">
+                                
+                                <div id="settingTextOnly" style="display:none;">
+                                    <label class="form-label" style="display:block; margin-bottom:6px; font-size:12px; color:#aaa;">Placeholder Text</label>
+                                    <input type="text" id="settingFieldPlaceholder" class="form-input" style="width:100%; padding:8px; border-radius:6px; background:#1e1e2f; border:1px solid rgba(255,255,255,0.1); color:#fff; margin-bottom: 15px; box-sizing:border-box;">
+                                </div>
+                                
+                                <div id="settingRadioOnly" style="display:none;">
+                                    <label class="form-label" style="display:block; margin-bottom:6px; font-size:12px; color:#aaa;">Radio Option Value</label>
+                                    <input type="text" id="settingFieldRadioValue" class="form-input" style="width:100%; padding:8px; border-radius:6px; background:#1e1e2f; border:1px solid rgba(255,255,255,0.1); color:#fff; margin-bottom: 15px; box-sizing:border-box;">
+                                </div>
+                                
+                                <div id="settingDropdownOnly" style="display:none;">
+                                    <label class="form-label" style="display:block; margin-bottom:6px; font-size:12px; color:#aaa;">Dropdown Options (Comma separated)</label>
+                                    <textarea id="settingFieldDropdownOptions" class="form-input" style="width:100%; padding:8px; border-radius:6px; background:#1e1e2f; border:1px solid rgba(255,255,255,0.1); color:#fff; margin-bottom: 15px; height: 80px; box-sizing:border-box; font-family:sans-serif;"></textarea>
+                                </div>
+                                
+                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px;">
+                                    <input type="checkbox" id="settingFieldRequired">
+                                    <label for="settingFieldRequired" class="form-label" style="margin-bottom:0; cursor:pointer; font-size:12px; color:#aaa;">Required Field</label>
+                                </div>
+                                
+                                <button class="btn btn-primary w-100" id="btnSaveFieldSettings" style="width:100%; padding:10px; background:#0284c7; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; margin-bottom:10px;">Save Settings</button>
+                                <button class="btn btn-danger w-100" id="btnDeleteFormField" style="width:100%; padding:10px; background:#ef4444; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Delete Field</button>
                             </div>
                         </div>
 
@@ -1655,9 +1712,9 @@
     <script src="editor/image-toolbar.js"></script>
     <script src="editor/eraser.js"></script>
     <script src="editor/save-pdf.js"></script>
-    <script src="editor/draft.js"></script>
     <script src="editor/signature.js"></script>
     <script src="editor/freehand.js"></script>
+    <script src="editor/form-creator.js"></script>
     <script src="editor/init.js"></script>
 
     <!-- tools/ : PDF টুলসমূহ -->

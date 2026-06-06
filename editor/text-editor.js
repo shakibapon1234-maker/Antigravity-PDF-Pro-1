@@ -607,7 +607,8 @@ function handlePageMouseDown(e, container, viewport, page) {
             !e.target.closest('.editable-text-unit') &&
             !e.target.classList.contains('floating-editor') &&
             !e.target.closest('.floating-editor') &&
-            !e.target.closest('.floating-editor-handle')) {
+            !e.target.closest('.floating-editor-handle') &&
+            !e.target.closest('.created-table')) {
             deselectTextItem();
             // FIX: যেকোনো open floating-editor আগে commit করো
             // শুধু এই container নয়, পুরো document-এ
@@ -620,7 +621,8 @@ function handlePageMouseDown(e, container, viewport, page) {
         if (!e.target.classList.contains('editable-text-unit') &&
             !e.target.closest('.editable-text-unit') &&
             !e.target.classList.contains('floating-editor') &&
-            !e.target.closest('.floating-editor')) {
+            !e.target.closest('.floating-editor') &&
+            !e.target.closest('.created-table')) {
             deselectTextItem();
         }
     } else if (activeTool === 'clear') {
@@ -2286,6 +2288,10 @@ function createTable(columns, rows, cellWidth, cellHeight, container, viewport, 
             e.stopPropagation();
             cellContent.contentEditable = 'true';
             cellContent.focus();
+        });
+        
+        cellContent.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
         });
         
         cellContent.addEventListener('blur', () => {

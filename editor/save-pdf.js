@@ -107,7 +107,16 @@ async function savePdfChanges() {
             const cx    = edit.x + cropX + edit.width  / 2;
             const cy    = edit.y + cropY + edit.height / 2;
 
-            if (edit.type === 'rect' || edit.type === 'round-rect') {
+            if (edit.type === 'highlight') {
+                const width = edit.w || edit.width || 0;
+                const height = edit.h || edit.height || 0;
+                pg.drawRectangle({
+                    x: edit.x + cropX, y: edit.y + cropY, width: width, height: height,
+                    color: rgb(color.r, color.g, color.b),
+                    rotate: rot,
+                    opacity: edit.opacity ?? 0.35
+                });
+            } else if (edit.type === 'rect' || edit.type === 'round-rect') {
                 pg.drawRectangle({
                     x: edit.x + cropX, y: edit.y + cropY, width: edit.width, height: edit.height,
                     color: rgb(color.r, color.g, color.b),
@@ -272,6 +281,57 @@ async function savePdfChanges() {
         }
 
         
+
+        // ── Form fields integration ────────────────────────────────────
+        if (window.formFields && window.formFields.length > 0) {
+            const form = pdfDoc.getForm();
+            const radioGroups = {};
+
+            for (const f of window.formFields) {
+                const pg = pages[f.page - 1];
+                if (!pg) continue;
+
+                const cropBox = pg.getCropBox() || { x: 0, y: 0 };
+                const cropX = cropBox.x || 0;
+                const cropY = cropBox.y || 0;
+
+                const x = f.x + cropX;
+                const y = pg.getHeight() - f.y - f.h + cropY;
+                const width = f.w;
+                const height = f.h;
+
+                if (f.type === 'text') {
+                    const textField = form.createTextField(f.name);
+                    textField.addToPage(pg, { x, y, width, height });
+                    if (f.required) textField.enableRequired();
+                } else if (f.type === 'checkbox') {
+                    const checkBox = form.createCheckBox(f.name);
+                    checkBox.addToPage(pg, { x, y, width, height });
+                    if (f.required) checkBox.enableRequired();
+                } else if (f.type === 'radio') {
+                    if (!radioGroups[f.name]) {
+                        radioGroups[f.name] = form.createRadioGroup(f.name);
+                        if (f.required) radioGroups[f.name].enableRequired();
+                    }
+                    const optionVal = f.value || 'Choice';
+                    try {
+                        radioGroups[f.name].addOptionToPage(optionVal, pg, { x, y, width, height });
+                    } catch (e) {
+                        console.error('Failed to add radio option:', e);
+                    }
+                } else if (f.type === 'dropdown') {
+                    const dropdown = form.createDropdown(f.name);
+                    dropdown.addToPage(pg, { x, y, width, height });
+                    if (f.options && f.options.length > 0) {
+                        dropdown.setOptions(f.options);
+                    }
+                    if (f.required) dropdown.enableRequired();
+                } else if (f.type === 'signature') {
+                    const sigButton = form.createButton(f.name);
+                    sigButton.addToPage(pg, { x, y, width, height });
+                }
+            }
+        }
 
         const blob = new Blob([await pdfDoc.save()], { type: 'application/pdf' });
         saveAs(blob, 'edited_' + currentPdfFile.name);

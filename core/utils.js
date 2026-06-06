@@ -31,10 +31,22 @@ function switchTab(tabId) {
 }
 
 function updateToolUI(activeId) {
-    ['btnSelect', 'btnTypeText', 'btnClearText', 'btnCloneArea'].forEach(id => {
+    ['btnSelect', 'btnTypeText', 'btnClearText', 'btnCloneArea', 'btnFreehand', 'btnHighlight', 'btnRedact', 'btnMoveArea', 'btnSignature', 'btnWhiteEraser'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle('active', id === activeId);
     });
+}
+
+function deactivateAllTools() {
+    const pw = document.querySelector('.pdf-page-wrapper');
+    if (typeof stopFreehand === 'function') stopFreehand(pw);
+    if (typeof stopRedactionMode === 'function') stopRedactionMode();
+    if (typeof stopHighlightMode === 'function') stopHighlightMode();
+    if (typeof _cancelSigPlacement === 'function') _cancelSigPlacement();
+    if (typeof deactivateWhiteEraser === 'function') deactivateWhiteEraser();
+    
+    // Remove active class from all tool buttons
+    document.querySelectorAll('.btn-tool').forEach(btn => btn.classList.remove('active'));
 }
 
 // ════════════════════════════════════════════

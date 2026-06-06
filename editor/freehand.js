@@ -376,7 +376,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnFh) {
         btnFh.addEventListener('click', () => {
             const pw = document.querySelector('.pdf-page-wrapper');
-            if (pw) startFreehand(pw);
+            if (pw) {
+                if (_fhActive) {
+                    stopFreehand(pw);
+                    activeTool = 'select';
+                    if (typeof updateToolUI === 'function') updateToolUI('btnSelect');
+                } else {
+                    deactivateAllTools();
+                    activeTool = 'freehand';
+                    startFreehand(pw);
+                    if (typeof updateToolUI === 'function') updateToolUI('btnFreehand');
+                }
+            }
         });
     }
 
@@ -384,7 +395,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnRed) {
         btnRed.addEventListener('click', () => {
             const pw = document.querySelector('.pdf-page-wrapper');
-            if (pw) startRedactionMode(pw);
+            if (pw) {
+                if (_redactActive) {
+                    stopRedactionMode();
+                    activeTool = 'select';
+                    if (typeof updateToolUI === 'function') updateToolUI('btnSelect');
+                } else {
+                    deactivateAllTools();
+                    activeTool = 'redact';
+                    startRedactionMode(pw);
+                    if (typeof updateToolUI === 'function') updateToolUI('btnRedact');
+                }
+            }
         });
     }
 
@@ -392,7 +414,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnHL) {
         btnHL.addEventListener('click', () => {
             const pw = document.querySelector('.pdf-page-wrapper');
-            if (pw) startHighlightMode(pw);
+            if (pw) {
+                if (_hlActive) {
+                    stopHighlightMode();
+                    activeTool = 'select';
+                    if (typeof updateToolUI === 'function') updateToolUI('btnSelect');
+                } else {
+                    deactivateAllTools();
+                    activeTool = 'highlight';
+                    startHighlightMode(pw);
+                    if (typeof updateToolUI === 'function') updateToolUI('btnHighlight');
+                }
+            }
         });
     }
 

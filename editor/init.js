@@ -177,6 +177,7 @@ function initEventListeners() {
     }
 
     document.getElementById('btnSelect').addEventListener('click', () => {
+        deactivateAllTools();
         activeTool = 'select';
         updateToolUI('btnSelect');
         document.body.classList.remove('eraser-active');
@@ -199,6 +200,7 @@ function initEventListeners() {
     });
 
     document.getElementById('btnTypeText').addEventListener('click', () => {
+        deactivateAllTools();
         activeTool = 'text';
         updateToolUI('btnTypeText');
         document.body.classList.remove('eraser-active');
@@ -224,6 +226,7 @@ function initEventListeners() {
     });
 
     document.getElementById('btnClearText').addEventListener('click', () => {
+        deactivateAllTools();
         activeTool = 'clearText';
         updateToolUI('btnClearText');
         document.body.classList.remove('eraser-active');
@@ -248,6 +251,7 @@ function initEventListeners() {
     });
 
     document.getElementById('btnCloneArea').addEventListener('click', () => {
+        deactivateAllTools();
         activeTool = 'cloneArea';
         updateToolUI('btnCloneArea');
         document.body.classList.remove('eraser-active');
@@ -332,6 +336,7 @@ function initEventListeners() {
 
     // ── Move Area বাটন ──────────────────────────────────────────────────
     document.getElementById('btnMoveArea').addEventListener('click', () => {
+        deactivateAllTools();
         activeTool = 'moveArea';
         updateToolUI('btnMoveArea');
         document.body.classList.remove('eraser-active');

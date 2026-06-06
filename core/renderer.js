@@ -90,6 +90,9 @@ async function loadAndRenderPDF(file, password = '') {
             if (typeof captureUndoSnapshot === 'function') {
                 captureUndoSnapshot('Initial state');
             }
+            if (typeof window.loadPageNumbersPdf === 'function') {
+                window.loadPageNumbersPdf(file);
+            }
         } catch (err) {
             alert('Could not load PDF: ' + err.message);
         }
