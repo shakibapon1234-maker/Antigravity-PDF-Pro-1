@@ -32,7 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function handlePageNumbersFile(file) {
-        if (!file || file.type !== 'application/pdf') {
+        // Handle files from archive that may not have type set
+        const fileType = file.type || (file.name && file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : null);
+        if (!file || (file.type && file.type !== 'application/pdf') && !fileType) {
             alert('Please select a valid PDF file.');
             return;
         }

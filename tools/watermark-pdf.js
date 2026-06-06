@@ -125,36 +125,35 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- File Loading ---
-    uploadBtn.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', (e) => {
+uploadBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
-        if (!file || file.type !== 'application/pdf') return alert('Please select a valid PDF.');
+        if (file) handleWatermarkFile(file);
+    });
+
+    window.loadWatermarkPdf = function(file) {
+        if (!file) return;
+        handleWatermarkFile(file);
+    };
+
+    function handleWatermarkFile(file) {
+        if (!file) return;
+        const fileType = file.type || (file.name && file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : null);
+        if (fileType !== 'application/pdf') {
+            alert('Please select a valid PDF.');
+            return;
+        }
         const reader = new FileReader();
         reader.onload = function() {
             currentFileData = new Uint8Array(this.result);
             watermarkedPdfBytes = null;
             if (downloadBtn) downloadBtn.disabled = true;
-            emptyState.classList.add('d-none');
-            workspace.classList.remove('d-none');
-            workspace.style.display = 'flex';
-            previewContainer.style.cursor = 'grab';
+            if (emptyState) emptyState.classList.add('d-none');
+            if (workspace) { workspace.classList.remove('d-none'); workspace.style.display = 'flex'; }
+            if (previewContainer) previewContainer.style.cursor = 'grab';
             updatePreview();
         };
         reader.readAsArrayBuffer(file);
-    });
-
-    if (wmImageInput) {
-        wmImageInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function() {
-                pushWmState();
-                currentWatermarkImage = new Uint8Array(this.result);
-                updatePreview();
-            };
-            reader.readAsArrayBuffer(file);
-        });
     }
 
     // Event listeners for all controls

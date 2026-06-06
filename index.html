@@ -2125,6 +2125,45 @@
                             } else if (tabId === 'organize-pdf') {
                                 if (window.loadOrganizePdf) window.loadOrganizePdf(file);
                                 closeModal();
+                            } else if (tabId === 'ocr-pdf') {
+                                if (window.loadOcrPdf) window.loadOcrPdf(file);
+                                closeModal();
+                            } else if (tabId === 'watermark-pdf') {
+                                if (window.loadWatermarkPdf) window.loadWatermarkPdf(file);
+                                closeModal();
+                            } else if (tabId === 'page-numbers-pdf') {
+                                if (window.loadPageNumbersPdf) window.loadPageNumbersPdf(file);
+                                closeModal();
+                            } else if (tabId === 'protect-pdf') {
+                                if (window.loadProtectPdf) window.loadProtectPdf(file);
+                                closeModal();
+                            } else if (tabId === 'unlock-pdf') {
+                                if (window.loadUnlockPdf) window.loadUnlockPdf(file);
+                                closeModal();
+                            } else if (tabId === 'pdf-to-image') {
+                                if (window.loadPdfToImage) window.loadPdfToImage(file);
+                                closeModal();
+                            } else if (tabId === 'image-to-pdf') {
+                                if (window.loadImageToPdf) window.loadImageToPdf(file);
+                                closeModal();
+                            } else if (tabId === 'excel-to-pdf') {
+                                if (window.loadExcelToPdf) window.loadExcelToPdf(file);
+                                closeModal();
+                            } else if (tabId === 'html-to-pdf') {
+                                if (window.loadHtmlToPdf) window.loadHtmlToPdf(file);
+                                closeModal();
+                            } else if (tabId === 'image-to-word') {
+                                if (window.convertImageToWord) window.convertImageToWord(file);
+                                closeModal();
+                            } else if (tabId === 'excel-to-word') {
+                                if (window.convertExcelToWord) window.convertExcelToWord(file);
+                                closeModal();
+                            } else if (tabId === 'word-to-excel') {
+                                if (window.loadWordToExcel) window.loadWordToExcel(file);
+                                closeModal();
+                            } else if (tabId === 'image-converter') {
+                                if (window.loadImageConverter) window.loadImageConverter(file);
+                                closeModal();
                             } else {
                                 window.open(url, '_blank');
                                 closeModal();

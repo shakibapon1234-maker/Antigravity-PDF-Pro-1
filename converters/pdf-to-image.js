@@ -31,12 +31,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handlePdfUpload(e) {
         const file = e.target.files[0];
-        if (!file) return;
+        if (file) loadPdfToImageForArchive(file);
+    }
+
+    async function loadPdfToImageForArchive(file) {
+        // Handle files from archive that may not have type set
+        const fileType = file.type || (file.name && file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : null);
+        if (!file || (file.type && file.type !== 'application/pdf') && !fileType) {
+            alert('Please select a valid PDF file.');
+            return;
+        }
 
         pdfFileName = file.name.replace(/\.[^/.]+$/, ""); // remove extension
         ptiEmptyState.classList.add('d-none');
         ptiWorkspace.classList.remove('d-none');
-        ptiPreview.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-dim); padding: 40px;">Loading pages... <i class="bi bi-arrow-repeat spin" style="display:inline-block; animation: spin 2s linear infinite;"></i></div>';
+        ptiPreview.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-dim); padding: 40px;">Loading pages...</div>';
 
         try {
             const arrayBuffer = await file.arrayBuffer();
@@ -48,6 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ptiPreview.innerHTML = '<div style="color: #ff4d4d; grid-column: 1 / -1;">Error loading PDF document.</div>';
         }
     }
+
+    window.loadPdfToImage = loadPdfToImageForArchive;
 
     async function renderPreviews() {
         if (!currentPdfDoc) return;

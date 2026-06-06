@@ -28,7 +28,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
 
-        uploadedImages = uploadedImages.concat(files);
+        // Filter image files and handle files from archive that may not have correct type
+        const validFiles = files.filter(f => {
+            const fileType = f.type || (f.name && f.name.toLowerCase().match(/\.(png|jpg|jpeg|gif|bmp|webp)$/)) ? 'image/png' : null;
+            return f.type && f.type.startsWith('image/') || fileType;
+        });
+        
+        if (validFiles.length === 0) {
+            alert('Please select valid image files.');
+            return;
+        }
+
+        uploadedImages = uploadedImages.concat(validFiles);
         
         emptyState.classList.add('d-none');
         workspace.classList.remove('d-none');
@@ -36,6 +47,23 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPreviews();
         fileInput.value = "";
     }
+
+    window.loadImageConverter = function(file) {
+        // Handle pulled image files for archive compatibility
+        if (file) {
+            const fileList = Array.isArray(file) ? file : [file];
+            const validFiles = fileList.filter(f => {
+                const fileType = f.type || (f.name && f.name.toLowerCase().match(/\.(png|jpg|jpeg|gif|bmp|webp)$/)) ? 'image/png' : null;
+                return f.type && f.type.startsWith('image/') || fileType;
+            });
+            if (validFiles.length > 0) {
+                uploadedImages = uploadedImages.concat(validFiles);
+                emptyState.classList.add('d-none');
+                workspace.classList.remove('d-none');
+                renderPreviews();
+            }
+        }
+    };
 
     function renderPreviews() {
         preview.innerHTML = '';

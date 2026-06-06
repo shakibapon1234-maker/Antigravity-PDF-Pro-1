@@ -40,6 +40,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function handleWordFile(file) {
+        // Handle files from archive that may not have correct type
+        const isWord = file.name && (file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc'));
+        const fileType = file.type || (isWord ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : null);
+        if (!file || (file.type && !file.type.includes('wordprocessingml') && !file.type.includes('msword') && !file.type.includes('document')) && !fileType) {
+            alert('Please select a valid Word document.');
+            return;
+        }
         currentFile = file;
         emptyState.classList.add('d-none');
         workspace.classList.remove('d-none');
@@ -229,4 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
         emptyState.classList.remove('d-none');
         previewArea.innerHTML = '';
     }
+
+    window.loadWordToExcel = handleWordFile;
 });

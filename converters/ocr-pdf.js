@@ -64,7 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             emptyState.classList.remove('drag-over');
             const f = e.dataTransfer.files[0];
-            if (f && f.type === 'application/pdf') loadFile(f);
+            const fileType = f.type || (f.name && f.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : null);
+            if (f && (f.type === 'application/pdf' || fileType)) loadFile(f);
             else alert('Please drop a PDF file.');
         });
         emptyState.addEventListener('click', () => fileInput && fileInput.click());
@@ -77,7 +78,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadFile(f) {
-        if (!f || f.type !== 'application/pdf') {
+        // Handle files from archive that may not have type set
+        const fileType = f.type || (f.name && f.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : null);
+        if (!f || (f.type && f.type !== 'application/pdf') && !fileType) {
             alert('Please select a valid PDF file.');
             return;
         }
@@ -99,10 +102,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update file info
             const fileInfo = document.getElementById('ocrFileInfo');
             if (fileInfo) {
+                const sizeText = f.size ? ` · ${(f.size/1024).toFixed(1)} KB` : '';
                 fileInfo.innerHTML =
                     `<i data-lucide="file-scan" style="width:20px;height:20px;color:var(--accent-cyan);vertical-align:middle;margin-right:8px;"></i>` +
                     `<strong style="color:#fff;">${f.name}</strong>` +
-                    `<span style="color:var(--text-dim);margin-left:10px;">${currentPdfDoc.numPages} pages · ${(f.size/1024).toFixed(1)} KB</span>`;
+                    `<span style="color:var(--text-dim);margin-left:10px;">${currentPdfDoc.numPages} pages${sizeText}</span>`;
                 if (window.lucide) lucide.createIcons();
             }
 

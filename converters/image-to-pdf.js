@@ -31,15 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
 
-        // Append to existing images array
         uploadedImages = uploadedImages.concat(files);
         
         itpEmptyState.classList.add('d-none');
         itpWorkspace.classList.remove('d-none');
         
         renderImagePreviews();
-        
-        // Reset file input in case same files are selected again
         itpFileInput.value = "";
     }
 
@@ -98,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const originalBtnHtml = btnConvertItp.innerHTML;
         
-        // Ensure spin keyframes are available
         if (!document.getElementById('spin-keyframes')) {
             const style = document.createElement('style');
             style.id = 'spin-keyframes';
@@ -116,9 +112,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const arrayBuffer = await file.arrayBuffer();
                 let pdfImage;
                 
-                if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
+                const name = file.name ? file.name.toLowerCase() : '';
+                const isJpg = name.endsWith('.jpg') || name.endsWith('.jpeg');
+                const isPng = name.endsWith('.png');
+                const fileType = file.type || (isJpg ? 'image/jpeg' : isPng ? 'image/png' : null);
+                
+                if (file.type === 'image/jpeg' || file.type === 'image/jpg' || fileType === 'image/jpeg') {
                     pdfImage = await pdfDoc.embedJpg(arrayBuffer);
-                } else if (file.type === 'image/png') {
+                } else if (file.type === 'image/png' || fileType === 'image/png') {
                     pdfImage = await pdfDoc.embedPng(arrayBuffer);
                 } else {
                     console.warn("Unsupported image type:", file.type);
@@ -130,17 +131,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 let page;
                 if (fitMode === 'a4') {
-                    // Standard A4 sizes in points
                     const a4Width = 595.28;
                     const a4Height = 841.89;
                     page = pdfDoc.addPage([a4Width, a4Height]);
                     
-                    // Calculate scale to fit within A4 while preserving aspect ratio
                     const scale = Math.min(a4Width / imgWidth, a4Height / imgHeight);
                     const scaledWidth = imgWidth * scale;
                     const scaledHeight = imgHeight * scale;
                     
-                    // Center the image on the page
                     const x = (a4Width - scaledWidth) / 2;
                     const y = (a4Height - scaledHeight) / 2;
                     
@@ -151,7 +149,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         height: scaledHeight,
                     });
                 } else {
-                    // Original Size
                     page = pdfDoc.addPage([imgWidth, imgHeight]);
                     page.drawImage(pdfImage, {
                         x: 0,
@@ -179,4 +176,20 @@ document.addEventListener('DOMContentLoaded', () => {
             btnConvertItp.disabled = false;
         }
     }
+
+    window.loadImageToPdf = function(file) {
+        if (file) {
+            const fileList = Array.isArray(file) ? file : [file];
+            const validFiles = fileList.filter(f => {
+                const name = f.name ? f.name.toLowerCase() : '';
+                return f.type && f.type.startsWith('image/') || name.match(/\.(png|jpg|jpeg|gif|bmp|webp)$/);
+            });
+            if (validFiles.length > 0) {
+                uploadedImages = uploadedImages.concat(validFiles);
+                itpEmptyState.classList.add('d-none');
+                itpWorkspace.classList.remove('d-none');
+                renderImagePreviews();
+            }
+        }
+    };
 });

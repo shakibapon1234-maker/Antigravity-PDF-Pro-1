@@ -1,16 +1,19 @@
 // Antigravity PDF - Image to Word Converter
 document.addEventListener('DOMContentLoaded', () => {
 
-    async function convertImageToWord(file) {
-        const statusEl    = document.getElementById('itwConversionStatus');
-        const progressEl  = document.getElementById('itwConvProgress');
-        const nameDisplay = document.getElementById('itwFileNameDisplay');
-        const btnDownload = document.getElementById('btnDownloadItwWord');
+async function convertImageToWord(file) {
+         const statusEl    = document.getElementById('itwConversionStatus');
+         const progressEl  = document.getElementById('itwConvProgress');
+         const nameDisplay = document.getElementById('itwFileNameDisplay');
+         const btnDownload = document.getElementById('btnDownloadItwWord');
 
-        if (!file || !file.type.startsWith('image/')) {
-            alert('Please select a valid image file.');
-            return;
-        }
+         // Handle files from archive that may not have correct type
+         const fileTypeName = file.name && file.name.toLowerCase().match(/\.(png|jpg|jpeg|gif|bmp|webp)$/);
+         const fileType = file.type || (fileTypeName ? 'image/png' : null);
+         if (!file || (file.type && !file.type.startsWith('image/')) && !fileType) {
+             alert('Please select a valid image file.');
+             return;
+         }
 
         if (typeof docx === 'undefined') {
             alert('DOCX library not loaded. Please refresh the page.');

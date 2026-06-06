@@ -74,6 +74,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function cw(c){return Math.max(45,colsConfig[c]?(colsConfig[c].wpx||80):80);}
 
     function handleExcelFile(file) {
+        // Handle files from archive that may not have correct type
+        const isExcel = file.name && (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls') || file.name.toLowerCase().endsWith('.csv'));
+        const fileType = file.type || (isExcel ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : null);
+        if (!file || (file.type && !file.type.includes('sheet') && !file.type.includes('excel') && !file.type.includes('csv')) && !fileType) {
+            alert('Please select a valid Excel file.');
+            return;
+        }
         currentFile=file;
         const reader=new FileReader();
         reader.onload=(e)=>{

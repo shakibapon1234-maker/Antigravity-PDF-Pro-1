@@ -128,6 +128,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleExcelFile(file) {
+        // Handle files from archive that may not have correct type
+        const isExcel = file.name && file.name.toLowerCase().match(/\.(xlsx|xls|csv)$/);
+        const fileType = file.type || (isExcel ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : null);
+        if (!file || (file.type && !file.type.includes('sheet') && !file.type.includes('excel') && !file.type.includes('csv')) && !fileType) {
+            alert('Please select a valid Excel file.');
+            return;
+        }
         currentFile = file;
         const reader = new FileReader();
         reader.onload = e => {
@@ -147,6 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         reader.readAsArrayBuffer(file);
     }
+
+    window.loadExcelToWord = handleExcelFile;
 
     // ── Render preview ───────────────────────────────────────────
     function renderTablePreview() {

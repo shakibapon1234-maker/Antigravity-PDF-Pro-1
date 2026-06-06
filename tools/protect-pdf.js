@@ -24,18 +24,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    async function loadProtectPdf(file) {
-        currentFile = file;
-        const reader = new FileReader();
-        reader.onload = function() {
-            currentFileBytes = new Uint8Array(this.result);
-            emptyState.style.display = 'none';
-            workspace.classList.remove('d-none');
-            fileNameDisplay.textContent = file.name;
-            fileSizeDisplay.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
-        };
-        reader.readAsArrayBuffer(file);
-    }
+async function loadProtectPdf(file) {
+         // Handle files from archive that may not have type set
+         const fileType = file.type || (file.name && file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : null);
+         if (!file || (file.type && file.type !== 'application/pdf') && !fileType) {
+             alert('Please select a valid PDF file.');
+             return;
+         }
+
+         currentFile = file;
+         const reader = new FileReader();
+         reader.onload = function() {
+             currentFileBytes = new Uint8Array(this.result);
+             emptyState.style.display = 'none';
+             workspace.classList.remove('d-none');
+             fileNameDisplay.textContent = file.name;
+             fileSizeDisplay.textContent = file.size ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : '';
+         };
+         reader.readAsArrayBuffer(file);
+     }
 
     btnApplyProtect.addEventListener('click', async () => {
         const password = passwordInput.value;
