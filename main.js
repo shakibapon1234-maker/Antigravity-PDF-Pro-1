@@ -3,6 +3,9 @@ const path = require('path');
 const { fork } = require('child_process');
 const fs = require('fs');
 
+// Disable hardware acceleration to prevent GPU crashes on systems with missing/incompatible graphics drivers
+app.disableHardwareAcceleration();
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 const PORT = 3000;
 const isDev = process.argv.includes('--dev');
