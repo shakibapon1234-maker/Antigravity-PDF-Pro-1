@@ -249,10 +249,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const baseName = splitPdfFile.name.replace('.pdf', '');
                 window.saveAs(blob, `${baseName}_split.pdf`);
+                if (window.AGProgress) AGProgress.done();
+                if (window.AGToast) AGToast.success('✓ Split সম্পন্ন! ফাইল ডাউনলোড হয়েছে।');
                 
             } catch (err) {
                 console.error(err);
-                alert('Failed to split PDF: ' + err.message);
+                if (window.AGProgress) AGProgress.error();
+                if (window.AGToast) AGToast.error('Split ব্যর্থ: ' + err.message);
+                else alert('Failed to split PDF: ' + err.message);
             }
         };
     }

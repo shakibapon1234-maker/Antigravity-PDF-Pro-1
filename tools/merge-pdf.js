@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
+        window._mergeFiles = mergeFiles; // progress.js এর জন্য expose করা
         renderMergeFileList();
     }
 
@@ -38,6 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const actionsContainer = document.getElementById('mergeActions');
         
         if (!listContainer || !actionsContainer) return;
+
+        window._mergeFiles = mergeFiles; // sync always
 
         if (mergeFiles.length === 0) {
             listContainer.innerHTML = `

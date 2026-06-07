@@ -330,7 +330,7 @@ Electron app release এর সাথে একটা simple HTML landing page �
 | 1 | Drag & Drop | ✅ সম্পন্ন (2026-06-07) |
 | 1 | Auto-Backup | ✅ সম্পন্ন (2026-06-07) |
 | 1 | Keyboard Shortcuts | ✅ সম্পন্ন (2026-06-07) |
-| 2 | Progress Bar | ⬜ |
+| 2 | Progress Bar | ✅ সম্পন্ন (2026-06-07) |
 | 2 | Settings Panel | ⬜ |
 | 2 | Batch Processing | ⬜ |
 | 2 | OCR (offline) | ⬜ |
@@ -353,6 +353,7 @@ Electron app release এর সাথে একটা simple HTML landing page �
 | 2026-06-07 | Phase 1-C: Drag & Drop support | ✅ সম্পন্ন |
 | 2026-06-07 | Phase 1-D: Auto-Backup System | ✅ সম্পন্ন |
 | 2026-06-07 | Phase 1-E: Keyboard Shortcuts | ✅ সম্পন্ন |
+| 2026-06-07 | Phase 2-A: Progress Bar / Loading Indicator | ✅ সম্পন্ন |
 
 ---
 

@@ -117,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const modifiedPdfBytes = await pdfDoc.save();
             const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
             saveAs(blob, `${originalFileName}_rotated.pdf`);
+            if (window.AGToast) AGToast.success('✓ Rotate সম্পন্ন! ফাইল ডাউনলোড হয়েছে।');
             
         } catch (err) {
             console.error('Error rotating PDF:', err);
@@ -125,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btnRotatePdf.disabled = false;
             btnRotatePdf.innerHTML = '<i data-lucide="rotate-cw"></i> Rotate & Download';
             if (window.lucide) lucide.createIcons();
+            if (window.AGProgress) AGProgress.done();
         }
     });
 });
