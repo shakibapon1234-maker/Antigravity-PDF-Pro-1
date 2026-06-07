@@ -59,10 +59,22 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "msi",
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "signAndEditExecutable": false
     },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://updates.antigravitypdfpro.com/"
+      }
+    ],
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
@@ -77,6 +89,7 @@
   "dependencies": {
     "electron-log": "^5.4.4",
     "electron-store": "^11.0.2",
+    "electron-updater": "^5.4.0",
     "express": "^4.22.1",
     "multer": "^1.4.5-lts.1",
     "pdf-lib": "^1.17.1",

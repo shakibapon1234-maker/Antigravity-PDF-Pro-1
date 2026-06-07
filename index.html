@@ -36,6 +36,38 @@
     .recent-file-item:hover .recent-file-remove { opacity: 1; }
     .recent-file-remove:hover { color: #ff4d4d; }
     .recent-file-remove svg { width: 14px; height: 14px; }
+
+    .batch-header-actions {
+        display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    }
+    .batch-container {
+        padding: 18px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px;
+    }
+    .batch-controls {
+        display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 18px;
+    }
+    .batch-control-label { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+    .batch-action-hint { display: block; color: var(--text-muted); margin-top: 4px; font-size: 13px; }
+    .batch-file-list { display: grid; gap: 12px; }
+    .batch-file-item {
+        display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+        padding: 14px; border-radius: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+    }
+    .batch-file-meta { min-width: 0; }
+    .batch-file-name { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+    .batch-file-details { font-size: 12px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; }
+    .batch-file-status { margin-top: 8px; font-size: 12px; color: var(--text-muted); }
+    .batch-progress-bar {
+        position: relative; width: 100%; height: 6px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; margin-top: 10px;
+    }
+    .batch-progress-inner {
+        height: 100%; width: 0%; background: linear-gradient(90deg, #00d4ff, #b829f9);
+        border-radius: 999px; transition: width 0.3s ease;
+    }
+    .batch-file-actions { display: flex; gap: 8px; }
+    .batch-file-actions button { min-width: 80px; }
+    .batch-empty-state { text-align: center; padding: 50px 0; }
+    .batch-empty-state .large-icon { width: 80px; height: 80px; margin-bottom: 18px; }
     </style>
 </head>
 <body class="dark-mode">
@@ -43,16 +75,16 @@
     <div id="appLockScreen" style="position: fixed; inset: 0; background: rgba(10,10,18,0.95); z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(20px);">
         <div style="background: var(--bg-surface); border: 1px solid var(--primary-glow); padding: 50px 40px; border-radius: 20px; box-shadow: 0 0 50px rgba(184,41,249,0.2), inset 0 0 30px rgba(0,212,255,0.05); text-align: center; max-width: 400px; width: 90%;">
             <div class="logo-icon" style="margin: 0 auto 20px; width: 60px; height: 60px;">
-                <i data-lucide="lock" style="width: 30px; height: 30px; color: #fff;"></i>
+                <i data-lucide="shield-check" style="width: 30px; height: 30px; color: #fff;"></i>
             </div>
-            <h2 style="color: #fff; margin-bottom: 30px; font-size: 22px; font-weight: 700;">Admin Access Required</h2>
+            <h2 style="color: #fff; margin-bottom: 30px; font-size: 22px; font-weight: 700;">Activate Antigravity Pro</h2>
             <div style="position: relative; margin-bottom: 20px;">
-                <input type="password" id="lockPassword" placeholder="Enter Password" style="width: 100%; padding: 15px 20px; border-radius: 12px; background: var(--bg-raised); border: 1px solid var(--border); color: #fff; font-size: 16px; outline: none; transition: all 0.3s; text-align: center; letter-spacing: 2px;">
+                <input type="text" id="licenseKeyInput" placeholder="Enter license key (AGP-XXXX-XXXX-XXXX)" style="width: 100%; padding: 15px 20px; border-radius: 12px; background: var(--bg-raised); border: 1px solid var(--border); color: #fff; font-size: 16px; outline: none; transition: all 0.3s; text-align: center; letter-spacing: 1px;">
             </div>
             <button id="btnUnlock" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 16px; justify-content: center; border-radius: 12px;">
-                Unlock Antigravity
+                Activate License
             </button>
-            <p id="lockError" style="color: var(--accent-pink); font-size: 13px; margin-top: 15px; display: none;">Incorrect password. Please try again.</p>
+            <p id="lockError" style="color: var(--accent-pink); font-size: 13px; margin-top: 15px; display: none;"></p>
         </div>
     </div>
     
@@ -82,6 +114,10 @@
                 <button class="nav-item" data-tab="merge">
                     <i data-lucide="combine"></i>
                     <span>Merge PDF</span>
+                </button>
+                <button class="nav-item" data-tab="batch">
+                    <i data-lucide="grid"></i>
+                    <span>Batch Processing</span>
                 </button>
                 <button class="nav-item" data-tab="split">
                     <i data-lucide="scissors"></i>
@@ -232,6 +268,11 @@
                             <div class="card-icon"><i data-lucide="combine"></i></div>
                             <h3>Merge Files</h3>
                             <p>Combine multiple PDFs into one document.</p>
+                        </div>
+                        <div class="tool-card teal" onclick="switchTab('batch')">
+                            <div class="card-icon"><i data-lucide="grid"></i></div>
+                            <h3>Batch Processing</h3>
+                            <p>Run multiple file operations in one go.</p>
                         </div>
                         <div class="tool-card orange" onclick="switchTab('split')">
                             <div class="card-icon"><i data-lucide="scissors"></i></div>
@@ -989,6 +1030,44 @@
                             <button class="btn btn-primary" id="btnMergeFiles">
                                 <i data-lucide="combine"></i> Merge & Download
                             </button>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="batch" class="tab-content">
+                    <div class="section-header">
+                        <h2>Batch Processing</h2>
+                        <div class="batch-header-actions">
+                            <button class="btn btn-primary" id="btnAddBatchFiles">
+                                <i data-lucide="plus"></i> Add Files
+                            </button>
+                            <button class="btn btn-outline" id="btnClearBatchQueue">
+                                <i data-lucide="trash-2"></i> Clear Queue
+                            </button>
+                        </div>
+                    </div>
+                    <div class="batch-container">
+                        <div class="batch-controls">
+                            <label for="batchModeSelect" class="batch-control-label">Batch Action</label>
+                            <select id="batchModeSelect" class="form-input" style="max-width: 260px;">
+                                <option value="merge">Merge PDFs</option>
+                                <option value="images-to-pdf">Images → PDF</option>
+                            </select>
+                            <button class="btn btn-primary" id="btnStartBatch">
+                                <i data-lucide="play"></i> Start Batch
+                            </button>
+                            <span id="batchActionHint" class="batch-action-hint">Add multiple files and run them together.</span>
+                        </div>
+                        <div class="batch-file-list" id="batchFileList">
+                            <div class="empty-state-batch">
+                                <div class="nebula-glow">
+                                    <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                    <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                                </div>
+                                <i data-lucide="layers" class="large-icon"></i>
+                                <h3>No Batch Files Added</h3>
+                                <p>Select multiple files above to run merge or image conversion as a batch operation.</p>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -1914,6 +1993,7 @@
     <script src="editor/init.js"></script>
 
     <!-- tools/ : PDF টুলসমূহ -->
+    <script src="tools/batch-processing.js"></script>
     <script src="tools/merge-pdf.js"></script>
     <script src="tools/split-pdf.js"></script>
     <script src="tools/compress-pdf.js"></script>
@@ -1944,23 +2024,20 @@
     <script src="ui/recent-files.js"></script>
     <script src="ui/progress.js"></script>
     <script src="ui/settings.js"></script>
+    <script src="tools/license-manager.js"></script>
 
     
-    <!-- Lock Screen Logic -->
+    <!-- License Activation Screen -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const lockScreen = document.getElementById('appLockScreen');
-            const passInput = document.getElementById('lockPassword');
+            const licenseInput = document.getElementById('licenseKeyInput');
             const unlockBtn = document.getElementById('btnUnlock');
-            const errorMsg = document.getElementById('lockError');
+            const statusMsg = document.getElementById('lockError');
 
             if (!lockScreen) return;
             
-            if (sessionStorage.getItem('antigravity_unlocked') === 'true') {
-                lockScreen.style.display = 'none';
-            } else {
-                lockScreen.style.display = 'flex';
-            }
+            LicenseManager.init(lockScreen, licenseInput, statusMsg);
 
             function renderPaginationControls(totalPages) {
                 const pager = document.getElementById('archivePagination');
@@ -1995,22 +2072,15 @@
             }
             window.renderPaginationControls = renderPaginationControls;
 
-            function attemptUnlock() {
-                // Change 'admin123' to any password you want
-                if (passInput.value === 'admin123') {
-                    sessionStorage.setItem('antigravity_unlocked', 'true');
-                    lockScreen.style.display = 'none';
-                } else {
-                    errorMsg.style.display = 'block';
-                    passInput.classList.add('error-shake');
-                    setTimeout(() => passInput.classList.remove('error-shake'), 400);
-                }
-            }
+            unlockBtn.addEventListener('click', () => {
+                LicenseManager.activate(licenseInput.value.trim());
+            });
 
-            unlockBtn.addEventListener('click', attemptUnlock);
-            passInput.addEventListener('keypress', (e) => {
-                errorMsg.style.display = 'none';
-                if (e.key === 'Enter') attemptUnlock();
+            licenseInput.addEventListener('keypress', (e) => {
+                statusMsg.style.display = 'none';
+                if (e.key === 'Enter') {
+                    LicenseManager.activate(licenseInput.value.trim());
+                }
             });
         });
     </script>

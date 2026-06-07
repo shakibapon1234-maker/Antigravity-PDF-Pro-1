@@ -2,7 +2,9 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, shell, Tray, nativeImage } = 
 const path = require('path');
 const { fork } = require('child_process');
 const fs = require('fs');
+const crypto = require('crypto');
 const log = require('electron-log');
+const { autoUpdater } = require('electron-updater');
 
 // ─── Configure Logging ───────────────────────────────────────────────────────
 const logDir = path.join(app.getPath('userData'), '.logs');
@@ -15,18 +17,88 @@ log.transports.console.level = 'silly';
 // Redirect console methods to electron-log so all standard console.log/error write to the file
 Object.assign(console, log.functions);
 
+// Crash reporter helpers
+const CRASH_LOG_FILES = ['main.log', 'server.log'];
+
+function getCrashLogFileContents() {
+  const parts = [];
+  CRASH_LOG_FILES.forEach((name) => {
+    const filePath = path.join(logDir, name);
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf8');
+      parts.push(`--- ${name} ---\n${content}`);
+    }
+  });
+  return parts.join('\n\n');
+}
+
+async function exportCrashLogs() {
+  const defaultFile = path.join(app.getPath('desktop'), 'Antigravity-PDF-Pro-Logs.txt');
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    title: 'Export Log File',
+    defaultPath: defaultFile,
+    filters: [
+      { name: 'Text File', extensions: ['txt'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  if (canceled || !filePath) return false;
+
+  const data = getCrashLogFileContents();
+  if (!data) {
+    dialog.showMessageBox({
+      type: 'warning',
+      title: 'Export Logs',
+      message: 'No log files were found to export.',
+    });
+    return false;
+  }
+
+  fs.writeFileSync(filePath, data, 'utf8');
+  return true;
+}
+
+async function showCrashReporterDialog(title, details) {
+  if (!mainWindow) return;
+
+  const message = `${title}\n\n${details || 'An unexpected error occurred.'}`;
+  const { response } = await dialog.showMessageBox(mainWindow, {
+    type: 'error',
+    title: 'Something went wrong',
+    message: 'Antigravity PDF Pro encountered a problem.',
+    detail: message,
+    buttons: ['Export Log File', 'Close'],
+    defaultId: 0,
+    cancelId: 1,
+  });
+
+  if (response === 0) {
+    const success = await exportCrashLogs();
+    if (success) {
+      dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Export Complete',
+        message: 'Log file exported successfully.',
+      });
+    }
+  }
+}
+
 // Catch unhandled exceptions and rejections
 log.errorHandler.startCatching({
   showDialog: false,
   onError({ error }) {
     console.error('[main] Uncaught Exception:', error);
+    showCrashReporterDialog('Unhandled exception', error?.message || String(error));
   }
 });
 process.on('uncaughtException', (error) => {
   console.error('[main] Uncaught Exception:', error);
+  showCrashReporterDialog('Unhandled exception', error?.stack || error?.message || String(error));
 });
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[main] Unhandled Rejection at:', promise, 'reason:', reason);
+  showCrashReporterDialog('Unhandled rejection', reason?.stack || reason?.message || String(reason));
 });
 
 
@@ -153,6 +225,18 @@ function createWindow() {
     }
     return { action: 'deny' };
   });
+
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
+    console.error('[main] Renderer process gone:', details);
+    log.error('[main] Renderer process gone:', details);
+    showCrashReporterDialog('Renderer process crashed', `Reason: ${details.reason}`);
+  });
+
+  mainWindow.webContents.on('child-process-gone', (event, details) => {
+    console.error('[main] Child process gone:', details);
+    log.error('[main] Child process gone:', details);
+    showCrashReporterDialog('Child process crashed', `Type: ${details.type}\nReason: ${details.reason}`);
+  });
 }
 
 // ─── App Menu ─────────────────────────────────────────────────────────────────
@@ -216,6 +300,23 @@ function buildMenu() {
       label: 'Help',
       submenu: [
         {
+          label: 'Check for Updates...',
+          click: manualCheckForUpdates,
+        },
+        {
+          label: 'Export Logs...',
+          click: () => exportCrashLogs().then((success) => {
+            if (success) {
+              dialog.showMessageBox(mainWindow, {
+                type: 'info',
+                title: 'Export Logs',
+                message: 'Log file exported successfully.',
+              });
+            }
+          }),
+        },
+        { type: 'separator' },
+        {
           label: 'About Antigravity PDF Pro',
           click: () => {
             dialog.showMessageBox(mainWindow, {
@@ -236,6 +337,95 @@ function buildMenu() {
 }
 
 // ─── IPC handlers ─────────────────────────────────────────────────────────────
+function setupAutoUpdater() {
+  if (isDev || !app.isPackaged) {
+    console.log('[auto-updater] Skipping auto-update in development/unpackaged mode');
+    return;
+  }
+
+  autoUpdater.logger = log;
+  autoUpdater.autoDownload = false;
+  autoUpdater.allowPrerelease = false;
+
+  autoUpdater.on('error', (err) => {
+    console.error('[auto-updater] Error:', err ? err.message || err : 'unknown');
+  });
+
+  autoUpdater.on('checking-for-update', () => {
+    console.log('[auto-updater] Checking for updates...');
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    handleUpdateAvailable(info);
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    console.log('[auto-updater] No updates available');
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    console.log('[auto-updater] Download progress:', `${progress.percent?.toFixed(2)}%`, progress);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    handleUpdateDownloaded(info);
+  });
+
+  autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+    console.error('[auto-updater] Check for updates failed:', err);
+  });
+}
+
+function handleUpdateAvailable(info) {
+  if (!mainWindow) return;
+  const message = `A new version ${info.version} is available.\n\nRelease notes:\n${info.releaseNotes || 'No release notes provided.'}\n\nDownload now?`;
+  dialog.showMessageBox(mainWindow, {
+    type: 'info',
+    title: 'Update Available',
+    message,
+    buttons: ['Download', 'Later'],
+    defaultId: 0,
+    cancelId: 1,
+  }).then(({ response }) => {
+    if (response === 0) {
+      autoUpdater.downloadUpdate();
+    }
+  });
+}
+
+function handleUpdateDownloaded(info) {
+  if (!mainWindow) return;
+  dialog.showMessageBox(mainWindow, {
+    type: 'info',
+    title: 'Update Ready',
+    message: `Update ${info.version} has been downloaded and is ready to install.`,
+    buttons: ['Install and Restart', 'Later'],
+    defaultId: 0,
+    cancelId: 1,
+  }).then(({ response }) => {
+    if (response === 0) {
+      setImmediate(() => autoUpdater.quitAndInstall(true, true));
+    }
+  });
+}
+
+function manualCheckForUpdates() {
+  if (!mainWindow) return;
+  if (isDev || !app.isPackaged) {
+    dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: 'Check for Updates',
+      message: 'Auto-update is disabled in development or unpackaged mode.',
+      buttons: ['OK'],
+    });
+    return;
+  }
+
+  autoUpdater.checkForUpdates().catch((err) => {
+    console.error('[auto-updater] Manual check failed:', err);
+  });
+}
+
 function setupIPC() {
   // Native save dialog
   ipcMain.handle('show-save-dialog', async (event, options) => {
@@ -266,10 +456,16 @@ function setupIPC() {
 
   // Electron Store handlers (CommonJS ES import bridge)
   let store = null;
+  const getStoreEncryptionKey = () => {
+    return crypto.createHash('sha256')
+      .update(app.getPath('userData') + 'antigravity-encryption-key')
+      .digest('hex');
+  };
+
   const getStore = async () => {
     if (!store) {
       const { default: Store } = await import('electron-store');
-      store = new Store();
+      store = new Store({ encryptionKey: getStoreEncryptionKey() });
     }
     return store;
   };
@@ -349,6 +545,7 @@ app.whenReady().then(async () => {
   setupIPC();
   buildMenu();
   createWindow();
+  setupAutoUpdater();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

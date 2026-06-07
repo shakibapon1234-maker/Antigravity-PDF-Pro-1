@@ -239,7 +239,7 @@ Antigravity-PDF-Pro/
 | 2026-06-07 | Phase 1-E: Keyboard Shortcuts | ✅ সম্পন্ন |
 | 2026-06-07 | Phase 2-A: Progress Bar / Loading Indicator | ✅ সম্পন্ন |
 | 2026-06-07 | Phase 2-B: Settings Panel | ✅ সম্পন্ন |
-| 2026-06-07 | Phase 2-C: Batch Processing | ⬜ |
+| 2026-06-07 | Phase 2-C: Batch Processing | ✅ সম্পন্ন |
 | 2026-06-07 | Phase 2-D: OCR (offline) | ✅ সম্পন্ন |
 
 ---
@@ -349,13 +349,13 @@ Electron app release এর সাথে একটা simple HTML landing page �
 | 1 | Keyboard Shortcuts | ✅ সম্পন্ন (2026-06-07) |
 | 2 | Progress Bar | ✅ সম্পন্ন (2026-06-07) |
 | 2 | Settings Panel | ✅ সম্পন্ন (2026-06-07) |
-| 2 | Batch Processing | ⬜ |
+| 2 | Batch Processing | ✅ সম্পন্ন (2026-06-07) |
 | 2 | OCR (offline) | ✅ সম্পন্ন (2026-06-07) |
-| 2 | License/Activation | ⬜ |
-| 3 | Auto-Updater | ⬜ |
-| 3 | MSI Installer | ⬜ |
-| 3 | Crash Reporter | ⬜ |
-| 3 | Landing Page | ⬜ |
+| 2 | License/Activation | ✅ সম্পন্ন (2026-06-07) |
+| 3 | Auto-Updater | ✅ সম্পন্ন (main.js এ electron-updater যুক্ত হয়েছে) |
+| 3 | MSI Installer | ⚠️ আংশিক (package.json এ msi target যোগ হয়েছে) |
+| 3 | Crash Reporter | ✅ সম্পন্ন (main.js এ crash reporter যুক্ত হয়েছে) |
+| 3 | Landing Page | ✅ সম্পন্ন (landing.html তৈরি করা হয়েছে) |
 
 ---
 
@@ -372,7 +372,13 @@ Electron app release এর সাথে একটা simple HTML landing page �
 | 2026-06-07 | Phase 1-E: Keyboard Shortcuts | ✅ সম্পন্ন |
 | 2026-06-07 | Phase 2-A: Progress Bar / Loading Indicator | ✅ সম্পন্ন |
 | 2026-06-07 | Phase 2-B: Settings Panel | ✅ সম্পন্ন |
+| 2026-06-07 | Phase 2-C: Batch Processing | ✅ সম্পন্ন |
 | 2026-06-07 | Phase 2-D: OCR (offline) | ✅ সম্পন্ন |
+| 2026-06-07 | Phase 2-E: License Activation | ✅ সম্পন্ন |
+| 2026-06-07 | Phase 3-A: Auto-Updater | ✅ সম্পন্ন |
+| 2026-06-07 | Phase 3-B: MSI Installer config | ⚠️ আংশিক |
+| 2026-06-07 | Phase 3-C: Crash Reporter | ✅ সম্পন্ন |
+| 2026-06-07 | Phase 3-D: Landing Page | ✅ সম্পন্ন |
 
 ---
 
