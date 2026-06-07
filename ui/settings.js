@@ -677,7 +677,15 @@
         injectCSS();
         buildPanel();
 
-        // Event listeners
+        // ── Direct bind: Settings gear button (id already set in HTML) ────────
+        // This is the most reliable approach — no need to scan for lucide icons
+        // which get replaced with SVG after createIcons() runs.
+        const settingsBtn = document.getElementById('agSettingsBtn');
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', openSettings);
+        }
+
+        // Event listeners for the settings panel itself
         document.getElementById('agSettingsClose')?.addEventListener('click', closeSettings);
         document.getElementById('agSettingsCancel')?.addEventListener('click', closeSettings);
         document.getElementById('agSettingsSave')?.addEventListener('click', handleSave);
@@ -711,7 +719,7 @@
             }
         });
 
-        // Wire up the gear button in top-bar (may load after DOMContentLoaded)
+        // wireGearButton as fallback (for cases where the button might not have id yet)
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', wireGearButton);
         } else {
