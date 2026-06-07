@@ -28,9 +28,24 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [3/3] Done!
+echo [3/3] Cleaning up build artifacts...
+if exist "dist\*.blockmap" (
+    echo Removing unnecessary blockmap files...
+    del /q "dist\*.blockmap"
+)
+if exist "dist\Antigravity PDF Pro Setup 1.0.0.exe" del /q "dist\Antigravity PDF Pro Setup 1.0.0.exe"
+if exist "dist\Antigravity-PDF-Pro-Setup-1.0.0.exe" del /q "dist\Antigravity-PDF-Pro-Setup-1.0.0.exe"
+if exist "dist\Antigravity-PDF-Pro-1.0.0-Portable.exe" del /q "dist\Antigravity-PDF-Pro-1.0.0-Portable.exe"
+if exist "dist\Antigravity-PDF-Pro-1.0.0-x64.msi" del /q "dist\Antigravity-PDF-Pro-1.0.0-x64.msi"
+
 echo.
-echo Output is in the "dist" folder:
-echo  - win-unpacked\Antigravity PDF Pro.exe (Unpacked Application)
+echo =========================================
+echo   Build Successful!
+echo =========================================
+echo.
+echo The following files are in the "dist" folder:
+echo  - Install App.exe (Install on PC)
+echo  - Start with double click.exe (Portable, runs directly)
+echo  - win-unpacked\ (Unpacked folder structure)
 echo.
 pause

@@ -20,22 +20,17 @@ npm install
 
 ## 🚀 Build Commands
 
-### সব ফরম্যাট একসাথে (NSIS + MSI + Portable):
+### সব ফরম্যাট একসাথে (Installer + Portable):
 ```bash
 npm run build-all
 ```
 
-### শুধু MSI Installer:
-```bash
-npm run build-msi
-```
-
-### শুধু NSIS Installer (সাধারণ .exe setup):
+### শুধু Installer:
 ```bash
 npm run build-nsis
 ```
 
-### শুধু Portable (.exe, install ছাড়া):
+### শুধু Portable (ইনস্টল ছাড়া চালানোর জন্য):
 ```bash
 npm run build-portable
 ```
@@ -46,9 +41,8 @@ npm run build-portable
 
 | ফাইল | ধরন | ব্যবহার |
 |---|---|---|
-| `Antigravity-PDF-Pro-Setup-1.0.0.exe` | NSIS Installer | সাধারণ ব্যবহারকারীর জন্য |
-| `Antigravity-PDF-Pro-1.0.0-x64.msi` | MSI Installer | IT/Enterprise deployment |
-| `Antigravity-PDF-Pro-1.0.0-Portable.exe` | Portable | ইনস্টল ছাড়া চালানো |
+| `Install App.exe` | NSIS Installer | পিসিতে ইনস্টল করার জন্য (সাধারণ ব্যবহারকারীর জন্য) |
+| `Start with double click.exe` | Portable | ইনস্টল ছাড়া সরাসরি ডাবল ক্লিক করে চালানোর জন্য |
 
 ---
 
