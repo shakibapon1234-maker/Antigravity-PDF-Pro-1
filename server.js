@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const { exec } = require('child_process');
+const log = require('electron-log');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,6 +16,24 @@ const APP_ROOT = process.env.APP_ROOT || __dirname;
 const ARCHIVE_DIR = process.env.ELECTRON_APP
   ? path.join(require('os').homedir(), '.antigravity-pdf-pro', 'archive')
   : path.join(APP_ROOT, 'archive');
+
+const LOG_DIR = process.env.USER_DATA_PATH
+  ? path.join(process.env.USER_DATA_PATH, '.logs')
+  : path.join(APP_ROOT, '.logs');
+if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
+log.transports.file.resolvePathFn = () => path.join(LOG_DIR, 'server.log');
+log.transports.file.maxSize = 5 * 1024 * 1024;
+log.transports.file.level = 'info';
+log.transports.console.level = 'error';
+
+process.on('uncaughtException', (error) => {
+  log.error('[server] Uncaught Exception:', error);
+  console.error('[server] Uncaught Exception:', error);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  log.error('[server] Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('[server] Unhandled Rejection at:', promise, 'reason:', reason);
+});
 
 const INDEX_FILE = path.join(ARCHIVE_DIR, 'index.json');
 

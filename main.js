@@ -5,9 +5,13 @@ const fs = require('fs');
 const log = require('electron-log');
 
 // ─── Configure Logging ───────────────────────────────────────────────────────
-// Set log file location to userData/.logs/main.log
-log.transports.file.resolvePathFn = () => path.join(app.getPath('userData'), '.logs', 'main.log');
+const logDir = path.join(app.getPath('userData'), '.logs');
+if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+log.transports.file.resolvePathFn = () => path.join(logDir, 'main.log');
 log.transports.file.maxSize = 5 * 1024 * 1024; // 5MB limit
+log.transports.file.level = 'info';
+log.transports.console.level = 'silly';
+
 // Redirect console methods to electron-log so all standard console.log/error write to the file
 Object.assign(console, log.functions);
 
@@ -17,6 +21,9 @@ log.errorHandler.startCatching({
   onError({ error }) {
     console.error('[main] Uncaught Exception:', error);
   }
+});
+process.on('uncaughtException', (error) => {
+  console.error('[main] Uncaught Exception:', error);
 });
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[main] Unhandled Rejection at:', promise, 'reason:', reason);
@@ -59,6 +66,7 @@ function startServer() {
         PORT: String(PORT),
         ELECTRON_APP: '1',
         APP_ROOT: app.isPackaged ? path.join(process.resourcesPath, 'app') : __dirname,
+        USER_DATA_PATH: app.getPath('userData'),
       },
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
     });
@@ -73,7 +81,8 @@ function startServer() {
     });
 
     serverProcess.stderr.on('data', (data) => {
-      console.error('[server error]', data.toString().trim());
+      const message = data.toString().trim();
+      console.error('[server error]', message);
     });
 
     serverProcess.on('error', (err) => {
@@ -81,8 +90,12 @@ function startServer() {
       reject(err);
     });
 
-    serverProcess.on('exit', (code) => {
-      console.log('[main] Server exited with code:', code);
+    serverProcess.on('exit', (code, signal) => {
+      if (code !== 0) {
+        console.error('[main] Server exited unexpectedly:', { code, signal });
+      } else {
+        console.log('[main] Server exited cleanly:', { code, signal });
+      }
       serverReady = false;
     });
 
