@@ -30,8 +30,7 @@ if %errorlevel% neq 0 (
 echo.
 echo [3/3] Done!
 echo.
-echo Output files are in the "dist" folder:
-echo  - Antigravity PDF Pro Setup.exe  (Installer)
-echo  - Antigravity-PDF-Pro-Portable.exe  (Portable)
+echo Output is in the "dist" folder:
+echo  - win-unpacked\Antigravity PDF Pro.exe (Unpacked Application)
 echo.
 pause

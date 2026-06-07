@@ -75,9 +75,7 @@ npm run build
 
 ```
 dist/
-├── Antigravity PDF Pro Setup 1.0.0.exe   ← Installer (Windows)
-├── Antigravity-PDF-Pro-Portable.exe       ← Portable (no install needed)
-└── win-unpacked/                          ← Unpacked app folder
+└── win-unpacked/                          ← Unpacked app folder (run Antigravity PDF Pro.exe inside)
 ```
 
 ---

@@ -70,8 +70,7 @@ Desktop এ ফোল্ডার কপি করুন → চালান
 
 ### dist/win-unpacked এ:
 ```
-✅ START.bat                 - স্মার্ট লঞ্চার
-✅ FixDependencies.bat       - সমস্যা চেক করুন
+✅ Antigravity PDF Pro.exe   - মূল এক্সিকিউটেবল ফাইল
 ```
 
 ---

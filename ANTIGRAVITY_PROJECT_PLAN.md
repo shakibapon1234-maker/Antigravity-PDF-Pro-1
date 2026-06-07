@@ -19,7 +19,7 @@
 ## কীভাবে রান করবেন
 
 ```
-npm install → start.bat ডাবল ক্লিক → http://localhost:3000
+npm install → DEV_START.bat ডাবল ক্লিক (অথবা packaged app এর জন্য RUN_APP.bat)
 ```
 
 ---

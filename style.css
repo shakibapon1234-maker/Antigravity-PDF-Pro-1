@@ -2,7 +2,9 @@
    Antigravity PDF Editor — Complete Stylesheet
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+/* Google Fonts removed for offline support — system font fallback */
+/* 'Outfit' replaced with clean system sans-serif stack */
+@import url('ui/libs/fonts/outfit.css') screen; /* optional: add local font file later */
 
 :root {
   --bg-base:       #0a0a12;
@@ -33,7 +35,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Outfit', 'Segoe UI', system-ui, -apple-system, sans-serif;
   background: var(--bg-base);
   color: var(--text-dim);
   min-height: 100vh;

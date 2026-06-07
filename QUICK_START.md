@@ -5,7 +5,7 @@
 ### Step 1: চালান (Recommended)
 ```
 dist/win-unpacked/ ফোল্ডারে যান
-START.bat ডাবল ক্লিক করুন
+"Antigravity PDF Pro.exe" ডাবল ক্লিক করুন
 ```
 
 ### Step 2: অথবা সরাসরি
@@ -29,7 +29,7 @@ dist/win-unpacked/Antigravity PDF Pro.exe চালান
 
 4. Desktop এর পেস্ট করা ফোল্ডারে ডাবল-ক্লিক করুন
 
-5. "Antigravity PDF Pro.exe" চালান অথবা "START.bat" চালান
+5. "Antigravity PDF Pro.exe" ডাবল-ক্লিক করে চালান
 ```
 
 ### যা করবেন না:

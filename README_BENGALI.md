@@ -63,10 +63,10 @@ dist/win-unpacked/Antigravity PDF Pro.exe
 ডাবল-ক্লিক করুন → চালু হয়ে যাবে
 ```
 
-### **পদ্ধতি 2: স্মার্ট লঞ্চার ব্যবহার করুন**
+### **পদ্ধতি 2: রুট লঞ্চার ব্যবহার করুন**
 ```
-dist/win-unpacked/START.bat
-ডাবল-ক্লিক করুন → সব check করে চালাবে
+RUN_APP.bat
+ডাবল-ক্লিক করুন → অ্যাপটি সরাসরি চালু হবে
 ```
 
 ### **পদ্ধতি 3: সেটআপ সহায়ক**
@@ -176,8 +176,7 @@ CREATE_DISTRIBUTION.bat
 SETUP.bat
 
 # Troubleshooting
-cd dist/win-unpacked
-FixDependencies.bat
+SETUP.bat (বাছুন Option 4)
 ```
 
 ---

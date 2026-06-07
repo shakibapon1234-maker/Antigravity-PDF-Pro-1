@@ -85,7 +85,7 @@ echo     - Paste
 echo.
 echo   Step 3: Run the app
 echo     - Inside the pasted folder
-echo     - Find "START.bat" or "Antigravity PDF Pro.exe"
+echo     - Find "Antigravity PDF Pro.exe"
 echo     - Double-click to run
 echo.
 echo   Step 4 (Optional): Rename folder

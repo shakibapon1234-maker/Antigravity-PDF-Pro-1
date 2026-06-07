@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Antigravity PDF Editor | Premium Office Tool</title>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Hind+Siliguri:wght@400;600&family=Noto+Sans+Bengali:wght@400;600&family=Dancing+Script:wght@500;700&family=Great+Vibes&family=Pacifico&display=swap" rel="stylesheet">
+    <!-- Google Fonts removed for offline support - system font fallback active -->
     <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="ui/libs/bootstrap-icons/font/bootstrap-icons.min.css">
     <!-- Lucide Icons -->
     <!-- (script moved to end of body for proper DOM loading) -->
     <link rel="stylesheet" href="style.css">
@@ -1809,22 +1809,28 @@
 
     <!-- Scripts -->
     <!-- Libraries -->
-    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <script src="https://unpkg.com/@pdf-lib/fontkit@0.0.4/dist/fontkit.umd.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/docx@7.1.0/build/index.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="node_modules/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="ui/libs/fontkit.umd.min.js"></script>
+    <script src="node_modules/pdfjs-dist/build/pdf.min.js"></script>
+    <script>
+      // PDF.js worker — local path (offline support)
+      if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'node_modules/pdfjs-dist/build/pdf.worker.min.js';
+      }
+    </script>
+    <script src="ui/libs/docx.index.js"></script>
+    <script src="ui/libs/FileSaver.min.js"></script>
+    <script src="ui/libs/jszip.min.js"></script>
+    <script src="ui/libs/Sortable.min.js"></script>
+    <script src="ui/libs/tesseract.min.js"></script>
     <!-- Lucide Icons — loaded AFTER DOM so createIcons() finds all elements -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="ui/libs/lucide.min.js"></script>
     
     <!-- New Premium Integration Libs -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="ui/libs/html2pdf.bundle.min.js"></script>
+    <script src="ui/libs/xlsx.full.min.js"></script>
     <!-- jsPDF — PDF encryption/password protection support -->
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+    <script src="ui/libs/jspdf.umd.min.js"></script>
     
     <!-- ═══════════════════════════════════════════════════ -->
     <!-- App Logic — নতুন ফোল্ডার স্ট্রাকচার               -->
@@ -1865,7 +1871,7 @@
     <script src="converters/image-to-pdf.js"></script>
     <script src="converters/excel-to-pdf.js"></script>
     <script src="converters/excel-to-word.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="ui/libs/mammoth.browser.min.js"></script>
     <script src="converters/word-to-excel.js"></script>
     <script src="converters/image-converter.js"></script>
     <script src="converters/image-to-word.js"></script>

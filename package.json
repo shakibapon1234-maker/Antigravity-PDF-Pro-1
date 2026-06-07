@@ -8,12 +8,13 @@
     "dev": "electron . --dev",
     "build": "electron-builder --win --x64",
     "build-portable": "electron-builder --win portable --x64",
-    "server-only": "node server.js"
+    "server-only": "node server.js",
+    "setup-libs": "node scripts/setup-libs.js"
   },
   "build": {
     "appId": "com.antigravity.pdf-pro",
     "productName": "Antigravity PDF Pro",
-    "copyright": "Copyright © 2026 Antigravity",
+    "copyright": "Copyright \u00a9 2026 Antigravity",
     "directories": {
       "output": "dist"
     },
@@ -38,12 +39,16 @@
       {
         "from": "bin",
         "to": "bin",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "assets",
         "to": "assets",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "asar": false,
@@ -51,11 +56,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
-        },
-        {
-          "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "signAndEditExecutable": false
@@ -79,6 +82,18 @@
   },
   "devDependencies": {
     "electron": "^31.0.0",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "@pdf-lib/fontkit": "^0.0.4",
+    "docx": "^7.1.0",
+    "file-saver": "^2.0.5",
+    "jszip": "^3.10.1",
+    "sortablejs": "^1.15.0",
+    "tesseract.js": "^5.0.0",
+    "lucide": "^0.383.0",
+    "html2pdf.js": "^0.10.1",
+    "xlsx": "^0.18.5",
+    "jspdf": "^2.5.2",
+    "mammoth": "^1.6.0",
+    "bootstrap-icons": "^1.11.3"
   }
 }
