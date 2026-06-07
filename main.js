@@ -2,6 +2,26 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, shell, Tray, nativeImage } = 
 const path = require('path');
 const { fork } = require('child_process');
 const fs = require('fs');
+const log = require('electron-log');
+
+// ─── Configure Logging ───────────────────────────────────────────────────────
+// Set log file location to userData/.logs/main.log
+log.transports.file.resolvePathFn = () => path.join(app.getPath('userData'), '.logs', 'main.log');
+log.transports.file.maxSize = 5 * 1024 * 1024; // 5MB limit
+// Redirect console methods to electron-log so all standard console.log/error write to the file
+Object.assign(console, log.functions);
+
+// Catch unhandled exceptions and rejections
+log.errorHandler.startCatching({
+  showDialog: false,
+  onError({ error }) {
+    console.error('[main] Uncaught Exception:', error);
+  }
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[main] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 
 // Disable hardware acceleration to prevent GPU crashes on systems with missing/incompatible graphics drivers
 app.disableHardwareAcceleration();
@@ -272,7 +292,5 @@ app.on('before-quit', () => {
   }
 });
 
-// Handle uncaught errors gracefully
-process.on('uncaughtException', (err) => {
-  console.error('[main] Uncaught exception:', err);
-});
+// Uncaught exceptions are handled by electron-log at the top
+

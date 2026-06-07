@@ -14,7 +14,7 @@
   "build": {
     "appId": "com.antigravity.pdf-pro",
     "productName": "Antigravity PDF Pro",
-    "copyright": "Copyright \u00a9 2026 Antigravity",
+    "copyright": "Copyright © 2026 Antigravity",
     "directories": {
       "output": "dist"
     },
@@ -75,25 +75,26 @@
     }
   },
   "dependencies": {
+    "electron-log": "^5.4.4",
     "express": "^4.22.1",
     "multer": "^1.4.5-lts.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^3.11.174"
   },
   "devDependencies": {
+    "@pdf-lib/fontkit": "^0.0.4",
+    "bootstrap-icons": "^1.11.3",
+    "docx": "^7.1.0",
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3",
-    "@pdf-lib/fontkit": "^0.0.4",
-    "docx": "^7.1.0",
     "file-saver": "^2.0.5",
+    "html2pdf.js": "^0.10.1",
+    "jspdf": "^2.5.2",
     "jszip": "^3.10.1",
+    "lucide": "^0.383.0",
+    "mammoth": "^1.6.0",
     "sortablejs": "^1.15.0",
     "tesseract.js": "^5.0.0",
-    "lucide": "^0.383.0",
-    "html2pdf.js": "^0.10.1",
-    "xlsx": "^0.18.5",
-    "jspdf": "^2.5.2",
-    "mammoth": "^1.6.0",
-    "bootstrap-icons": "^1.11.3"
+    "xlsx": "^0.18.5"
   }
 }
