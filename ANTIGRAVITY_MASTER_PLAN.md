@@ -92,7 +92,7 @@ Antigravity-PDF-Pro/
 | 9 | Eyedropper / Eraser | editor/eraser.js | ⬜ অজানা | |
 | 10 | ClearText (gradient bg) | editor/text-editor.js | ✅ v4 তে fix | pixel-accurate inpainting |
 | 11 | White Eraser button color | index.html | ✅ v4 তে fix | |
-| 12 | PDF Save (Download) | editor/save-pdf.js | ⬜ অজানা | |
+| 12 | PDF Save (Download) | editor/save-pdf.js | ✅ সম্পন্ন | saved with auto-backup in Phase 1-D |
 | 13 | Archive save/restore | server.js + save-pdf.js | ⬜ অজানা | |
 | 14 | Merge PDF | tools/merge-pdf.js | ⬜ অজানা | |
 | 15 | Split PDF | tools/split-pdf.js | ⬜ অজানা | |
@@ -326,10 +326,10 @@ Electron app release এর সাথে একটা simple HTML landing page �
 | 0 | Feature testing (সব ⬜ items) | ⬜ |
 | 0 | Error logging (electron-log) | ✅ সম্পন্ন (2026-06-07) |
 | 1 | Dark Mode | ✅ সম্পন্ন (2026-06-07) |
-| 1 | Recent Files | ⬜ |
-| 1 | Drag & Drop | ⬜ |
-| 1 | Auto-Backup | ⬜ |
-| 1 | Keyboard Shortcuts | ⬜ |
+| 1 | Recent Files | ✅ সম্পন্ন (2026-06-07) |
+| 1 | Drag & Drop | ✅ সম্পন্ন (2026-06-07) |
+| 1 | Auto-Backup | ✅ সম্পন্ন (2026-06-07) |
+| 1 | Keyboard Shortcuts | ✅ সম্পন্ন (2026-06-07) |
 | 2 | Progress Bar | ⬜ |
 | 2 | Settings Panel | ⬜ |
 | 2 | Batch Processing | ⬜ |
@@ -349,6 +349,10 @@ Electron app release এর সাথে একটা simple HTML landing page �
 | 2026-06-07 | Phase 0-A: CDN → Local migration | ✅ সম্পন্ন |
 | 2026-06-07 | Phase 0-C: Error logging (electron-log) | ✅ সম্পন্ন |
 | 2026-06-07 | Phase 1-A: Theme Toggle (Light/Dark Mode) | ✅ সম্পন্ন |
+| 2026-06-07 | Phase 1-B: Recent Files (File History) | ✅ সম্পন্ন |
+| 2026-06-07 | Phase 1-C: Drag & Drop support | ✅ সম্পন্ন |
+| 2026-06-07 | Phase 1-D: Auto-Backup System | ✅ সম্পন্ন |
+| 2026-06-07 | Phase 1-E: Keyboard Shortcuts | ✅ সম্পন্ন |
 
 ---
 

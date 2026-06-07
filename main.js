@@ -271,6 +271,49 @@ function setupIPC() {
     s.set(key, value);
     return true;
   });
+
+  // ── Read a local file by path (for Recent Files feature) ──────────────
+  ipcMain.handle('read-file-by-path', async (event, filePath) => {
+    try {
+      if (!filePath || typeof filePath !== 'string') return null;
+      const buffer = fs.readFileSync(filePath);
+      return buffer; // Uint8Array in renderer
+    } catch (err) {
+      console.error('[main] read-file-by-path error:', err.message);
+      return null;
+    }
+  });
+
+  // ── Auto-Backup: save a PDF backup copy to userData/.backups/ ─────────
+  ipcMain.handle('save-backup', async (event, { fileName, buffer }) => {
+    try {
+      const backupDir = path.join(app.getPath('userData'), '.backups');
+      if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+
+      // Timestamp-based filename
+      const ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const safe = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const dest = path.join(backupDir, `${ts}_${safe}`);
+
+      fs.writeFileSync(dest, Buffer.from(buffer));
+      console.log('[main] Backup saved:', dest);
+
+      // Keep only last 5 backups — sort by mtime, delete oldest
+      const allBackups = fs.readdirSync(backupDir)
+        .map(f => ({ name: f, mtime: fs.statSync(path.join(backupDir, f)).mtimeMs }))
+        .sort((a, b) => b.mtime - a.mtime);
+
+      if (allBackups.length > 5) {
+        allBackups.slice(5).forEach(f => {
+          try { fs.unlinkSync(path.join(backupDir, f.name)); } catch { /* ignore */ }
+        });
+      }
+      return { success: true, path: dest };
+    } catch (err) {
+      console.error('[main] save-backup error:', err.message);
+      return { success: false, error: err.message };
+    }
+  });
 }
 
 // ─── App lifecycle ─────────────────────────────────────────────────────────────

@@ -32,4 +32,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Electron Store IPC wrappers
   storeGet: (key) => ipcRenderer.invoke('store-get', key),
   storeSet: (key, value) => ipcRenderer.invoke('store-set', key, value),
+
+  // Read a file from disk by its full path (for Recent Files)
+  readFileByPath: (filePath) => ipcRenderer.invoke('read-file-by-path', filePath),
+
+  // Auto-backup: save a copy of the PDF to userData/.backups/
+  saveBackup: (fileName, buffer) => ipcRenderer.invoke('save-backup', { fileName, buffer }),
 });

@@ -333,8 +333,19 @@ async function savePdfChanges() {
             }
         }
 
-        const blob = new Blob([await pdfDoc.save()], { type: 'application/pdf' });
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         saveAs(blob, 'edited_' + currentPdfFile.name);
+
+        // ── Auto-Backup (Phase 1-D) ──────────────────────────────────────
+        if (window.electronAPI?.saveBackup) {
+          try {
+            await window.electronAPI.saveBackup(currentPdfFile.name, pdfBytes);
+            console.log('[SavePDF] Backup saved successfully.');
+          } catch (backupErr) {
+            console.warn('[SavePDF] Backup failed (non-critical):', backupErr);
+          }
+        }
 
     } catch (err) {
         console.error(err);
