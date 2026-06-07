@@ -250,6 +250,27 @@ function setupIPC() {
       ? path.join(app.getPath('userData'), 'archive')
       : path.join(__dirname, 'archive');
   });
+
+  // Electron Store handlers (CommonJS ES import bridge)
+  let store = null;
+  const getStore = async () => {
+    if (!store) {
+      const { default: Store } = await import('electron-store');
+      store = new Store();
+    }
+    return store;
+  };
+
+  ipcMain.handle('store-get', async (event, key) => {
+    const s = await getStore();
+    return s.get(key);
+  });
+
+  ipcMain.handle('store-set', async (event, key, value) => {
+    const s = await getStore();
+    s.set(key, value);
+    return true;
+  });
 }
 
 // ─── App lifecycle ─────────────────────────────────────────────────────────────
