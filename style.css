@@ -4,7 +4,7 @@
 
 /* Google Fonts removed for offline support — system font fallback */
 /* 'Outfit' replaced with clean system sans-serif stack */
-@import url('ui/libs/fonts/outfit.css') screen; /* optional: add local font file later */
+/* @import url('ui/libs/fonts/outfit.css') screen; — commented out because local fonts are optional and file does not exist */
 
 :root {
   --bg-base:       #0a0a12;

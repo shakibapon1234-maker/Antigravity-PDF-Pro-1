@@ -645,6 +645,14 @@ function handlePageMouseDown(e, container, viewport, page) {
             startMoveAreaSelection(e, container);
             isSelecting = true;
         }
+    } else if (activeTool === 'highlight') {
+        if (typeof handleHighlightMouseDown === 'function') {
+            handleHighlightMouseDown(e, container);
+        }
+    } else if (activeTool === 'redact') {
+        if (typeof handleRedactMouseDown === 'function') {
+            handleRedactMouseDown(e, container);
+        }
     }
 }
 
