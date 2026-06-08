@@ -669,6 +669,12 @@ function handlePageMouseMove(e, container) {
         const rect = container.getBoundingClientRect();
         const cx = e.clientX - rect.left;
         const cy = e.clientY - rect.top;
+        if (!window._dragSnapshotCaptured) {
+            window._dragSnapshotCaptured = true;
+            if (typeof captureUndoSnapshot === 'function') {
+                captureUndoSnapshot('Move text');
+            }
+        }
         dragTarget.style.left = `${parseFloat(dragTarget.style.left) + (cx - dragStartX)}px`;
         dragTarget.style.top  = `${parseFloat(dragTarget.style.top)  + (cy - dragStartY)}px`;
         dragStartX = cx;
@@ -1298,6 +1304,7 @@ function startDragging(e, target) {
     const rect  = cont.getBoundingClientRect();
     dragStartX  = e.clientX - rect.left;
     dragStartY  = e.clientY - rect.top;
+    window._dragSnapshotCaptured = false;
     e.stopPropagation();
 }
 

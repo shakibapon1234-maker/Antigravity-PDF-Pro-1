@@ -13,23 +13,26 @@ const MultiExport = (() => {
 
     const modal = document.createElement('div');
     modal.id = 'multi-export-modal';
-    modal.className = 'modal-overlay hidden';
+    modal.className = 'archive-modal';
+    modal.style.display = 'none';
     modal.innerHTML = `
-      <div class="modal-box multi-export-box">
-        <div class="modal-header">
-          <i data-lucide="share-2"></i>
-          <h3>Multi-Format Export</h3>
-          <button class="btn-icon modal-close-btn"><i data-lucide="x"></i></button>
+      <div class="archive-panel multi-export-box" style="background: var(--bg-surface); border: 1px solid var(--primary-glow); border-radius: 12px; padding: 24px; max-width: 540px; width: 90%;">
+        <div class="archive-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <i data-lucide="share-2" style="color: var(--primary); width: 22px; height: 22px;"></i>
+            <h3 style="color: #fff; font-size: 20px; font-weight: 700; margin: 0;">Multi-Format Export</h3>
+          </div>
+          <button class="modal-close-btn" style="background: transparent; border: none; color: #fff; cursor: pointer; font-size: 24px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">&times;</button>
         </div>
 
-        <div class="multi-export-file-info" id="multi-export-file-info">
+        <div class="multi-export-file-info" id="multi-export-file-info" style="margin-bottom: 15px;">
           <i data-lucide="file-text"></i>
           <span id="multi-export-filename">No file loaded</span>
         </div>
 
-        <p class="multi-export-hint">নিচে থেকে যে format গুলো চান সেগুলো select করুন:</p>
+        <p class="multi-export-hint" style="margin-bottom: 15px;">নিচে থেকে যে format গুলো চান সেগুলো select করুন:</p>
 
-        <div class="multi-export-options">
+        <div class="multi-export-options" style="margin-bottom: 15px;">
           <label class="export-option-card">
             <input type="checkbox" name="export-format" value="pdf" checked>
             <div class="export-option-icon"><i data-lucide="file-text"></i></div>
@@ -76,7 +79,7 @@ const MultiExport = (() => {
           </label>
         </div>
 
-        <div class="multi-export-image-opts" id="multi-export-image-opts" style="display:none">
+        <div class="multi-export-image-opts" id="multi-export-image-opts" style="display:none; margin-bottom: 15px;">
           <label>Image Quality:
             <select id="multi-export-img-quality">
               <option value="0.95">High (95%)</option>
@@ -97,16 +100,16 @@ const MultiExport = (() => {
           </label>
         </div>
 
-        <div class="multi-export-progress" id="multi-export-progress" style="display:none">
+        <div class="multi-export-progress" id="multi-export-progress" style="display:none; margin-bottom: 15px;">
           <div class="progress-bar-track">
             <div class="progress-bar-fill" id="multi-export-progress-bar" style="width:0%"></div>
           </div>
           <span id="multi-export-progress-text">Exporting...</span>
         </div>
 
-        <div class="modal-actions">
-          <button class="btn-secondary" id="multi-export-cancel-btn">Cancel</button>
-          <button class="btn-primary" id="multi-export-go-btn">
+        <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+          <button class="btn btn-outline" id="multi-export-cancel-btn">Cancel</button>
+          <button class="btn btn-primary" id="multi-export-go-btn" style="display: flex; align-items: center; gap: 8px;">
             <i data-lucide="download"></i> Export Selected
           </button>
         </div>
@@ -128,7 +131,7 @@ const MultiExport = (() => {
     modal.querySelectorAll('input[name="export-format"]').forEach(cb => {
       cb.addEventListener('change', () => {
         const imagesChecked = modal.querySelector('input[value="images"]').checked;
-        document.getElementById('multi-export-image-opts').style.display = imagesChecked ? 'block' : 'none';
+        document.getElementById('multi-export-image-opts').style.display = imagesChecked ? 'flex' : 'none';
       });
     });
   }
@@ -343,14 +346,16 @@ ${body}
       currentFile = file;
       document.getElementById('multi-export-filename').textContent = file.name;
     }
-    document.getElementById('multi-export-modal').classList.remove('hidden');
+    const modal = document.getElementById('multi-export-modal');
+    if (modal) modal.style.display = 'flex';
     document.getElementById('multi-export-progress').style.display = 'none';
     document.getElementById('multi-export-progress-bar').style.width = '0%';
     if (window.lucide) window.lucide.createIcons();
   }
 
   function hide() {
-    document.getElementById('multi-export-modal')?.classList.add('hidden');
+    const modal = document.getElementById('multi-export-modal');
+    if (modal) modal.style.display = 'none';
   }
 
   function setFile(file) {

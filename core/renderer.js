@@ -244,6 +244,11 @@ async function renderPage(pdf, pageNum) {
             window.restoreImagesToDom(pageWrapper);
         }
 
+        // ── Form Fields পুনরুদ্ধার ───────────────────────────────────────
+        if (typeof restoreFormFieldsToDom === 'function') {
+            restoreFormFieldsToDom(pageWrapper);
+        }
+
         // bg canvas cache রিসেট
         _bgCanvasCache = null;
 

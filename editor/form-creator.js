@@ -175,8 +175,15 @@ function _makeFieldDraggableAndResizable(el, resizeHandle, field, pageWrapper) {
         startW  = el.offsetWidth;
         startH  = el.offsetHeight;
         
+        let snapshotCaptured = false;
         const onMove = (ev) => {
             if (!isResizing) return;
+            if (!snapshotCaptured) {
+                snapshotCaptured = true;
+                if (typeof captureUndoSnapshot === 'function') {
+                    captureUndoSnapshot('Form field resized');
+                }
+            }
             const newW = Math.max(20, startW + (ev.clientX - startX));
             const newH = Math.max(15, startH + (ev.clientY - startY));
             el.style.width  = `${newW}px`;
@@ -189,9 +196,6 @@ function _makeFieldDraggableAndResizable(el, resizeHandle, field, pageWrapper) {
             isResizing = false;
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
-            if (typeof captureUndoSnapshot === 'function') {
-                captureUndoSnapshot('Form field resized');
-            }
         };
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
@@ -206,11 +210,20 @@ function _makeFieldDraggableAndResizable(el, resizeHandle, field, pageWrapper) {
         startT = parseFloat(el.style.top)  || 0;
         
         let hasDragged = false;
+        let snapshotCaptured = false;
         
         const onMove = (ev) => {
             const dx = ev.clientX - startX;
             const dy = ev.clientY - startY;
-            if (Math.abs(dx) > 2 || Math.abs(dy) > 2) hasDragged = true;
+            if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+                hasDragged = true;
+                if (!snapshotCaptured) {
+                    snapshotCaptured = true;
+                    if (typeof captureUndoSnapshot === 'function') {
+                        captureUndoSnapshot('Form field moved');
+                    }
+                }
+            }
             
             el.style.left = `${startL + dx}px`;
             el.style.top  = `${startT + dy}px`;
@@ -221,11 +234,7 @@ function _makeFieldDraggableAndResizable(el, resizeHandle, field, pageWrapper) {
         const onUp = () => {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
-            if (hasDragged) {
-                if (typeof captureUndoSnapshot === 'function') {
-                    captureUndoSnapshot('Form field moved');
-                }
-            } else {
+            if (!hasDragged) {
                 _selectFormField(field);
             }
         };

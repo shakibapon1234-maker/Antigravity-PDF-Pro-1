@@ -303,7 +303,7 @@
     right.className = 'tb-panel';
 
     right.appendChild(sec('⚡ Edit'));
-    ['btnClearEdits','btnUndo'].forEach(id => {
+    ['btnClearEdits','btnUndo','btnRedo'].forEach(id => {
       const p = makeProxy(id); if (p) right.appendChild(p);
     });
 
