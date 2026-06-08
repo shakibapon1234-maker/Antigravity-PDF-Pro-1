@@ -597,6 +597,7 @@ function restoreEditOnSpan(el, edit, viewport) {
     el.style.minHeight  = `${(edit.height || edit.size) * viewport.scale}px`;
     el.classList.add('modified', 'draggable');
     el.dataset.editId = edit.id || `${edit.page}-${edit.originalX}-${edit.originalY}`;
+    el.style.transform = 'none';
 }
 
 // ════════════════════════════════════════════

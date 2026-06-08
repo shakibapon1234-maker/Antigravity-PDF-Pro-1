@@ -544,6 +544,7 @@ function startEditing(e, originalItem, transform, viewport, page) {
         el.classList.add('modified', 'draggable');
         el.dataset.editId        = editData.id;
         el.style.zIndex          = '9999';
+        el.style.transform       = 'none';
 
         // ── FIX: Insert cover-patch BEHIND el using sampled bgHex color ──
         // Uses solid color or inpainted background patch.
