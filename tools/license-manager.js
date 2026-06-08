@@ -81,7 +81,29 @@ const LicenseManager = (() => {
     }
 
     async function restoreLicenseState() {
-        const license = await getLicenseData();
+        const isDevMode = await window.electronAPI.isDev();
+        let license = await getLicenseData();
+        
+        if (isDevMode) {
+            // Auto-populate default key in development/offline local runs
+            if (!license || !validateLicenseKey(license.key)) {
+                const defaultLicense = {
+                    key: 'AGP-1111-2222-3333',
+                    verifiedOnline: true,
+                    activatedAt: Date.now(),
+                    lastOnlineCheck: Date.now(),
+                };
+                await saveLicenseData(defaultLicense);
+                license = defaultLicense;
+            }
+            if (inputEl && license && license.key) {
+                inputEl.value = license.key;
+            }
+            hideLockScreen();
+            return;
+        }
+
+        // Production Mode (when you package and sell the app)
         if (license && license.key) {
             inputEl.value = license.key;
         }

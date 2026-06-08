@@ -64,6 +64,7 @@ async function loadAndRenderPDF(file, password = '') {
     const reader = new FileReader();
     reader.onload = async function () {
         try {
+            const arrayBufferCopy = this.result.slice(0); // Copy before it gets detached by PDF.js parser
             const typedarray  = new Uint8Array(this.result);
             const loadingTask = pdfjsLib.getDocument({ data: typedarray });
             currentPdfObj = await loadingTask.promise;
@@ -96,7 +97,7 @@ async function loadAndRenderPDF(file, password = '') {
 
             // ── Phase 4: Hook thumbnail sidebar & multi-export ──────────────
             window._currentPdfDoc = currentPdfObj;
-            window._currentFileObj = { name: file.name, arrayBuffer: this.result.slice(0) };
+            window._currentFileObj = { name: file.name, arrayBuffer: arrayBufferCopy };
             if (typeof ThumbnailSidebar !== 'undefined') {
                 ThumbnailSidebar.loadDocument(currentPdfObj);
             }

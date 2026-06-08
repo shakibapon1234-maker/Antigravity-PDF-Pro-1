@@ -4,7 +4,13 @@ const { fork } = require('child_process');
 const fs = require('fs');
 const crypto = require('crypto');
 const log = require('electron-log');
-const { autoUpdater } = require('electron-updater');
+let autoUpdater;
+try {
+  autoUpdater = require('electron-updater').autoUpdater;
+} catch (e) {
+  console.warn('[main] electron-updater module not found. Auto-updates will be disabled.');
+}
+
 
 // ─── Configure Logging ───────────────────────────────────────────────────────
 const logDir = path.join(app.getPath('userData'), '.logs');
@@ -338,6 +344,10 @@ function buildMenu() {
 
 // ─── IPC handlers ─────────────────────────────────────────────────────────────
 function setupAutoUpdater() {
+  if (!autoUpdater) {
+    console.log('[auto-updater] Skipping auto-update because electron-updater module is not installed');
+    return;
+  }
   if (isDev || !app.isPackaged) {
     console.log('[auto-updater] Skipping auto-update in development/unpackaged mode');
     return;
@@ -411,7 +421,7 @@ function handleUpdateDownloaded(info) {
 
 function manualCheckForUpdates() {
   if (!mainWindow) return;
-  if (isDev || !app.isPackaged) {
+  if (!autoUpdater || isDev || !app.isPackaged) {
     dialog.showMessageBox(mainWindow, {
       type: 'info',
       title: 'Check for Updates',
@@ -446,6 +456,9 @@ function setupIPC() {
 
   // Get app version
   ipcMain.handle('get-version', () => app.getVersion());
+
+  // Check if running in development mode
+  ipcMain.handle('is-dev', () => isDev || !app.isPackaged);
 
   // Get app path (for archive directory)
   ipcMain.handle('get-app-path', () => {

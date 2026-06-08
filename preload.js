@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Get app version string
   getVersion: () => ipcRenderer.invoke('get-version'),
 
+  // Check if running in development mode
+  isDev: () => ipcRenderer.invoke('is-dev'),
+
   // Get archive directory path
   getAppPath: () => ipcRenderer.invoke('get-app-path'),
 
