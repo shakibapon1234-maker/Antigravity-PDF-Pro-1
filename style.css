@@ -2143,3 +2143,430 @@ body.light-theme .sig-tab.active {
   border: 1px solid rgba(147, 51, 234, 0.3);
 }
 
+/* =====================================================================
+   Antigravity PDF Pro — Phase 4 Styles
+   ===================================================================== */
+
+/* ─── Thumbnail Sidebar ─────────────────────────────────────────────── */
+.thumb-sidebar {
+  width: 140px;
+  min-width: 140px;
+  height: 100%;
+  background: var(--sidebar-bg, #1e1e2e);
+  border-right: 1px solid var(--border, #333);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.25s ease, opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.thumb-sidebar.hidden {
+  width: 0;
+  min-width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.thumb-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #888);
+  border-bottom: 1px solid var(--border, #333);
+  gap: 6px;
+}
+
+.thumb-sidebar-header i { width: 14px; height: 14px; }
+
+.thumb-sidebar-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border, #444) transparent;
+}
+
+.thumb-tile {
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.15s, transform 0.1s;
+  background: var(--card-bg, #252535);
+}
+
+.thumb-tile:hover { border-color: var(--accent, #6c63ff); transform: scale(1.02); }
+.thumb-tile.active { border-color: var(--accent, #6c63ff); box-shadow: 0 0 0 2px rgba(108,99,255,0.4); }
+
+.thumb-canvas-wrap {
+  width: 100%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
+.thumb-canvas { width: 100%; display: block; }
+
+.thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 80px;
+}
+
+.thumb-spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border, #444);
+  border-top-color: var(--accent, #6c63ff);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.thumb-label {
+  padding: 4px 6px;
+  font-size: 10px;
+  color: var(--text-muted, #888);
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+}
+
+.thumb-total { opacity: 0.5; }
+
+.thumb-empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px; padding: 20px;
+  color: var(--text-muted, #888); font-size: 12px; text-align: center;
+}
+
+/* ─── Find & Replace ─────────────────────────────────────────────────── */
+.find-replace-panel {
+  position: fixed;
+  top: 80px; right: 20px;
+  width: 380px;
+  background: var(--card-bg, #252535);
+  border: 1px solid var(--border, #333);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  z-index: 9000;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.find-replace-panel.hidden {
+  opacity: 0; pointer-events: none; transform: translateY(-10px);
+}
+
+.find-replace-header {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 600;
+  color: var(--text-primary, #eee);
+}
+
+.find-replace-header i { width: 16px; height: 16px; color: var(--accent, #6c63ff); }
+.find-replace-header .find-close-btn { margin-left: auto; }
+
+.find-replace-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.find-replace-row label:first-child {
+  font-size: 12px; color: var(--text-muted, #888);
+  min-width: 50px; flex-shrink: 0;
+}
+
+.find-input-wrap {
+  position: relative; flex: 1;
+}
+
+.find-input-wrap input,
+.find-replace-row > input[type="text"] {
+  width: 100%;
+  background: var(--input-bg, #1a1a2e);
+  border: 1px solid var(--border, #444);
+  border-radius: 6px;
+  color: var(--text-primary, #eee);
+  padding: 7px 30px 7px 10px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.find-input-wrap input:focus,
+.find-replace-row > input:focus {
+  border-color: var(--accent, #6c63ff);
+}
+
+#find-clear-btn {
+  position: absolute; right: 4px; top: 50%;
+  transform: translateY(-50%);
+  padding: 2px;
+}
+
+.find-options {
+  display: flex; gap: 6px; align-items: center;
+  flex-shrink: 0;
+}
+
+.find-options label {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 600;
+  color: var(--text-muted, #888);
+  cursor: pointer;
+  padding: 3px 6px;
+  border: 1px solid var(--border, #444);
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.find-options label:has(input:checked) {
+  background: var(--accent, #6c63ff);
+  color: #fff; border-color: var(--accent, #6c63ff);
+}
+
+.find-options input[type="checkbox"] { display: none; }
+
+.find-replace-btn-group { display: flex; gap: 6px; flex-shrink: 0; }
+
+.find-nav-row {
+  display: flex; align-items: center; gap: 8px;
+}
+
+#find-count {
+  font-size: 12px; color: var(--text-muted, #888); flex: 1; text-align: center;
+}
+
+.find-replace-log {
+  max-height: 80px; overflow-y: auto;
+  background: var(--input-bg, #1a1a2e);
+  border-radius: 6px; padding: 6px 8px;
+}
+
+.find-log-entry {
+  font-size: 11px; color: #7ec8a0; padding: 2px 0;
+}
+
+.find-highlight-canvas {
+  position: absolute; top: 0; left: 0; pointer-events: none; z-index: 200;
+}
+
+/* ─── PDF Compare Panel ──────────────────────────────────────────────── */
+#compare-panel {
+  position: fixed; inset: 0;
+  background: var(--bg, #12121f);
+  z-index: 8000;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.compare-header {
+  display: flex; align-items: center; gap: 10px;
+}
+
+.compare-header h3 {
+  font-size: 18px; font-weight: 700;
+  color: var(--text-primary, #eee);
+  display: flex; align-items: center; gap: 8px; margin: 0;
+}
+
+.close-compare-btn { margin-left: auto; }
+
+.compare-drop-zone-row {
+  display: flex; gap: 16px; align-items: stretch;
+}
+
+.compare-drop-zone {
+  flex: 1;
+  border: 2px dashed var(--border, #444);
+  border-radius: 10px;
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  background: var(--card-bg, #1e1e2e);
+}
+
+.compare-drop-zone:hover, .compare-drop-zone.drag-over {
+  border-color: var(--accent, #6c63ff);
+  background: rgba(108,99,255,0.08);
+}
+
+.compare-drop-zone.loaded { border-color: #4ade80; border-style: solid; }
+
+.compare-drop-zone i { width: 32px; height: 32px; color: var(--text-muted, #888); }
+.compare-drop-zone p { font-size: 12px; font-weight: 600; color: var(--text-muted, #888); margin: 0; }
+
+.compare-filename {
+  font-size: 11px; color: var(--accent, #6c63ff);
+  max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.compare-vs-badge {
+  align-self: center; flex-shrink: 0;
+  background: var(--accent, #6c63ff);
+  color: #fff; font-size: 11px; font-weight: 700;
+  padding: 6px 10px; border-radius: 20px;
+}
+
+.compare-controls {
+  display: flex; align-items: center; gap: 16px;
+}
+
+.compare-toggle-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--text-muted, #888); cursor: pointer;
+}
+
+.compare-status { display: flex; gap: 12px; }
+
+.stat-badge {
+  padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+}
+
+.stat-badge.added { background: rgba(74,222,128,0.2); color: #4ade80; }
+.stat-badge.removed { background: rgba(248,113,113,0.2); color: #f87171; }
+.stat-badge.pages { background: rgba(108,99,255,0.2); color: var(--accent, #6c63ff); }
+
+.compare-nav {
+  display: flex; align-items: center; gap: 12px; justify-content: center;
+}
+
+#compare-page-indicator { font-size: 13px; color: var(--text-muted, #888); min-width: 80px; text-align: center; }
+
+.compare-canvas-row {
+  display: flex; gap: 12px; overflow-x: auto;
+  flex: 1; min-height: 0;
+}
+
+.compare-canvas-wrap, .compare-diff-overlay-wrap {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;
+}
+
+.compare-label {
+  font-size: 11px; font-weight: 600; color: var(--text-muted, #888);
+  text-align: center; text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+.compare-canvas-wrap canvas, .compare-diff-overlay-wrap canvas {
+  width: 100%; height: auto;
+  border: 1px solid var(--border, #333); border-radius: 6px;
+  background: #fff;
+}
+
+.compare-loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 40px;
+}
+
+.compare-loading p { font-size: 14px; color: var(--text-muted, #888); }
+
+/* ─── Multi Export Modal ─────────────────────────────────────────────── */
+.multi-export-box {
+  width: 540px;
+  max-width: 96vw;
+}
+
+.multi-export-file-info {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  background: var(--input-bg, #1a1a2e);
+  border-radius: 8px; border: 1px solid var(--border, #333);
+  font-size: 13px; color: var(--text-primary, #eee);
+}
+
+.multi-export-file-info i { width: 16px; height: 16px; color: var(--accent, #6c63ff); flex-shrink: 0; }
+
+#multi-export-filename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.multi-export-hint { font-size: 12px; color: var(--text-muted, #888); margin: 0; }
+
+.multi-export-options {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.export-option-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border: 2px solid var(--border, #333);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--card-bg, #1e1e2e);
+}
+
+.export-option-card:hover { border-color: var(--accent, #6c63ff); }
+
+.export-option-card:has(input:checked) {
+  border-color: var(--accent, #6c63ff);
+  background: rgba(108,99,255,0.1);
+}
+
+.export-option-card input[type="checkbox"] { display: none; }
+
+.export-option-icon i { width: 22px; height: 22px; color: var(--accent, #6c63ff); }
+
+.export-option-info strong { display: block; font-size: 13px; color: var(--text-primary, #eee); }
+.export-option-info small { font-size: 11px; color: var(--text-muted, #888); }
+
+.multi-export-image-opts {
+  background: var(--input-bg, #1a1a2e);
+  border-radius: 8px; padding: 12px 14px;
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  font-size: 12px; color: var(--text-muted, #888);
+}
+
+.multi-export-image-opts label { display: flex; align-items: center; gap: 6px; }
+
+.multi-export-image-opts select {
+  background: var(--card-bg, #252535);
+  border: 1px solid var(--border, #444);
+  border-radius: 4px; color: var(--text-primary, #eee);
+  padding: 3px 6px; font-size: 12px;
+}
+
+/* ─── Shared ─────────────────────────────────────────────────────────── */
+.btn-sm {
+  padding: 6px 12px; font-size: 12px;
+  border-radius: 6px; border: 1px solid var(--border, #444);
+  background: var(--card-bg, #252535);
+  color: var(--text-primary, #eee);
+  cursor: pointer; transition: all 0.15s;
+}
+
+.btn-sm:hover { background: var(--accent, #6c63ff); border-color: var(--accent, #6c63ff); color: #fff; }
+.btn-sm:disabled { opacity: 0.4; cursor: not-allowed; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Toolbar buttons for Phase 4 ───────────────────────────────────── */
+.toolbar-phase4-group {
+  display: flex; align-items: center; gap: 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--border, #333);
+  margin-left: 4px;
+}

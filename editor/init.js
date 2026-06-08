@@ -612,3 +612,16 @@ function initEventListeners() {
     console.log('Antigravity PDF Editor ready.');
 
 } // end initEventListeners
+
+// ── Phase 4: Global goToPage — thumbnail sidebar uses this ───────────────────
+window.goToPage = function(pageNum) {
+    if (!currentPdfObj) return;
+    if (pageNum < 1 || pageNum > totalPages) return;
+    currentPageNum = pageNum;
+    renderPage(currentPdfObj, currentPageNum);
+};
+
+// Listen for thumbnail click events
+document.addEventListener('thumbnail:goToPage', (e) => {
+    if (e.detail && e.detail.page) window.goToPage(e.detail.page);
+});

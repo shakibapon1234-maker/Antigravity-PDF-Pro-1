@@ -572,6 +572,33 @@
                                             <button id="btnShapeMenuLine" style="display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px; background: transparent; border: none; color: #fff; border-radius: 4px; cursor: pointer; text-align: left; font-family: 'Outfit';"><i data-lucide="minus" style="width: 14px;"></i> Line</button>
                                         </div>
                                     </div>
+
+                                    <!-- ═══ Phase 4 Buttons ═══ -->
+                                    <div class="v-separator"></div>
+                                    <button class="btn-tool" id="btnToggleThumbs" title="Page Thumbnails Sidebar — পেজের ছোট preview দেখুন"
+                                        style="background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(79,70,229,0.08));border:1px solid rgba(99,102,241,0.35);color:#818cf8;"
+                                        onclick="if(window.ThumbnailSidebar) ThumbnailSidebar.toggle();">
+                                        <i data-lucide="layout-list"></i>
+                                        <span class="tool-label">Thumbs</span>
+                                    </button>
+                                    <button class="btn-tool" id="btnFindReplace" title="Find &amp; Replace — টেক্সট খুঁজুন (Ctrl+F)"
+                                        style="background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(5,150,105,0.08));border:1px solid rgba(16,185,129,0.35);color:#34d399;"
+                                        onclick="if(window.FindReplace) FindReplace.toggle(window._currentPdfDoc);">
+                                        <i data-lucide="search"></i>
+                                        <span class="tool-label">Find</span>
+                                    </button>
+                                    <button class="btn-tool" id="btnMultiExport" title="Multi-Format Export — একসাথে একাধিক format এ export করুন"
+                                        style="background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(217,119,6,0.08));border:1px solid rgba(245,158,11,0.35);color:#fbbf24;"
+                                        onclick="if(window.MultiExport && window._currentFileObj) MultiExport.open(window._currentFileObj); else if(window.showToast) showToast('আগে PDF লোড করুন','warning');">
+                                        <i data-lucide="share-2"></i>
+                                        <span class="tool-label">Export</span>
+                                    </button>
+                                    <button class="btn-tool" id="btnPdfCompare" title="Compare PDFs — দুটো PDF এর পার্থক্য দেখুন"
+                                        style="background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(220,38,38,0.08));border:1px solid rgba(239,68,68,0.35);color:#f87171;"
+                                        onclick="if(window.PdfCompare) PdfCompare.openTool();">
+                                        <i data-lucide="git-compare"></i>
+                                        <span class="tool-label">Compare</span>
+                                    </button>
                                 </div>
                                 
                                 <div class="action-controls d-flex gap-2">
@@ -2025,6 +2052,12 @@
     <script src="ui/progress.js"></script>
     <script src="ui/settings.js"></script>
     <script src="tools/license-manager.js"></script>
+
+    <!-- Phase 4 — নতুন ফিচার -->
+    <script src="tools/thumbnail-sidebar.js"></script>
+    <script src="tools/find-replace.js"></script>
+    <script src="tools/pdf-compare.js"></script>
+    <script src="tools/multi-export.js"></script>
 
     
     <!-- License Activation Screen -->

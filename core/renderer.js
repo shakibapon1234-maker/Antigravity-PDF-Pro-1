@@ -93,6 +93,19 @@ async function loadAndRenderPDF(file, password = '') {
             if (typeof window.loadPageNumbersPdf === 'function') {
                 window.loadPageNumbersPdf(file);
             }
+
+            // ── Phase 4: Hook thumbnail sidebar & multi-export ──────────────
+            window._currentPdfDoc = currentPdfObj;
+            window._currentFileObj = { name: file.name, arrayBuffer: this.result.slice(0) };
+            if (typeof ThumbnailSidebar !== 'undefined') {
+                ThumbnailSidebar.loadDocument(currentPdfObj);
+            }
+            if (typeof FindReplace !== 'undefined') {
+                FindReplace.setDocument(currentPdfObj);
+            }
+            if (typeof MultiExport !== 'undefined') {
+                MultiExport.setFile(window._currentFileObj);
+            }
         } catch (err) {
             alert('Could not load PDF: ' + err.message);
         }
@@ -594,4 +607,11 @@ function updatePageIndicator() {
     const zi = document.getElementById('zoomIndicator');
     if (pi) pi.textContent = `Page ${currentPageNum} of ${totalPages}`;
     if (zi) zi.textContent = `${Math.round(pdfScale * 100)}%`;
+
+    // Phase 4: Update thumbnail sidebar active state
+    if (typeof ThumbnailSidebar !== 'undefined') {
+        ThumbnailSidebar.onEditorPageChange(currentPageNum);
+    }
+    // Phase 4: Dispatch page change event
+    document.dispatchEvent(new CustomEvent('editor:pageChanged', { detail: { page: currentPageNum } }));
 }

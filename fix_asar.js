@@ -1,0 +1,1 @@
+const fs = require('fs'); const file = 'e:/DESKTOP/Antigravity-PDF-Pro-1/Antigravity-PDF-Pro-1/package.json'; let pkg = JSON.parse(fs.readFileSync(file, 'utf8')); pkg.build.asar = true; fs.writeFileSync(file, JSON.stringify(pkg, null, 2));
