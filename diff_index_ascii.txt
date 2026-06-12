@@ -1,0 +1,74 @@
+diff --git a/index.html b/index.html
+index bd6641a..bc411c3 100644
+--- a/index.html
++++ b/index.html
+@@ -773,53 +773,53 @@
+                             <div class="draft-panel-actions" style="display: flex; flex-direction: column; gap: 10px;">
+                                 <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Click elements below to add them to the PDF page as interactive fields:</p>
+                                 
+-                                <button class="btn btn-outline w-100" id="btnAddFormText" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: #fff; cursor: pointer; border-radius: 6px;">
++                                <button class="btn btn-outline w-100" id="btnAddFormText" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid var(--border); background: var(--bg-raised); color: var(--text-dim); cursor: pointer; border-radius: 6px;">
+                                     <i data-lucide="text-cursor-input"></i>
+                                     <span>Text Input Field</span>
+                                 </button>
+-                                <button class="btn btn-outline w-100" id="btnAddFormCheckbox" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: #fff; cursor: pointer; border-radius: 6px;">
++                                <button class="btn btn-outline w-100" id="btnAddFormCheckbox" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid var(--border); background: var(--bg-raised); color: var(--text-dim); cursor: pointer; border-radius: 6px;">
+                                     <i data-lucide="check-square"></i>
+                                     <span>Checkbox Field</span>
+                                 </button>
+-                                <button class="btn btn-outline w-100" id="btnAddFormRadio" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: #fff; cursor: pointer; border-radius: 6px;">
++                                <button class="btn btn-outline w-100" id="btnAddFormRadio" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid var(--border); background: var(--bg-raised); color: var(--text-dim); cursor: pointer; border-radius: 6px;">
+                                     <i data-lucide="circle-dot"></i>
+                                     <span>Radio Button</span>
+                                 </button>
+-                                <button class="btn btn-outline w-100" id="btnAddFormDropdown" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: #fff; cursor: pointer; border-radius: 6px;">
++                                <button class="btn btn-outline w-100" id="btnAddFormDropdown" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid var(--border); background: var(--bg-raised); color: var(--text-dim); cursor: pointer; border-radius: 6px;">
+                                     <i data-lucide="list-ordered"></i>
+                                     <span>Dropdown Selection</span>
+                                 </button>
+-                                <button class="btn btn-outline w-100" id="btnAddFormSignature" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: #fff; cursor: pointer; border-radius: 6px;">
++                                <button class="btn btn-outline w-100" id="btnAddFormSignature" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; width: 100%; border: 1px solid var(--border); background: var(--bg-raised); color: var(--text-dim); cursor: pointer; border-radius: 6px;">
+                                     <i data-lucide="signature"></i>
+                                     <span>Interactive Signature Field</span>
+                                 </button>
+                             </div>
+                             
+-                            <div id="formFieldSettings" class="draft-list-container" style="display:none; padding:15px; border-top:1px solid rgba(255,255,255,0.1); margin-top:15px;">
+-                                <h4 style="margin-bottom:15px; font-family:'Outfit'; color:#fff;">Field Settings</h4>
++                            <div id="formFieldSettings" class="draft-list-container" style="display:none; padding:15px; border-top:1px solid var(--border); margin-top:15px;">
++                                <h4 style="margin-bottom:15px; font-family:'Outfit'; color:var(--text);">Field Settings</h4>
+                                 <input type="hidden" id="settingFieldId">
+                                 
+-                                <label class="form-label" style="display:block; margin-bottom:6px; font-size:12px; color:#aaa;">Field Name (Unique)</label>
+-                                <input type="text" id="settingFieldName" class="form-input" style="width:100%; padding:8px; border-radius:6px; background:#1e1e2f; border:1px solid rgba(255,255,255,0.1); color:#fff; margin-bottom: 15px; box-sizing:border-box;">
++                                <label class="form-label" style="display:block; margin-bottom:6px; font-size:12px; color:var(--text-dim);">Field Name (Unique)</label>
++                                <input type="text" id="settingFieldName" class="form-input" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-raised); border:1px solid var(--border); color:var(--text); margin-bottom: 15px; box-sizing:border-box;">
+                                 
+                                 <div id="settingTextOnly" style="display:none;">
+-                                    <label class="form-label" style="display:block; margin-bottom:6px; font-size:12px; color:#aaa;">Placeholder Text</label>
+-                                    <input type="text" id="settingFieldPlaceholder" class="form-input" style="width:100%; padding:8px; border-radius:6px; background:#1e1e2f; border:1px solid rgba(255,255,255,0.1); color:#fff; margin-bottom: 15px; box-sizing:border-box;">
++                                    <label class="form-label" style="display:block; margin-bottom:6px; font-size:12px; color:var(--text-dim);">Placeholder Text</label>
++                                    <input type="text" id="settingFieldPlaceholder" class="form-input" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-raised); border:1px solid var(--border); color:var(--text); margin-bottom: 15px; box-sizing:border-box;">
+                                 </div>
+                                 
+                                 <div id="settingRadioOnly" style="display:none;">
+-                                    <label class="form-label" style="display:block; margin-bottom:6px; font-size:12px; color:#aaa;">Radio Option Value</label>
+-                                    <input type="text" id="settingFieldRadioValue" class="form-input" style="width:100%; padding:8px; border-radius:6px; background:#1e1e2f; border:1px solid rgba(255,255,255,0.1); color:#fff; margin-bottom: 15px; box-sizing:border-box;">
++                                    <label class="form-label" style="display:block; margin-bottom:6px; font-size:12px; color:var(--text-dim);">Radio Option Value</label>
++                                    <input type="text" id="settingFieldRadioValue" class="form-input" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-raised); border:1px solid var(--border); color:var(--text); margin-bottom: 15px; box-sizing:border-box;">
+                                 </div>
+                                 
+                                 <div id="settingDropdownOnly" style="display:none;">
+-                                    <label class="form-label" style="display:block; margin-bottom:6px; font-size:12px; color:#aaa;">Dropdown Options (Comma separated)</label>
+-                                    <textarea id="settingFieldDropdownOptions" class="form-input" style="width:100%; padding:8px; border-radius:6px; background:#1e1e2f; border:1px solid rgba(255,255,255,0.1); color:#fff; margin-bottom: 15px; height: 80px; box-sizing:border-box; font-family:sans-serif;"></textarea>
++                                    <label class="form-label" style="display:block; margin-bottom:6px; font-size:12px; color:var(--text-dim);">Dropdown Options (Comma separated)</label>
++                                    <textarea id="settingFieldDropdownOptions" class="form-input" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-raised); border:1px solid var(--border); color:var(--text); margin-bottom: 15px; height: 80px; box-sizing:border-box; font-family:sans-serif;"></textarea>
+                                 </div>
+                                 
+                                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px;">
+                                     <input type="checkbox" id="settingFieldRequired">
+-                                    <label for="settingFieldRequired" class="form-label" style="margin-bottom:0; cursor:pointer; font-size:12px; color:#aaa;">Required Field</label>
++                                    <label for="settingFieldRequired" class="form-label" style="margin-bottom:0; cursor:pointer; font-size:12px; color:var(--text-dim);">Required Field</label>
+                                 </div>
+                                 
+                                 <button class="btn btn-primary w-100" id="btnSaveFieldSettings" style="width:100%; padding:10px; background:#0284c7; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; margin-bottom:10px;">Save Settings</button>

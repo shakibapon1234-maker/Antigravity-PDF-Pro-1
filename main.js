@@ -145,6 +145,7 @@ function startServer() {
         ELECTRON_APP: '1',
         APP_ROOT: app.isPackaged ? path.join(process.resourcesPath, 'app') : __dirname,
         USER_DATA_PATH: app.getPath('userData'),
+        QPDF_PATH: app.isPackaged ? path.join(process.resourcesPath, 'bin', 'qpdf.exe') : path.join(__dirname, 'bin', 'qpdf.exe'),
       },
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
     });
@@ -213,6 +214,13 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     if (isDev) mainWindow.webContents.openDevTools();
+  });
+
+  // Redirect renderer logs to main console
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    const levels = ['debug', 'log', 'warning', 'error'];
+    const logType = levels[level] || 'log';
+    console.log(`[renderer][${logType}] (${path.basename(sourceId)}:${line}) ${message}`);
   });
 
   // Handle window title updates

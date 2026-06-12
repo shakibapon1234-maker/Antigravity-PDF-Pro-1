@@ -45,6 +45,9 @@ if (!fs.existsSync(INDEX_FILE)) fs.writeFileSync(INDEX_FILE, JSON.stringify([]))
 // In packaged app: extraResources copies bin/ to resources/bin/
 // In dev: bin/ is next to server.js
 function getQpdfPath() {
+  if (process.env.QPDF_PATH) {
+    return process.env.QPDF_PATH;
+  }
   if (process.env.ELECTRON_APP && require('electron') !== undefined) {
     try {
       const { app: electronApp } = require('electron');

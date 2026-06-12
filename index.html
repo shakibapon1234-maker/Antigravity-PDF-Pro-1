@@ -543,6 +543,10 @@
                                         <i data-lucide="form-input"></i>
                                         <span class="tool-label">Form Fields</span>
                                     </button>
+                                    <button class="btn-tool tool-indigo" id="btnLink" title="Hyperlink — লিংক যোগ করুন">
+                                        <i data-lucide="link"></i>
+                                        <span class="tool-label">Link</span>
+                                    </button>
                                     <div class="v-separator"></div>
                                     <button class="btn-tool" id="btnFreehand" title="Freehand Pencil — স্বাধীনভাবে আঁকুন" style="background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(220,38,38,0.08));border:1px solid rgba(239,68,68,0.3);color:#f87171;">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
@@ -730,6 +734,30 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Hyperlink Modal -->
+                        <div id="linkModal" class="archive-modal" style="display:none; position: fixed; inset: 0; z-index: 9999;">
+                            <div class="archive-panel" style="background: var(--bg-surface); border: 1px solid var(--primary-glow); border-radius: 12px; padding: 30px; max-width: 500px; width: 90%;">
+                                <div class="archive-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                    <h3 id="linkModalTitle" style="color: var(--text); font-size: 20px; font-weight: 700; margin: 0;">হাইপারলিংক যোগ করুন (Add Hyperlink)</h3>
+                                    <button id="btnCloseLinkModal" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 24px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">&times;</button>
+                                </div>
+                                
+                                <div style="display: flex; flex-direction: column; gap: 15px;">
+                                    <div>
+                                        <label style="color: var(--text); font-weight: 600; margin-bottom: 8px; display: block;">ইউআরএল (URL)</label>
+                                        <input type="text" id="linkUrlInput" value="https://" class="form-input" style="width: 100%; padding: 10px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px;">
+                                    </div>
+                                    
+                                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                                        <button id="btnLinkConfirm" class="btn btn-primary" style="flex: 1; padding: 12px; border-radius: 6px; font-weight: 600;">যোগ করুন (Confirm)</button>
+                                        <button id="btnDeleteLink" class="btn btn-danger" style="flex: 1; padding: 12px; border-radius: 6px; font-weight: 600; display: none;">মুছে ফেলুন (Delete)</button>
+                                        <button id="btnCancelLink" class="btn btn-outline" style="flex: 1; padding: 12px; border-radius: 6px; font-weight: 600;">বাতিল (Cancel)</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Draft Panel (Slide-over from right) -->
                         <div id="draftPanelOverlay" class="draft-overlay"></div>
                         <div id="draftPanel" class="draft-panel">
@@ -2081,6 +2109,7 @@
     <script src="editor/signature.js"></script>
     <script src="editor/freehand.js"></script>
     <script src="editor/form-creator.js"></script>
+    <script src="editor/hyperlinks.js"></script>
     <script src="editor/init.js"></script>
 
     <!-- tools/ : PDF টুলসমূহ -->

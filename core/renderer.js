@@ -61,14 +61,18 @@ async function loadAndRenderPDF(file, password = '') {
         }
     }
 
+    console.log('[renderer] loadAndRenderPDF started for file:', file.name, 'isEncrypted:', isEncrypted);
+
     const reader = new FileReader();
     reader.onload = async function () {
         try {
+            console.log('[renderer] FileReader onload triggered. Parsing PDF array buffer...');
             const arrayBufferCopy = this.result.slice(0); // Copy before it gets detached by PDF.js parser
             const typedarray  = new Uint8Array(this.result);
             const loadingTask = pdfjsLib.getDocument({ data: typedarray });
             currentPdfObj = await loadingTask.promise;
             totalPages    = currentPdfObj.numPages;
+            console.log('[renderer] PDF parsed successfully. Total pages:', totalPages);
 
             document.getElementById('editorEmptyState').classList.add('d-none');
             document.getElementById('pdfEditorContainer').classList.remove('d-none');
@@ -84,7 +88,9 @@ async function loadAndRenderPDF(file, password = '') {
             redoHistory  = [];
 
             currentPageNum = 1;
+            console.log('[renderer] Rendering page:', currentPageNum);
             await renderPage(currentPdfObj, currentPageNum);
+            console.log('[renderer] Finished initial page render.');
 
             // ── Initial snapshot: Undo cannot go before this point ──────────
             // This ensures Undo always steps back ONE action at a time and
@@ -121,6 +127,7 @@ async function loadAndRenderPDF(file, password = '') {
 
 async function renderPage(pdf, pageNum) {
     try {
+        console.log('[renderer] renderPage called. Fetching page:', pageNum);
         // Invalidate bg canvas cache — new page means new background
         if (typeof invalidateBgCanvas === 'function') invalidateBgCanvas();
         const page     = await pdf.getPage(pageNum);
@@ -143,8 +150,11 @@ async function renderPage(pdf, pageNum) {
         pageWrapper.appendChild(canvas);
         container.appendChild(pageWrapper);
 
+        console.log('[renderer] Rendering PDF page content onto canvas...');
         await page.render({ canvasContext: context, viewport }).promise;
+        console.log('[renderer] PDF page canvas render complete. Setting up text layer...');
         await setupTextLayer(page, viewport, pageWrapper);
+        console.log('[renderer] Text layer setup complete.');
 
         // ── নতুন যোগ করা টেক্সট আইটেম পুনরুদ্ধার ──────────────────────
         textEdits
@@ -252,7 +262,9 @@ async function renderPage(pdf, pageNum) {
 
         // ── Hyperlinks পুনরুদ্ধার ─────────────────────────────────────────
         if (typeof restoreHyperlinksToDom === 'function') {
+            console.log('[renderer] Restoring hyperlinks...');
             restoreHyperlinksToDom(pageWrapper);
+            console.log('[renderer] Hyperlinks restored.');
         }
 
         // bg canvas cache রিসেট
@@ -266,9 +278,10 @@ async function renderPage(pdf, pageNum) {
         pageWrapper.addEventListener('mouseup',   (e) => handlePageMouseUp(e, pageWrapper));
 
         if (window.lucide) safeCreateIcons();
+        console.log('[renderer] renderPage successfully completed all steps.');
 
     } catch (err) {
-        console.error('Render error:', err);
+        console.error('[renderer] Render error:', err);
     }
 }
 
