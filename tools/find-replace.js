@@ -149,9 +149,12 @@ const FindReplace = (() => {
             page: p,
             text: str.substring(match.start, match.end),
             context: str,
+            matchStart: match.start,
+            matchEnd: match.end,
             // Approximate bounding box from transform
             x: tx[4],
             y: viewport.height - tx[5],
+            originalY: tx[5],
             width: item.width || (match.end - match.start) * (tx[0] || 12),
             height: Math.abs(tx[3]) || 14,
           });

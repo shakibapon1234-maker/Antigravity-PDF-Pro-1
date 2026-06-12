@@ -2394,3 +2394,57 @@ window.finalizeTables = async function() {
     }
 };
 
+// ── Listen for find & replace event ──
+document.addEventListener('findreplace:replace', (e) => {
+    const { result, results, replaceWith, replaceAll } = e.detail;
+
+    if (typeof captureUndoSnapshot === 'function') {
+        captureUndoSnapshot(replaceAll ? 'Replace All' : 'Replace Text');
+    }
+
+    const itemsToReplace = replaceAll ? results : [result];
+
+    itemsToReplace.forEach(r => {
+        const origText = r.context;
+        const start = r.matchStart;
+        const end = r.matchEnd;
+        const newText = origText.substring(0, start) + replaceWith + origText.substring(end);
+
+        const editId = `${r.page}-${r.x}-${r.originalY}`;
+        const editData = {
+            id: editId,
+            page: r.page,
+            isNew: false,
+            originalX: r.x,
+            originalY: r.originalY,
+            originalWidth: r.width,
+            originalHeight: r.height,
+            x: r.x,
+            y: r.originalY,
+            text: newText,
+            size: r.height,
+            color: '#000000',
+            bgHex: 'transparent',
+            bgR: 1, bgG: 1, bgB: 1,
+            font: 'Helvetica',
+            isBold: false,
+            isItalic: false,
+            isUnderline: false,
+            width: r.width,
+            height: r.height
+        };
+
+        const idx = textEdits.findIndex(ed => ed.id === editId);
+        if (idx > -1) {
+            textEdits[idx].text = newText;
+        } else {
+            textEdits.push(editData);
+        }
+    });
+
+    // Re-render current page to apply edits instantly
+    if (typeof renderPage === 'function' && typeof currentPdfObj !== 'undefined') {
+        renderPage(currentPdfObj, currentPageNum);
+    }
+});
+
