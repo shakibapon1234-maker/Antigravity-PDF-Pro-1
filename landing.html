@@ -3,411 +3,1544 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Antigravity PDF Pro</title>
+  
+  <!-- SEO Meta Tags -->
+  <title>Antigravity PDF Pro — Premium 100% Offline PDF Editor & Converter</title>
+  <meta name="description" content="The ultimate desktop PDF editor, converter, and OCR tool for Windows. 100% offline, zero subscriptions, complete privacy. Edit, merge, split, and sign PDFs instantly." />
+  <meta name="keywords" content="pdf editor, offline pdf, convert pdf, pdf to excel, pdf ocr, merge pdf, windows pdf editor, secure pdf, privacy pdf" />
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Gumroad Overlay (Opens purchase window directly on page) -->
+  <script src="https://gumroad.com/js/embed.js"></script>
+
   <style>
     :root {
-      color-scheme: dark;
-      --bg: #060717;
-      --surface: #0f162c;
-      --surface-strong: #17203f;
-      --text: #eef2ff;
-      --muted: #95a0c3;
-      --accent: #5c7cfa;
-      --accent-soft: rgba(92, 124, 250, 0.18);
+      --bg-base: #06060c;
+      --bg-surface: #0e0e1b;
+      --bg-raised: #16162a;
+      
+      --primary: #b829f9;
+      --primary-glow: rgba(184, 41, 249, 0.4);
+      --primary-dark: #8b1fd4;
+      
+      --accent-blue: #00d4ff;
+      --accent-blue-glow: rgba(0, 212, 255, 0.3);
+      --accent-green: #00ff88;
+      --accent-orange: #ff6b2b;
+      --accent-pink: #ff2d92;
+      --accent-cyan: #00ffe5;
+      
+      --text: #ffffff;
+      --text-dim: #c8d0e8;
+      --text-muted: #6a7090;
+      
       --border: rgba(255, 255, 255, 0.08);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      line-height: 1.6;
+      --border-hover: rgba(255, 255, 255, 0.18);
+      --radius-sm: 8px;
+      --radius: 16px;
+      --radius-lg: 24px;
+      --radius-xl: 36px;
+      
+      --shadow-premium: 0 20px 50px rgba(0, 0, 0, 0.5);
+      --font-headings: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
     }
-    * { box-sizing: border-box; }
-    body {
+
+    * {
+      box-sizing: border-box;
       margin: 0;
-      min-height: 100vh;
-      background: radial-gradient(circle at top, rgba(92, 124, 250, 0.16), transparent 28%),
-                  linear-gradient(180deg, #070b18 0%, #060717 100%);
-      color: var(--text);
+      padding: 0;
+      scroll-behavior: smooth;
     }
-    .page {
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-dim);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-base);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg-surface);
+      border: 2px solid var(--bg-base);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--primary);
+    }
+
+    /* Typography */
+    h1, h2, h3, h4 {
+      font-family: var(--font-headings);
+      color: var(--text);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    /* Background Nebula Glow System */
+    .nebula-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .nebula-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(140px);
+      opacity: 0.15;
+      animation: float-slow 25s infinite ease-in-out alternate;
+    }
+
+    .blob-purple {
+      background: var(--primary);
+      width: 600px;
+      height: 600px;
+      top: -200px;
+      left: -200px;
+    }
+
+    .blob-cyan {
+      background: var(--accent-blue);
+      width: 500px;
+      height: 500px;
+      top: 400px;
+      right: -100px;
+      animation-delay: -5s;
+    }
+
+    .blob-pink {
+      background: var(--accent-pink);
+      width: 400px;
+      height: 400px;
+      bottom: 200px;
+      left: 10%;
+      animation-delay: -12s;
+    }
+
+    @keyframes float-slow {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(60px, -40px) scale(1.1); }
+      100% { transform: translate(-30px, 50px) scale(0.95); }
+    }
+
+    /* Layout Container */
+    .container {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 40px 24px 80px;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
     }
+
+    /* Navbar styling */
     header {
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 100;
+      transition: background-color 0.3s;
+    }
+
+    header.scrolled {
+      background-color: rgba(6, 6, 12, 0.85);
+      border-bottom-color: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-wrap {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-      margin-bottom: 48px;
+      height: 80px;
     }
-    .brand {
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--accent);
-    }
-    .nav {
+
+    .brand-logo {
       display: flex;
-      gap: 18px;
-      flex-wrap: wrap;
-    }
-    .nav a {
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 0.96rem;
-    }
-    .hero {
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 40px;
       align-items: center;
+      gap: 12px;
+      text-decoration: none;
     }
-    .hero-copy h1 {
-      margin: 0;
-      font-size: clamp(3rem, 4vw, 4.4rem);
-      letter-spacing: -0.05em;
-      line-height: 0.95;
-    }
-    .hero-copy p {
-      max-width: 640px;
-      color: var(--muted);
-      font-size: 1.05rem;
-      margin: 24px 0 32px;
-    }
-    .hero-actions {
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary), var(--accent-blue), var(--accent-green));
+      background-size: 200% 200%;
+      border-radius: var(--radius-sm);
       display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-    .button,
-    .button-alt {
-      display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 16px 24px;
+      box-shadow: 0 0 20px var(--primary-glow);
+      animation: gradient-rotate 3s ease infinite alternate;
+    }
+
+    @keyframes gradient-rotate {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+
+    .logo-icon svg {
+      width: 22px;
+      height: 22px;
+      color: #fff;
+    }
+
+    .brand-name {
+      font-size: 1.3rem;
+      font-weight: 800;
+      font-family: var(--font-headings);
+      background: linear-gradient(90deg, #fff, var(--text-dim));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-name span {
+      background: linear-gradient(90deg, var(--primary), var(--accent-blue));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-left: 2px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: #fff;
+    }
+
+    .btn-header {
+      background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+      color: #fff;
+      padding: 10px 20px;
       border-radius: 999px;
       font-weight: 600;
-      transition: transform 0.2s ease, background-color 0.2s ease;
+      font-size: 0.9rem;
       text-decoration: none;
+      box-shadow: 0 4px 15px rgba(184, 41, 249, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.2s;
     }
-    .button {
-      background: var(--accent);
-      color: #fff;
-      border: 1px solid transparent;
+
+    .btn-header:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
     }
-    .button:hover { transform: translateY(-1px); }
-    .button-alt {
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--text);
-      border: 1px solid var(--border);
+
+    /* Hero Section */
+    .hero {
+      padding: 180px 0 100px;
+      position: relative;
     }
-    .hero-visual {
-      padding: 28px;
-      background: rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 32px;
-      box-shadow: 0 20px 80px rgba(0,0,0,0.18);
-    }
-    .hero-card {
+
+    .hero-grid {
       display: grid;
-      gap: 18px;
-    }
-    .hero-card .pill {
-      display: inline-flex;
-      gap: 10px;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 60px;
       align-items: center;
-      padding: 12px 16px;
-      border-radius: 999px;
-      background: rgba(92, 124, 250, 0.14);
-      width: fit-content;
-      color: #dbe2ff;
-      font-size: 0.92rem;
     }
-    .hero-card h2 {
-      margin: 0;
-      font-size: 1.15rem;
-    }
-    .hero-card p {
-      margin: 0;
-      color: var(--muted);
-    }
-    .features,
-    .pricing,
-    .cta {
-      margin-top: 72px;
-    }
-    .section-title {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 28px;
-    }
-    .section-title span {
-      min-width: 10px;
-      min-height: 10px;
-      border-radius: 999px;
-      background: var(--accent);
-      display: inline-block;
-    }
-    .section-title h2 {
-      margin: 0;
-      font-size: 2rem;
-    }
-    .grid {
-      display: grid;
-      gap: 24px;
-    }
-    .feature-card,
-    .plan-card {
-      padding: 28px;
-      border-radius: 28px;
-      background: var(--surface-strong);
-      border: 1px solid rgba(255,255,255,0.06);
-      min-height: 220px;
-    }
-    .feature-card .icon,
-    .plan-card .plan-tag {
+
+    .hero-badge {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      width: 48px;
-      height: 48px;
-      border-radius: 16px;
-      background: rgba(92, 124, 250, 0.12);
-      margin-bottom: 18px;
-      color: var(--accent);
-      font-size: 1.2rem;
-    }
-    .feature-card h3,
-    .plan-card h3 {
-      margin: 0 0 12px;
-      font-size: 1.2rem;
-    }
-    .feature-card p,
-    .plan-card p {
-      margin: 0;
-      color: var(--muted);
-    }
-    .feature-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .pricing-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .plan-card {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .plan-price {
-      font-size: 3rem;
-      margin: 0;
-      color: #fff;
-    }
-    .plan-meta {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin: 18px 0;
-    }
-    .plan-meta span {
-      color: var(--muted);
-      font-size: 0.95rem;
-    }
-    .plan-card ul {
-      margin: 20px 0 0;
-      padding-left: 20px;
-      color: var(--muted);
-    }
-    .plan-card li {
-      margin-bottom: 12px;
-    }
-    .badge {
-      display: inline-flex;
-      padding: 8px 14px;
+      gap: 8px;
+      background: rgba(184, 41, 249, 0.1);
+      border: 1px solid rgba(184, 41, 249, 0.3);
+      padding: 6px 16px;
       border-radius: 999px;
-      background: rgba(92, 124, 250, 0.16);
-      color: var(--accent);
+      color: var(--primary);
       font-size: 0.85rem;
       font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 24px;
     }
-    .download-note {
-      color: var(--muted);
-      font-size: 0.96rem;
-      margin-top: 12px;
+
+    .hero-badge span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      display: inline-block;
+      box-shadow: 0 0 8px var(--accent-cyan);
     }
-    footer {
-      margin-top: 84px;
-      padding-top: 34px;
-      border-top: 1px solid rgba(255,255,255,0.08);
+
+    .hero h1 {
+      font-size: clamp(2.8rem, 4.5vw, 4.2rem);
+      line-height: 1.1;
+      margin-bottom: 24px;
+      background: linear-gradient(135deg, #ffffff 60%, var(--text-dim));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(90deg, var(--primary), var(--accent-blue));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-desc {
+      font-size: 1.15rem;
+      color: var(--text-dim);
+      margin-bottom: 36px;
+      max-width: 600px;
+    }
+
+    .cta-group {
       display: flex;
-      justify-content: space-between;
       flex-wrap: wrap;
-      gap: 20px;
-      color: var(--muted);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+      color: #fff;
+      padding: 16px 36px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      box-shadow: 0 10px 25px var(--primary-glow);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 35px rgba(0, 212, 255, 0.5);
+    }
+
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 16px 36px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: all 0.25s;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+    }
+
+    .hero-features-preview {
+      display: flex;
+      gap: 24px;
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+    }
+
+    .preview-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    .preview-item svg {
+      width: 16px;
+      height: 16px;
+      color: var(--accent-green);
+    }
+
+    /* Premium Image Frame */
+    .hero-visual {
+      position: relative;
+    }
+
+    .mockup-wrapper {
+      position: relative;
+      padding: 6px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, rgba(184, 41, 249, 0.3), rgba(0, 212, 255, 0.3));
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.7);
+      animation: float-image 6s infinite ease-in-out alternate;
+    }
+
+    @keyframes float-image {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-12px); }
+    }
+
+    .mockup-inner {
+      background: var(--bg-surface);
+      border-radius: calc(var(--radius-lg) - 4px);
+      padding: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .mockup-inner img {
+      width: 100%;
+      display: block;
+      border-radius: calc(var(--radius-lg) - 8px);
+      transition: filter 0.3s;
+    }
+
+    /* Spinning border light overlay */
+    .glow-border-active {
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg, transparent 60%, var(--accent-blue) 80%, var(--primary) 100%);
+      animation: spin-conic 4s linear infinite;
+      z-index: 0;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    @keyframes spin-conic {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Comparison Section */
+    .comparison-section {
+      padding: 80px 0;
+      background: linear-gradient(180deg, transparent, rgba(14, 14, 27, 0.4), transparent);
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .section-header h2 {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+    }
+
+    .section-header p {
+      color: var(--text-dim);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .comparison-card {
+      background: rgba(14, 14, 27, 0.65);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      box-shadow: var(--shadow-premium);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .comp-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+    }
+
+    .comp-column h3 {
+      font-size: 1.4rem;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .comp-column.pro h3 {
+      color: var(--accent-green);
+    }
+
+    .comp-column.cloud h3 {
+      color: var(--accent-pink);
+    }
+
+    .comp-list {
+      list-style: none;
+    }
+
+    .comp-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .comp-list li:last-child {
+      border-bottom: none;
+    }
+
+    .comp-list li svg {
+      width: 20px;
+      height: 20px;
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+
+    .comp-list.pro svg {
+      color: var(--accent-green);
+    }
+
+    .comp-list.cloud svg {
+      color: var(--accent-pink);
+    }
+
+    .comp-text h4 {
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    .comp-text p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    /* Core Features Grid */
+    .features {
+      padding: 80px 0;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: rgba(14, 14, 27, 0.45);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: var(--card-glow, var(--primary));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--card-glow, var(--primary));
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4),
+                  inset 0 0 15px rgba(255, 255, 255, 0.02);
+    }
+
+    .feature-card:hover::before {
+      opacity: 1;
+    }
+
+    .feature-icon-box {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--card-glow, var(--primary));
+      margin-bottom: 24px;
+      transition: transform 0.3s;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .feature-card:hover .feature-icon-box {
+      transform: scale(1.1) rotate(3deg);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .feature-icon-box svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .feature-card h3 {
+      font-size: 1.25rem;
+      margin-bottom: 12px;
+    }
+
+    .feature-card p {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    /* Set custom colors for features matching sidebar colors */
+    .f-editor { --card-glow: var(--accent-cyan); }
+    .f-compare { --card-glow: var(--accent-pink); }
+    .f-ocr { --card-glow: var(--accent-green); }
+    .f-converters { --card-glow: var(--primary); }
+    .f-security { --card-glow: var(--accent-orange); }
+    .f-organizer { --card-glow: var(--accent-blue); }
+
+    /* stats strip */
+    .stats-strip {
+      background: linear-gradient(90deg, rgba(184, 41, 249, 0.1), rgba(0, 212, 255, 0.1));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      margin: 80px auto;
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 32px;
+      text-align: center;
+    }
+
+    .stat-item h3 {
+      font-size: 2.8rem;
+      line-height: 1;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--primary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+
+    .stat-item p {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    /* Pricing Section */
+    .pricing {
+      padding: 80px 0;
+      position: relative;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      align-items: stretch;
+    }
+
+    .price-card {
+      background: rgba(14, 14, 27, 0.5);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: all 0.3s;
+      overflow: hidden;
+    }
+
+    .price-card.featured {
+      background: linear-gradient(180deg, rgba(184, 41, 249, 0.1) 0%, rgba(14, 14, 27, 0.8) 100%);
+      border-color: var(--primary);
+      box-shadow: 0 25px 60px rgba(184, 41, 249, 0.2);
+      transform: translateY(-8px);
+    }
+
+    .price-card.featured::after {
+      content: 'BEST CHOICE';
+      position: absolute;
+      top: 24px;
+      right: -32px;
+      background: linear-gradient(90deg, var(--accent-pink), var(--primary));
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 6px 36px;
+      transform: rotate(45deg);
+      letter-spacing: 0.08em;
+    }
+
+    .price-header h3 {
+      font-size: 1.4rem;
+      margin-bottom: 8px;
+    }
+
+    .price-tag {
+      margin: 24px 0;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .price-num {
+      font-size: 3.2rem;
+      font-weight: 800;
+      color: #fff;
+      font-family: var(--font-headings);
+      line-height: 1;
+    }
+
+    .price-num.crossed {
+      font-size: 1.8rem;
+      color: var(--text-muted);
+      text-decoration: line-through;
+      margin-right: 4px;
+    }
+
+    .price-period {
+      color: var(--text-dim);
       font-size: 0.95rem;
     }
-    @media (max-width: 900px) {
-      .hero { grid-template-columns: 1fr; }
-      .feature-grid,
-      .pricing-grid { grid-template-columns: 1fr; }
-      .hero-copy, .hero-visual { width: 100%; }
+
+    .price-features {
+      list-style: none;
+      margin: 32px 0;
+      flex-grow: 1;
+    }
+
+    .price-features li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      font-size: 0.92rem;
+      color: var(--text-dim);
+    }
+
+    .price-features li svg {
+      width: 18px;
+      height: 18px;
+      color: var(--accent-blue);
+      flex-shrink: 0;
+    }
+
+    .price-card.featured .price-features li svg {
+      color: var(--accent-green);
+    }
+
+    .btn-buy {
+      width: 100%;
+      text-align: center;
+      padding: 14px;
+      border-radius: 10px;
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+
+    .btn-buy.primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(184, 41, 249, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-buy.primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
+    }
+
+    .btn-buy.outline {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-buy.outline:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--border-hover);
+    }
+
+    .pricing-note {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    /* FAQ Section */
+    .faq {
+      padding: 80px 0;
+    }
+
+    .faq-grid {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .faq-item {
+      background: rgba(14, 14, 27, 0.4);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .faq-item:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      background: rgba(14, 14, 27, 0.6);
+    }
+
+    .faq-question {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .faq-question h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .faq-toggle {
+      width: 24px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s;
+      flex-shrink: 0;
+    }
+
+    .faq-toggle svg {
+      width: 14px;
+      height: 14px;
+      color: var(--text-dim);
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s cubic-bezier(0, 1, 0, 1);
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      margin-top: 0;
+    }
+
+    .faq-item.active {
+      border-color: var(--primary-glow);
+    }
+
+    .faq-item.active .faq-toggle {
+      transform: rotate(180deg);
+      background: var(--primary);
+    }
+
+    .faq-item.active .faq-toggle svg {
+      color: #fff;
+    }
+
+    .faq-item.active .faq-answer {
+      max-height: 200px;
+      margin-top: 14px;
+      transition: max-height 0.3s cubic-bezier(1, 0, 1, 0);
+    }
+
+    /* Call to Action Section */
+    .download-cta {
+      padding: 100px 0;
+      position: relative;
+    }
+
+    .cta-card {
+      background: radial-gradient(circle at top right, rgba(184, 41, 249, 0.15), transparent 60%),
+                  radial-gradient(circle at bottom left, rgba(0, 212, 255, 0.1), transparent 60%),
+                  var(--bg-surface);
+      border: 1px solid rgba(184, 41, 249, 0.3);
+      border-radius: var(--radius-xl);
+      padding: 60px;
+      text-align: center;
+      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-card::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--primary), var(--accent-blue), transparent);
+    }
+
+    .cta-card h2 {
+      font-size: 2.8rem;
+      margin-bottom: 20px;
+    }
+
+    .cta-card p {
+      color: var(--text-dim);
+      font-size: 1.15rem;
+      max-width: 650px;
+      margin: 0 auto 40px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    /* Footer styling */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 60px 0 40px;
+      background-color: #040409;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr;
+      gap: 60px;
+      margin-bottom: 40px;
+    }
+
+    .footer-brand h3 {
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+
+    .footer-brand p {
+      margin-bottom: 20px;
+      max-width: 300px;
+    }
+
+    .footer-links h4 {
+      color: #fff;
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .footer-links ul {
+      list-style: none;
+    }
+
+    .footer-links li {
+      margin-bottom: 12px;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: #fff;
+    }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 40px;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 992px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 48px;
+      }
+      
+      .hero-desc {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .cta-group, .hero-features-preview {
+        justify-content: center;
+      }
+
+      .comp-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+
+      .pricing-grid {
+        grid-template-columns: 1fr;
+        max-width: 500px;
+        margin: 0 auto;
+      }
+
+      .price-card.featured {
+        transform: none;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="page">
-    <header>
-      <div class="brand">Antigravity PDF Pro</div>
-      <nav class="nav">
+
+  <!-- Background Glow -->
+  <div class="nebula-container">
+    <div class="nebula-blob blob-purple"></div>
+    <div class="nebula-blob blob-cyan"></div>
+    <div class="nebula-blob blob-pink"></div>
+  </div>
+
+  <!-- Header -->
+  <header id="header">
+    <div class="container nav-wrap">
+      <a href="#" class="brand-logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <circle cx="10" cy="13" r="2"></circle>
+            <path d="m14 17-3-3"></path>
+          </svg>
+        </div>
+        <div class="brand-name">Antigravity<span>PDF</span></div>
+      </a>
+      
+      <nav class="nav-links">
+        <a href="#why-us">Why Offline</a>
         <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
-        <a href="#download">Download</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://gumroad.com/l/antigravity-pdf-pro" class="btn-header gumroad-button">Buy Now</a>
       </nav>
-    </header>
+    </div>
+  </header>
 
-    <section class="hero">
-      <div class="hero-copy">
-        <div class="brand">next-gen PDF toolkit</div>
-        <h1>Fast, offline-ready PDF editing and conversion for Windows.</h1>
-        <p>Open, edit, merge, convert and protect PDFs with a powerful desktop app built for business users. No cloud dependency required.</p>
-        <div class="hero-actions">
-          <a class="button" href="#download">Download Now</a>
-          <a class="button-alt" href="#features">See Features</a>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span></span> 100% Offline Desktop Client
+        </div>
+        
+        <h1>Fast, Secure PDF Editing <span>Without Subscriptions.</span></h1>
+        
+        <p class="hero-desc">
+          The premium Windows app designed for CA professionals, accountants, and businesses. Protect your sensitive financial documents—files never leave your device.
+        </p>
+        
+        <div class="cta-group">
+          <!-- User can customize YOUR_GUMROAD_PERMALINK with actual URL in production -->
+          <a href="https://gumroad.com/l/antigravity-pdf-pro" class="btn-primary gumroad-button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            Buy Lifetime Pro — $9.99
+          </a>
+          <a href="#download" class="btn-outline">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Download Free Trial
+          </a>
+        </div>
+        
+        <div class="hero-features-preview">
+          <div class="preview-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            No Internet Needed
+          </div>
+          <div class="preview-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Lifetime Ownership
+          </div>
+          <div class="preview-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            30-Day Guarantee
+          </div>
         </div>
       </div>
-
+      
       <div class="hero-visual">
-        <div class="hero-card">
-          <div class="pill">All-in-One PDF Release</div>
-          <h2>Business PDF editing with secure local workflows.</h2>
-          <p>Antigravity PDF Pro keeps your files on-device while providing rich merge, OCR, batch processing, and license activation capabilities.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="features" class="features">
-      <div class="section-title">
-        <span></span>
-        <h2>Core Features</h2>
-      </div>
-      <div class="grid feature-grid">
-        <div class="feature-card">
-          <div class="icon">📄</div>
-          <h3>PDF Editing</h3>
-          <p>Edit text, images, shapes and annotations directly in your PDF documents.</p>
-        </div>
-        <div class="feature-card">
-          <div class="icon">🔄</div>
-          <h3>Batch Processing</h3>
-          <p>Process multiple files at once for merge, convert, and export jobs with progress tracking.</p>
-        </div>
-        <div class="feature-card">
-          <div class="icon">🔒</div>
-          <h3>License Activation</h3>
-          <p>Hybrid offline/online license system with encrypted local storage and background verification.</p>
-        </div>
-        <div class="feature-card">
-          <div class="icon">🖨️</div>
-          <h3>Offline OCR</h3>
-          <p>Convert scanned documents to searchable text using bundled OCR support.</p>
-        </div>
-        <div class="feature-card">
-          <div class="icon">💾</div>
-          <h3>Auto Backup</h3>
-          <p>Save automatic PDF backups to userData so previous versions stay protected.</p>
-        </div>
-        <div class="feature-card">
-          <div class="icon">⚙️</div>
-          <h3>Updater & Installer</h3>
-          <p>Built-in update checks and Windows installer packaging for smooth deployment.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="pricing" class="pricing">
-      <div class="section-title">
-        <span></span>
-        <h2>Pricing Plans</h2>
-      </div>
-      <div class="grid pricing-grid">
-        <div class="plan-card">
-          <div class="feature-card">
-            <div class="plan-tag badge">Free</div>
-            <h3>Basic</h3>
-            <p>Single-file editing, viewer mode, and basic export options.</p>
+        <div class="mockup-wrapper">
+          <div class="glow-border-active"></div>
+          <div class="mockup-inner">
+            <img src="assets/app_ui_mockup.png" alt="Antigravity PDF Pro Dashboard UI Mockup" />
           </div>
-          <div>
-            <p class="plan-price">Free</p>
-            <div class="plan-meta"><span>For basic users</span></div>
-            <ul>
-              <li>PDF view & simple edits</li>
-              <li>Basic save/download</li>
-              <li>Limited conversion tools</li>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Section -->
+  <section id="why-us" class="comparison-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Offline Desktop vs. Cloud PDF</h2>
+        <p>Why security-conscious professionals are moving away from subscription-based cloud tools.</p>
+      </div>
+      
+      <div class="comparison-card">
+        <div class="comp-grid">
+          <div class="comp-column pro">
+            <h3>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              Antigravity PDF Pro
+            </h3>
+            <ul class="comp-list pro">
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <div class="comp-text">
+                  <h4>100% On-Device Operations</h4>
+                  <p>All processing (conversions, edits, OCR) runs locally. Your invoices and tax sheets never leave your computer.</p>
+                </div>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <div class="comp-text">
+                  <h4>One-Time Payment</h4>
+                  <p>Buy it once, own it forever. Stop renting your productivity tools with monthly fees.</p>
+                </div>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <div class="comp-text">
+                  <h4>Extreme Speed</h4>
+                  <p>No uploading or downloading lag. Opens large files in milliseconds, rendering directly via GPU.</p>
+                </div>
+              </li>
             </ul>
           </div>
-          <a class="button button-alt" href="#download">Get Free</a>
-        </div>
-
-        <div class="plan-card">
-          <div class="feature-card">
-            <div class="plan-tag badge">Pro</div>
-            <h3>Pro</h3>
-            <p>Unlock batch jobs, offline OCR, license activation, and advanced PDF tools.</p>
-          </div>
-          <div>
-            <p class="plan-price">$49.99</p>
-            <div class="plan-meta"><span>One-time license</span></div>
-            <ul>
-              <li>Batch processing and merge</li>
-              <li>Offline OCR support</li>
-              <li>License manager with grace mode</li>
+          
+          <div class="comp-column cloud">
+            <h3>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+              Standard Cloud Editors
+            </h3>
+            <ul class="comp-list cloud">
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <div class="comp-text">
+                  <h4>Data Exposure Risks</h4>
+                  <p>Your documents are uploaded to third-party web servers, exposing sensitive client details.</p>
+                </div>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <div class="comp-text">
+                  <h4>Endless Subscriptions</h4>
+                  <p>Costs quickly balloon to $120+ every year. If you stop paying, you lose access immediately.</p>
+                </div>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <div class="comp-text">
+                  <h4>Internet Dependent</h4>
+                  <p>No Wi-Fi means no PDF edits. Slow uploads stall your workflow during critical audit seasons.</p>
+                </div>
+              </li>
             </ul>
           </div>
-          <a class="button" href="#download">Buy Pro</a>
         </div>
+      </div>
+    </div>
+  </section>
 
-        <div class="plan-card">
-          <div class="feature-card">
-            <div class="plan-tag badge">Enterprise</div>
-            <h3>Enterprise</h3>
-            <p>Custom deployments, branding, and volume licensing for teams.</p>
+  <!-- Feature Grid Section -->
+  <section id="features" class="features">
+    <div class="container">
+      <div class="section-header">
+        <h2>25+ Professional Tools In One App</h2>
+        <p>A comprehensive PDF editing workstation packed into a lightweight local client.</p>
+      </div>
+      
+      <div class="features-grid">
+        <!-- Feature 1: PDF Editor -->
+        <div class="feature-card f-editor">
+          <div class="feature-icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
           </div>
-          <div>
-            <p class="plan-price">Custom</p>
-            <div class="plan-meta"><span>Contact sales</span></div>
-            <ul>
-              <li>Priority support</li>
-              <li>Custom installer builds</li>
-              <li>Volume licensing</li>
-            </ul>
+          <h3>Full PDF Editor</h3>
+          <p>Add, edit, move, or format text, images, shapes and links in your documents. Dynamic highlight, draw, and markup features are fully supported.</p>
+        </div>
+
+        <!-- Feature 2: PDF Compare -->
+        <div class="feature-card f-compare">
+          <div class="feature-icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
           </div>
-          <a class="button button-alt" href="#download">Contact Us</a>
+          <h3>Side-by-Side Compare</h3>
+          <p>Instantly compare two versions of a PDF document. Highlighting visual and structural text additions, deletions, and updates—ideal for CA auditors.</p>
+        </div>
+
+        <!-- Feature 3: Offline OCR -->
+        <div class="feature-card f-ocr">
+          <div class="feature-icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M7 21v-4a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v4"></path><circle cx="12" cy="7" r="2"></circle></svg>
+          </div>
+          <h3>Offline OCR Reader</h3>
+          <p>Convert scanned PDFs or images into fully selectable, searchable, and exportable text format instantly on your GPU. No cloud server involved.</p>
+        </div>
+
+        <!-- Feature 4: Converter Hub -->
+        <div class="feature-card f-converters">
+          <div class="feature-icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+          </div>
+          <h3>Bidirectional Converter</h3>
+          <p>Convert Excel to PDF, Word to PDF, Images to PDF, HTML to PDF, and vice versa. Retain original document structures, spreadsheets, and styling.</p>
+        </div>
+
+        <!-- Feature 5: Security & Protect -->
+        <div class="feature-card f-security">
+          <div class="feature-icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </div>
+          <h3>Encrypt & Sign</h3>
+          <p>Protect PDFs with industry-grade passwords. Restrict printing, editing, or copying. Add custom watermark logos and stamp digital signatures securely.</p>
+        </div>
+
+        <!-- Feature 6: Bulk Organizer -->
+        <div class="feature-card f-organizer">
+          <div class="feature-icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+          </div>
+          <h3>Merge, Split & Crop</h3>
+          <p>Rearrange, delete, rotate, insert, or crop PDF pages. Merge multiple documents into a single invoice packet, or split large reports in seconds.</p>
         </div>
       </div>
-    </section>
 
-    <section id="download" class="cta">
-      <div class="section-title">
-        <span></span>
-        <h2>Ready to launch</h2>
-      </div>
-      <div class="feature-card">
-        <h3>Download Antigravity PDF Pro</h3>
-        <p>Experience the desktop PDF editor designed for offline work, business workflows, and secure local document handling.</p>
-        <div class="hero-actions" style="margin-top: 24px;">
-          <a class="button" href="#">Download Installer</a>
-          <a class="button-alt" href="#">Request Demo</a>
+      <!-- Stats Strip -->
+      <div class="stats-strip">
+        <div class="stat-item">
+          <h3>100%</h3>
+          <p>Private & Offline</p>
         </div>
-        <p class="download-note">Download link placeholder. Replace with the packaged installer location once the build is ready.</p>
+        <div class="stat-item">
+          <h3>25+</h3>
+          <p>Integrated Tools</p>
+        </div>
+        <div class="stat-item">
+          <h3>One-Time</h3>
+          <p>Lifetime Purchase</p>
+        </div>
+        <div class="stat-item">
+          <h3>0 ms</h3>
+          <p>Server Wait Time</p>
+        </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <footer>
-      <div>© 2026 Antigravity PDF Pro</div>
-      <div>Built for Windows desktop productivity and secure offline workflows.</div>
-    </footer>
-  </div>
+  <!-- Pricing Section -->
+  <section id="pricing" class="pricing">
+    <div class="container">
+      <div class="section-header">
+        <h2>Simple, Direct Pricing</h2>
+        <p>No monthly charges. Pay once, use forever. Pick the package that matches your productivity needs.</p>
+      </div>
+      
+      <div class="pricing-grid">
+        <!-- Plan 1: Free Trial -->
+        <div class="price-card">
+          <div class="price-header">
+            <h3>Free Trial</h3>
+            <p>Test drive our premium offline engine before committing.</p>
+          </div>
+          <div class="price-tag">
+            <span class="price-num">$0</span>
+            <span class="price-period">/ 14 Days</span>
+          </div>
+          <ul class="price-features">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Access to all 25+ PDF tools
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              100% Offline conversions
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              PDF Compare & OCR Trial
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              No credit card required
+            </li>
+          </ul>
+          <a href="#download" class="btn-buy outline">Download Free Trial</a>
+        </div>
+
+        <!-- Plan 2: Pro License -->
+        <div class="price-card featured">
+          <div class="price-header">
+            <h3>Lifetime Pro</h3>
+            <p>Perfect for solo accountants, CA students, and freelancers.</p>
+          </div>
+          <div class="price-tag">
+            <span class="price-num crossed">$24.99</span>
+            <span class="price-num">$9.99</span>
+            <span class="price-period">/ One-Time</span>
+          </div>
+          <ul class="price-features">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <strong>Lifetime Access</strong> (No Subscriptions)
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Activate on <strong>1 PC (Windows)</strong>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Unlimited OCR scans & Compares
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Free lifetime application updates
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Premium email support
+            </li>
+          </ul>
+          <a href="https://gumroad.com/l/antigravity-pdf-pro" class="btn-buy primary gumroad-button">Get Lifetime Pro</a>
+        </div>
+
+        <!-- Plan 3: Team / Office License -->
+        <div class="price-card">
+          <div class="price-header">
+            <h3>Office Team Pack</h3>
+            <p>Designed for small CA firms, accounting offices, and businesses.</p>
+          </div>
+          <div class="price-tag">
+            <span class="price-num crossed">$49.99</span>
+            <span class="price-num">$24.99</span>
+            <span class="price-period">/ One-Time</span>
+          </div>
+          <ul class="price-features">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Lifetime Access to all features
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Activate on up to <strong>3 PCs</strong>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Centralized license key management
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Priority developer chat support
+            </li>
+          </ul>
+          <a href="https://gumroad.com/l/antigravity-pdf-pro" class="btn-buy outline gumroad-button">Buy Office Pack</a>
+        </div>
+      </div>
+      
+      <p class="pricing-note">VAT/sales tax might be calculated by Gumroad depending on your country. All purchases have a 30-day money-back guarantee.</p>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section id="faq" class="faq">
+    <div class="container">
+      <div class="section-header">
+        <h2>Frequently Asked Questions</h2>
+        <p>Got questions about Antigravity PDF Pro? Here are detailed answers.</p>
+      </div>
+      
+      <div class="faq-grid">
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <h3>Is my data really safe? Does this work offline?</h3>
+            <div class="faq-toggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </div>
+          <div class="faq-answer">
+            <p>Yes. Antigravity PDF Pro is built as a native Windows desktop client. All conversions (Word, Excel, Images), PDF compares, and OCR reading operations run entirely locally on your processor. We do not host any upload servers, meaning your financial reports and client data never leave your PC.</p>
+          </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <h3>How does the lifetime license work?</h3>
+            <div class="faq-toggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </div>
+          <div class="faq-answer">
+            <p>Unlike other PDF editors that charge monthly fees, Antigravity PDF Pro is a one-time purchase. Once you buy a license key through Gumroad, you activate the app once and own it forever. All minor and major updates inside this version are free for life.</p>
+          </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <h3>What happens after I make the purchase on Gumroad?</h3>
+            <div class="faq-toggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </div>
+          <div class="faq-answer">
+            <p>Upon completing the secure purchase, Gumroad will instantly email you a unique license key (in the format <code>AGP-XXXX-XXXX-XXXX</code>) along with the download link for the installer. Paste this key into the app's activation box on startup to unlock all premium features forever.</p>
+          </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <h3>Can I transfer my license to a new computer?</h3>
+            <div class="faq-toggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </div>
+          <div class="faq-answer">
+            <p>Yes, absolutely. If you buy a new computer, you can deactivate the license in the app's settings section, or contact our support team to reset your active device limit. The Lifetime Pro supports 1 active PC at a time, while the Office Pack supports 3 active PCs.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download CTA Section -->
+  <section id="download" class="download-cta">
+    <div class="container">
+      <div class="cta-card">
+        <h2>Bring Professional PDF Workflows to Your Desktop</h2>
+        <p>Stop paying for subscriptions. Take control of your document privacy with Antigravity PDF Pro.</p>
+        
+        <div class="cta-buttons">
+          <a href="https://gumroad.com/l/antigravity-pdf-pro" class="btn-primary gumroad-button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            Buy Lifetime Access ($9.99)
+          </a>
+          <!-- Replace this href with your final built installer release path (e.g. Github Releases or static CDN) -->
+          <a href="#" class="btn-outline" onclick="alert('The setup build is ready in your workspace! Compile the project using CREATE_DISTRIBUTION.bat to generate your production setup.exe installer.'); return false;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Download Free Trial (.exe)
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>Antigravity PDF Pro</h3>
+          <p>Premium 100% offline PDF suite designed specifically for CA firms, corporate accountants, and privacy-conscious offices.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <ul>
+            <li><a href="#why-us">Why Offline</a></li>
+            <li><a href="#features">Key Features</a></li>
+            <li><a href="#pricing">Pricing Plans</a></li>
+            <li><a href="#faq">Frequently Asked</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>Legal & Secure</h4>
+          <ul>
+            <li><a href="#" onclick="alert('Antigravity PDF Pro operates strictly on-device. No document analytics or texts are processed outside your machine.'); return false;">Privacy Policy</a></li>
+            <li><a href="#" onclick="alert('This lifetime license guarantees access to all current features. Commercial licensing keys are generated instantly via Gumroad.'); return false;">Terms of Use</a></li>
+            <li><a href="mailto:support@antigravitypdf.com">Developer Support</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <div>© 2026 Antigravity PDF Pro. All rights reserved.</div>
+        <div>Built for Windows Desktop Productivity.</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Header scrolled state styling
+    window.addEventListener('scroll', function() {
+      const header = document.getElementById('header');
+      if (window.scrollY > 40) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
+    });
+
+    // FAQ Accordion Trigger
+    function toggleFaq(element) {
+      // Toggle active class on clicked element
+      element.classList.toggle('active');
+      
+      // Close other elements
+      const faqItems = document.querySelectorAll('.faq-item');
+      faqItems.forEach(item => {
+        if (item !== element) {
+          item.classList.remove('active');
+        }
+      });
+    }
+  </script>
 </body>
 </html>

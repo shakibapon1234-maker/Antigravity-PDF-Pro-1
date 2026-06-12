@@ -8,6 +8,7 @@
 
     // ── Default settings ──────────────────────────────────────────────────────
     const DEFAULTS = {
+        displayName: '',           // User's name shown in dashboard greeting
         outputFolder: '',          // blank = Downloads folder (user hasn't set one)
         theme: 'dark',
         autoBackup: true,
@@ -459,6 +460,23 @@
                         </div>
                     </div>
 
+                    <!-- SECTION: Profile -->
+                    <div class="ag-settings-section">
+                        <div class="ag-settings-section-title">👤 Profile</div>
+
+                        <!-- Display Name -->
+                        <div class="ag-settings-row" style="flex-wrap:wrap; gap:10px;">
+                            <div class="ag-settings-row-icon ag-row-icon-purple">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                            <div class="ag-settings-row-info" style="flex-basis:140px;">
+                                <span class="ag-settings-row-label">Your Name</span>
+                                <span class="ag-settings-row-desc">Dashboard greeting-এ দেখাবে</span>
+                            </div>
+                            <input type="text" id="agDisplayNameInput" class="ag-folder-input" placeholder="e.g. Shakib" maxlength="40" style="flex:1; min-width:160px;" title="Your display name">
+                        </div>
+                    </div>
+
                     <!-- SECTION: Appearance -->
                     <div class="ag-settings-section">
                         <div class="ag-settings-section-title">🎨 Appearance</div>
@@ -538,6 +556,10 @@
         const folderInput = document.getElementById('agOutputFolderInput');
         if (folderInput) folderInput.value = settings.outputFolder || '';
 
+        // Display name
+        const nameInput = document.getElementById('agDisplayNameInput');
+        if (nameInput) nameInput.value = settings.displayName || '';
+
         // Auto-backup
         const backupToggle = document.getElementById('agToggleAutoBackup');
         if (backupToggle) {
@@ -576,11 +598,13 @@
     // ── Save handler ──────────────────────────────────────────────────────────
     async function handleSave() {
         const folderInput    = document.getElementById('agOutputFolderInput');
+        const nameInput      = document.getElementById('agDisplayNameInput');
         const backupToggle   = document.getElementById('agToggleAutoBackup');
         const backupCountSel = document.getElementById('agSelectBackupCount');
         const themeSel       = document.getElementById('agSelectTheme');
 
         const newSettings = {
+            displayName:  nameInput ? nameInput.value.trim() : '',
             outputFolder: folderInput ? folderInput.value : '',
             autoBackup:   backupToggle ? backupToggle.checked : true,
             backupCount:  backupCountSel ? parseInt(backupCountSel.value, 10) : 5,
@@ -588,6 +612,27 @@
         };
 
         await saveSettings(newSettings);
+
+        // Also save to userSettings key (used by dashboard greeting)
+        if (window.electronAPI?.storeSet) {
+            await window.electronAPI.storeSet('userSettings', { displayName: newSettings.displayName });
+        }
+
+        // Update greeting immediately without reload
+        const greetEl = document.getElementById('dashboardGreeting');
+        const avatarEl = document.getElementById('dashboardAvatar');
+        if (greetEl) {
+            const hour = new Date().getHours();
+            let tg = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+            greetEl.textContent = newSettings.displayName ? `${tg}, ${newSettings.displayName}! 👋` : `${tg}! 👋`;
+        }
+        if (avatarEl && newSettings.displayName) {
+            const parts = newSettings.displayName.trim().split(/\s+/);
+            const initials = parts.length >= 2
+                ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+                : newSettings.displayName.substring(0, 2).toUpperCase();
+            avatarEl.textContent = initials;
+        }
 
         // Apply theme immediately
         applyThemeFromSettings(newSettings.theme);

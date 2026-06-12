@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -187,6 +187,10 @@
                     <i data-lucide="scan-text"></i>
                     <span>OCR — PDF to Text</span>
                 </button>
+                <button class="nav-item" data-tab="compare-pdf">
+                    <i data-lucide="git-compare"></i>
+                    <span>Compare PDF</span>
+                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -218,19 +222,19 @@
                 <section id="dashboard" class="tab-content active">
                     <div class="welcome-banner" style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
                         <div class="banner-text" style="flex: 1; min-width: 300px;">
-                            <h1>Hello, Shakib 👋</h1>
+                            <h1 id="dashboardGreeting">Hello! 👋</h1>
                             <p>What would you like to do with your PDF today?</p>
-                            <div class="custom-shakib-text" style="margin-top: 20px; padding: 15px; background: rgba(0, 212, 255, 0.05); border: 1px solid rgba(0,212,255,0.3); border-left: 4px solid var(--accent-cyan); border-radius: 8px; font-style: italic; max-width: 500px; box-shadow: 0 0 15px rgba(0,212,255,0.1);">
-                                <span style="background: linear-gradient(90deg, #00ffe5, #00ff88); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 600; font-size: 15px;">প্রিমিয়াম অভিজ্ঞতা ও দ্রুত পারফরম্যান্সের সাথে আপনার সব ধরনের কাজ এখন আরও সহজ ও প্রাণবন্ত।</span>
+                            <div style="margin-top: 20px; padding: 15px; background: rgba(0, 212, 255, 0.05); border: 1px solid rgba(0,212,255,0.3); border-left: 4px solid var(--accent-cyan); border-radius: 8px; max-width: 500px; box-shadow: 0 0 15px rgba(0,212,255,0.1);">
+                                <span style="background: linear-gradient(90deg, #00ffe5, #00ff88); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 600; font-size: 15px;">Experience premium PDF tools — 100% offline, fast & secure. Your files never leave your device.</span>
                             </div>
                         </div>
-                            <div class="banner-image" style="flex-shrink: 0; text-align: right; position: relative; z-index: 1;">
+                        <div class="banner-image" style="flex-shrink: 0; text-align: right; position: relative; z-index: 1;">
                             <div class="premium-banner-image">
                                 <!-- Spinning Light Effect -->
                                 <div class="spin-border"></div>
-                                
                                 <div class="img-inner">
-                                    <img src="assets/profile.jpg" alt="Shakib Profile" style="width: 120px; height: 120px; border-radius: 24px; object-fit: cover; object-position: top;">
+                                    <!-- Dynamic avatar: shows user initials or logo -->
+                                    <div id="dashboardAvatar" style="width: 120px; height: 120px; border-radius: 24px; background: linear-gradient(135deg, #b829f9, #00d4ff); display: flex; align-items: center; justify-content: center; font-size: 42px; font-weight: 800; color: #fff; letter-spacing: -2px; font-family: 'Outfit', sans-serif;">AG</div>
                                 </div>
                             </div>
                         </div>
@@ -1998,23 +2002,6 @@
     <script src="ui/libs/jspdf.umd.min.js"></script>
     
     <!-- ═══════════════════════════════════════════════════ -->
-    <!-- App Logic — নতুন ফোল্ডার স্ট্রাকচার               -->
-    <!-- লোড অর্ডার: core → editor → tools → converters → ui -->
-    <!-- ═══════════════════════════════════════════════════ -->
-
-    <!-- core/ : গ্লোবাল স্টেট ও ইঞ্জিন (সবার আগে লোড) -->
-    <script src="core/state.js"></script>
-    <script src="core/undo.js"></script>
-    <script src="core/renderer.js"></script>
-    <script src="core/utils.js"></script>
-
-    <!-- editor/ : PDF এডিটিং -->
-    <script src="editor/text-editor.js"></script>
-    <script src="editor/shapes.js"></script>
-    <script src="editor/image-toolbar.js"></script>
-    <script src="editor/eraser.js"></script>
-    <script src="editor/save-pdf.js"></script>
-    <script src="editor/signature.js"></script>
     <script src="editor/freehand.js"></script>
     <script src="editor/form-creator.js"></script>
     <script src="editor/init.js"></script>
@@ -2058,6 +2045,10 @@
     <script src="tools/find-replace.js"></script>
     <script src="tools/pdf-compare.js"></script>
     <script src="tools/multi-export.js"></script>
+
+    <!-- Phase 1 Enhancements -->
+    <script src="ui/onboarding.js"></script>
+    <script src="ui/shortcuts-help.js"></script>
 
     
     <!-- License Activation Screen -->

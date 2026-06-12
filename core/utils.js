@@ -23,12 +23,61 @@ function openTool(tool) {
 }
 
 function switchTab(tabId) {
+    // Special case: Compare PDF opens as a floating panel, not a regular tab
+    if (tabId === 'compare-pdf') {
+        if (window.PdfCompare) {
+            PdfCompare.openTool();
+        }
+        return;
+    }
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
+    const section = document.getElementById(tabId);
+    if (section) section.classList.add('active');
     const navBtn = document.querySelector(`[data-tab="${tabId}"]`);
     if (navBtn) navBtn.classList.add('active');
 }
+
+// ── Dashboard greeting: reads user name from settings ──────────────────
+(function initDashboardGreeting() {
+    function applyGreeting(name) {
+        const el = document.getElementById('dashboardGreeting');
+        if (!el) return;
+        const hour = new Date().getHours();
+        let timeGreet = 'Good evening';
+        if (hour < 12) timeGreet = 'Good morning';
+        else if (hour < 17) timeGreet = 'Good afternoon';
+        el.textContent = name
+            ? `${timeGreet}, ${name}! 👋`
+            : `${timeGreet}! 👋`;
+
+        // Update avatar initials
+        const avatarEl = document.getElementById('dashboardAvatar');
+        if (avatarEl && name) {
+            const parts = name.trim().split(/\s+/);
+            const initials = parts.length >= 2
+                ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+                : name.substring(0, 2).toUpperCase();
+            avatarEl.textContent = initials;
+        }
+    }
+
+    async function loadGreeting() {
+        try {
+            const settings = await window.electronAPI?.storeGet('userSettings');
+            applyGreeting(settings?.displayName || '');
+        } catch (e) {
+            applyGreeting('');
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadGreeting);
+    } else {
+        loadGreeting();
+    }
+})();
+
 
 function updateToolUI(activeId) {
     ['btnSelect', 'btnTypeText', 'btnClearText', 'btnCloneArea', 'btnFreehand', 'btnHighlight', 'btnRedact', 'btnMoveArea', 'btnSignature', 'btnWhiteEraser'].forEach(id => {
