@@ -12,7 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let pdfFileName = '';
 
     // Initialize pdf.js worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    } else {
+        console.warn('[pdf-to-image.js] pdfjsLib is undefined during DOMContentLoaded.');
+    }
 
     // Event Listeners
     if(btnUploadPti) {

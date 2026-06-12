@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1997,9 +1997,29 @@
 
     <!-- Scripts -->
     <!-- Libraries -->
+    <script>
+      (function() {
+        window._tempModule2 = typeof module !== 'undefined' ? module : undefined;
+        window._tempDefine2 = typeof define !== 'undefined' ? define : undefined;
+        window._tempExports2 = typeof exports !== 'undefined' ? exports : undefined;
+        if (window._tempModule2) module = undefined;
+        if (window._tempDefine2) define = undefined;
+        if (window._tempExports2) exports = undefined;
+      })();
+    </script>
     <script src="ui/libs/pdf-lib.min.js"></script>
     <script src="ui/libs/fontkit.umd.min.js"></script>
     <script src="ui/libs/pdf.min.js"></script>
+    <script>
+      (function() {
+        if (window._tempModule2) module = window._tempModule2;
+        if (window._tempDefine2) define = window._tempDefine2;
+        if (window._tempExports2) exports = window._tempExports2;
+        delete window._tempModule2;
+        delete window._tempDefine2;
+        delete window._tempExports2;
+      })();
+    </script>
     <script>
       // PDF.js worker — local path (offline support)
       if (typeof pdfjsLib !== 'undefined') {
@@ -2015,12 +2035,45 @@
     <script src="ui/libs/lucide.min.js"></script>
     
     <!-- New Premium Integration Libs -->
+    <script>
+      (function() {
+        window._tempModule = typeof module !== 'undefined' ? module : undefined;
+        window._tempDefine = typeof define !== 'undefined' ? define : undefined;
+        window._tempExports = typeof exports !== 'undefined' ? exports : undefined;
+        if (window._tempModule) module = undefined;
+        if (window._tempDefine) define = undefined;
+        if (window._tempExports) exports = undefined;
+      })();
+    </script>
     <script src="ui/libs/html2pdf.bundle.min.js"></script>
     <script src="ui/libs/xlsx.full.min.js"></script>
     <!-- jsPDF — PDF encryption/password protection support -->
     <script src="ui/libs/jspdf.umd.min.js"></script>
+    <script>
+      (function() {
+        if (window._tempModule) module = window._tempModule;
+        if (window._tempDefine) define = window._tempDefine;
+        if (window._tempExports) exports = window._tempExports;
+        delete window._tempModule;
+        delete window._tempDefine;
+        delete window._tempExports;
+      })();
+    </script>
     
     <!-- ═══════════════════════════════════════════════════ -->
+    <!-- core/ : গ্লোবাল স্টেট ও ইঞ্জিন (সবার আগে লোড) -->
+    <script src="core/state.js"></script>
+    <script src="core/undo.js"></script>
+    <script src="core/renderer.js"></script>
+    <script src="core/utils.js"></script>
+
+    <!-- editor/ : PDF এডিটিং -->
+    <script src="editor/text-editor.js"></script>
+    <script src="editor/shapes.js"></script>
+    <script src="editor/image-toolbar.js"></script>
+    <script src="editor/eraser.js"></script>
+    <script src="editor/save-pdf.js"></script>
+    <script src="editor/signature.js"></script>
     <script src="editor/freehand.js"></script>
     <script src="editor/form-creator.js"></script>
     <script src="editor/init.js"></script>
