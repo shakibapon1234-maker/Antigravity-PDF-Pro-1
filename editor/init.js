@@ -609,6 +609,104 @@ function initEventListeners() {
         });
     }
 
+    // ── Global Drag & Drop File Opening (DEV-11) ──────────────────────────────────
+    let dragCounter = 0;
+    const dragOverlay = document.getElementById('globalDragOverlay');
+
+    if (dragOverlay) {
+        window.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            dragCounter++;
+            dragOverlay.style.opacity = '1';
+        });
+
+        window.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Required to allow drop!
+            if (dragOverlay.style.opacity !== '1') {
+                dragOverlay.style.opacity = '1';
+            }
+        });
+
+        window.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter <= 0) {
+                dragCounter = 0;
+                dragOverlay.style.opacity = '0';
+            }
+        });
+
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragCounter = 0;
+            dragOverlay.style.opacity = '0';
+
+            const file = e.dataTransfer.files[0];
+            if (!file) return;
+
+            const name = file.name ? file.name.toLowerCase() : '';
+            const ext = name.split('.').pop();
+
+            if (ext === 'pdf') {
+                // Determine destination tab
+                const activeTab = document.querySelector('.tab-content.active');
+                const tabId = activeTab ? activeTab.id : null;
+                const pdfTabs = ['editor', 'converter', 'merge', 'split', 'compress', 'rotate', 'crop-pdf', 'organize-pdf', 'ocr-pdf', 'watermark-pdf', 'page-numbers-pdf', 'protect-pdf', 'unlock-pdf', 'pdf-to-image'];
+                
+                if (pdfTabs.includes(tabId)) {
+                    // Load in place
+                    const loadFns = {
+                        'editor': window.loadAndRenderPDF,
+                        'converter': window.convertToWord,
+                        'merge': (f) => window.loadMergePdfs && window.loadMergePdfs([f]),
+                        'split': window.loadSplitPdf,
+                        'compress': window.loadCompressPdf,
+                        'rotate': window.loadRotatePdf,
+                        'crop-pdf': window.loadCropPdf,
+                        'organize-pdf': window.loadOrganizePdf,
+                        'ocr-pdf': window.loadOcrPdf,
+                        'watermark-pdf': window.loadWatermarkPdf,
+                        'page-numbers-pdf': window.loadPageNumbersPdf,
+                        'protect-pdf': window.loadProtectPdf,
+                        'unlock-pdf': window.loadUnlockPdf,
+                        'pdf-to-image': window.loadPdfToImage
+                    };
+                    if (loadFns[tabId]) {
+                        window.currentPdfFile = file;
+                        loadFns[tabId](file);
+                    }
+                } else {
+                    // Fallback: switch to editor and load
+                    if (typeof window.switchTab === 'function') window.switchTab('editor');
+                    window.currentPdfFile = file;
+                    if (typeof window.loadAndRenderPDF === 'function') window.loadAndRenderPDF(file);
+                }
+            } else if (['xlsx', 'xls', 'csv'].includes(ext)) {
+                // Excel -> Switch to excel-to-pdf and load
+                if (typeof window.switchTab === 'function') window.switchTab('excel-to-pdf');
+                if (typeof window.loadExcelToPdf === 'function') window.loadExcelToPdf(file);
+            } else if (['doc', 'docx'].includes(ext)) {
+                // Word -> Switch to word-to-excel and load
+                if (typeof window.switchTab === 'function') window.switchTab('word-to-excel');
+                if (typeof window.loadWordToExcel === 'function') window.loadWordToExcel(file);
+            } else if (['png', 'jpg', 'jpeg', 'webp', 'bmp'].includes(ext)) {
+                // Image -> Determine target
+                const activeTab = document.querySelector('.tab-content.active');
+                const tabId = activeTab ? activeTab.id : null;
+                if (tabId === 'image-converter' && typeof window.loadImageConverter === 'function') {
+                    window.loadImageConverter(file);
+                } else if (tabId === 'image-to-word' && typeof window.convertImageToWord === 'function') {
+                    window.convertImageToWord(file);
+                } else {
+                    if (typeof window.switchTab === 'function') window.switchTab('image-to-pdf');
+                    if (typeof window.loadImageToPdf === 'function') window.loadImageToPdf(file);
+                }
+            } else {
+                alert('File type not supported for automatic loading: .' + ext.toUpperCase());
+            }
+        });
+    }
+
     console.log('Antigravity PDF Editor ready.');
 
 } // end initEventListeners

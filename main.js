@@ -201,7 +201,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
-      webSecurity: false, // needed for local file access (PDF.js workers etc.)
+      webSecurity: true, // enabled for production security (local resources load via Express port)
     },
     // Use default Electron icon (we'll set custom later if icon.ico exists)
   });
