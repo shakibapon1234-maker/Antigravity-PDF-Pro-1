@@ -403,3 +403,55 @@ function sampleBackgroundColor(x, y) {
         return { r: 1, g: 1, b: 1, hex: '#ffffff' };
     }
 }
+
+// ════════════════════════════════════════════
+// FONT STANDARDISATION
+// ════════════════════════════════════════════
+
+function getStandardFontName(fontName, styles = null) {
+    if (!fontName) return 'Arial';
+    
+    const clean = fontName.replace(/['"]/g, '').trim();
+    const lower = clean.toLowerCase();
+    
+    // Check direct names first
+    if (lower.includes('times') || lower.includes('serif') || lower.includes('cambria') || lower.includes('georgia') || lower.includes('roman')) {
+        return 'Times New Roman';
+    }
+    if (lower.includes('courier') || lower.includes('mono') || lower.includes('consolas')) {
+        return 'Courier New';
+    }
+    if (lower.includes('arial') || lower.includes('helvetica') || lower.includes('sans') || lower.includes('calibri') || lower.includes('tahoma')) {
+        return 'Arial';
+    }
+    if (lower.includes('siliguri') || lower.includes('hind')) {
+        return 'Hind Siliguri';
+    }
+    if (lower.includes('bengali') || lower.includes('noto')) {
+        return 'Noto Sans Bengali';
+    }
+    
+    // Check styles dictionary if available
+    if (styles && styles[fontName]) {
+        const style = styles[fontName];
+        const ff = (style.fontFamily || '').toLowerCase();
+        if (ff.includes('times') || ff.includes('serif') || ff.includes('cambria') || ff.includes('georgia') || ff.includes('roman')) {
+            return 'Times New Roman';
+        }
+        if (ff.includes('courier') || ff.includes('monospace') || ff.includes('mono')) {
+            return 'Courier New';
+        }
+        if (ff.includes('sans-serif') || ff.includes('arial') || ff.includes('helvetica') || ff.includes('sans')) {
+            return 'Arial';
+        }
+        if (ff.includes('siliguri') || ff.includes('hind')) {
+            return 'Hind Siliguri';
+        }
+        if (ff.includes('bengali') || ff.includes('noto')) {
+            return 'Noto Sans Bengali';
+        }
+    }
+    
+    return 'Arial';
+}
+

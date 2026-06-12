@@ -201,9 +201,9 @@ function startEditing(e, originalItem, transform, viewport, page) {
             
             if (el.style.fontFamily) {
                 const ff = el.style.fontFamily.replace(/['"]/g, '');
-                currentStyle.fontFamily = ff;
+                currentStyle.fontFamily = getStandardFontName(ff);
                 const ffSelect = document.getElementById('fontFamily');
-                if (ffSelect) ffSelect.value = ff;
+                if (ffSelect) ffSelect.value = currentStyle.fontFamily;
             }
             
             // Check bold / italic / underline from styles
@@ -2410,6 +2410,8 @@ document.addEventListener('findreplace:replace', (e) => {
         const end = r.matchEnd;
         const newText = origText.substring(0, start) + replaceWith + origText.substring(end);
 
+        console.log('[findreplace:replace debug]', { fontName: r.fontName, newText, x: r.x, originalY: r.originalY });
+
         const editId = `${r.page}-${r.x}-${r.originalY}`;
         const editData = {
             id: editId,
@@ -2426,7 +2428,7 @@ document.addEventListener('findreplace:replace', (e) => {
             color: '#000000',
             bgHex: 'transparent',
             bgR: 1, bgG: 1, bgB: 1,
-            font: 'Helvetica',
+            font: getStandardFontName(r.fontName),
             isBold: false,
             isItalic: false,
             isUnderline: false,
@@ -2437,6 +2439,7 @@ document.addEventListener('findreplace:replace', (e) => {
         const idx = textEdits.findIndex(ed => ed.id === editId);
         if (idx > -1) {
             textEdits[idx].text = newText;
+            textEdits[idx].font = getStandardFontName(r.fontName);
         } else {
             textEdits.push(editData);
         }

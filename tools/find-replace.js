@@ -118,6 +118,51 @@ const FindReplace = (() => {
     debounceTimer = setTimeout(runSearch, 350);
   }
 
+  // ─── Merge raw PDF text items into lines (mirrors renderer.js mergeTextItems) ─
+  function mergeRawTextItems(items) {
+    if (!items || items.length === 0) return [];
+
+    // Group into rows by Y coordinate
+    const rows = [];
+    items.forEach(item => {
+      if (!item.str || !item.str.trim()) return;
+      const y = item.transform[5];
+      let foundRow = rows.find(r => Math.abs(r.y - y) < 4);
+      if (foundRow) foundRow.items.push(item);
+      else rows.push({ y, items: [item] });
+    });
+
+    const merged = [];
+    rows.forEach(row => {
+      row.items.sort((a, b) => a.transform[4] - b.transform[4]);
+      let cur = null;
+      row.items.forEach(item => {
+        if (!cur) {
+          cur = { ...item, transform: [...item.transform] };
+          return;
+        }
+        const endX   = cur.transform[4] + cur.width;
+        const startX = item.transform[4];
+        const gap    = startX - endX;
+
+        if (gap >= -5 && gap < 15) {
+          const needsSpace = gap > 1.5 &&
+                             !cur.str.endsWith(' ') &&
+                             !item.str.startsWith(' ');
+          cur.str    += (needsSpace ? ' ' : '') + item.str;
+          cur.width   = (item.transform[4] + item.width) - cur.transform[4];
+          cur.height  = Math.max(cur.height, item.height);
+          // keep fontName of the first (leftmost) item
+        } else {
+          merged.push(cur);
+          cur = { ...item, transform: [...item.transform] };
+        }
+      });
+      if (cur) merged.push(cur);
+    });
+    return merged;
+  }
+
   async function runSearch() {
     const term = document.getElementById('find-input').value;
     if (!term || !currentDoc) {
@@ -138,7 +183,10 @@ const FindReplace = (() => {
       const tc = await page.getTextContent();
       const viewport = page.getViewport({ scale: 1.0 });
 
-      for (const item of tc.items) {
+      // Use merged items (same as renderer.js) so context/width match what is drawn
+      const mergedItems = mergeRawTextItems(tc.items);
+
+      for (const item of mergedItems) {
         const str = item.str;
         const matches = findMatches(str, term, caseSensitive, wholeWord);
 
@@ -151,12 +199,13 @@ const FindReplace = (() => {
             context: str,
             matchStart: match.start,
             matchEnd: match.end,
-            // Approximate bounding box from transform
+            fontName: getStandardFontName(item.fontName, tc.styles),
+            // Bounding box from merged transform (matches renderer coordinates)
             x: tx[4],
             y: viewport.height - tx[5],
             originalY: tx[5],
             width: item.width || (match.end - match.start) * (tx[0] || 12),
-            height: Math.abs(tx[3]) || 14,
+            height: Math.abs(tx[3]) || item.height || 14,
           });
         }
       }

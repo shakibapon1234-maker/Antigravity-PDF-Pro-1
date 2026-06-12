@@ -163,8 +163,9 @@ async function renderPage(pdf, pageNum) {
                 const span = document.createElement('span');
                 span.className = 'editable-text-unit modified draggable';
                 span.style.position = 'absolute';
-                span.style.left     = `${ed.x * viewport.scale}px`;
-                span.style.top      = `${(viewport.height / viewport.scale - ed.y) * viewport.scale - ed.size * viewport.scale}px`;
+                const tx = pdfjsLib.Util.transform(viewport.transform, [1, 0, 0, 1, ed.x, ed.y]);
+                span.style.left     = `${tx[4]}px`;
+                span.style.top      = `${tx[5] - ed.size * viewport.scale}px`;
                 span.style.fontSize = `${ed.size * viewport.scale}px`;
 
                 let fn = ed.font || 'Helvetica';
@@ -410,33 +411,47 @@ async function setupTextLayer(page, viewport, container) {
             // Draw cover patch at the original position to hide the canvas text
             const coverPatch = document.createElement('div');
             coverPatch.className = 'clear-patch text-cover-patch';
-            const _cpBgHex = edit.coverBgHex || ((edit.bgHex && edit.bgHex !== 'transparent') ? edit.bgHex : '#ffffff');
 
             // Convert original PDF coordinates to viewport pixels
             const txOriginal = pdfjsLib.Util.transform(viewport.transform, item.transform);
-            const origLeft = txOriginal[4];
-            const origTop = txOriginal[5] - (edit.originalHeight || item.height || 12) * viewport.scale;
-            const origWidth = (edit.originalWidth || item.width || 40) * viewport.scale;
+            const origLeft   = txOriginal[4];
+            const origTop    = txOriginal[5] - (edit.originalHeight || item.height || 12) * viewport.scale;
+            const origWidth  = (edit.originalWidth  || item.width  || 40) * viewport.scale;
             const origHeight = (edit.originalHeight || item.height || 12) * viewport.scale;
 
-            const mc  = container.querySelector('canvas');
-            const csx = mc ? mc.width  / container.offsetWidth  : 1;
-            const csy = mc ? mc.height / container.offsetHeight : 1;
-            const patchDataUrl = typeof generateInpaintedPatch === 'function'
-                ? generateInpaintedPatch(
-                    Math.round(origLeft * csx), Math.round(origTop * csy),
-                    Math.round(origWidth * csx), Math.round(origHeight * csy),
-                    true // forceCoons
-                  )
-                : null;
+            // ── Background colour for the cover patch ──────────────────────
+            // IMPORTANT: Do NOT call generateInpaintedPatch here.
+            // It captures the canvas at the text position which *includes* the
+            // rendered dark text, producing a "black shadow" artifact.
+            // Instead, determine the background colour by:
+            //   1. Using a pre-computed patch stored on the edit (eraser tool).
+            //   2. Sampling the page background from a margin point (above the
+            //      text line) so we read the paper colour, not the glyph pixels.
+            //   3. Falling back to explicit bgHex / coverBgHex on the edit.
+            //   4. Final fallback: white.
+            let patchDataUrl = edit.patch || null; // only use if eraser pre-computed it
+
+            let coverBgHex = edit.coverBgHex ||
+                ((edit.bgHex && edit.bgHex !== 'transparent') ? edit.bgHex : null);
+
+            if (!coverBgHex) {
+                // Sample from just above the text line (in the left margin)
+                // to avoid reading glyph pixels and get the true paper colour.
+                const sampleX = Math.max(0, origLeft - 4);
+                const sampleY = Math.max(0, origTop  - 4);
+                const bg = typeof sampleBackgroundColor === 'function'
+                    ? sampleBackgroundColor(sampleX, sampleY)
+                    : null;
+                coverBgHex = (bg && bg.hex) ? bg.hex : '#ffffff';
+            }
 
             coverPatch.style.cssText = `
                 position: absolute;
-                left: ${origLeft}px;
-                top:  ${origTop}px;
-                width: ${origWidth}px;
-                height: ${origHeight}px;
-                background-color: ${_cpBgHex};
+                left: ${origLeft - 1}px;
+                top:  ${origTop  - 1}px;
+                width: ${origWidth  + 2}px;
+                height: ${origHeight + 2}px;
+                background-color: ${coverBgHex};
                 ${patchDataUrl ? `background-image:url(${patchDataUrl});background-size:100% 100%;background-repeat:no-repeat;` : ''}
                 pointer-events: none;
                 z-index: 8;
@@ -444,6 +459,7 @@ async function setupTextLayer(page, viewport, container) {
             textItem._coverPatch = coverPatch;
             container.appendChild(coverPatch);
         }
+
 
         // Click handlers
         textItem.addEventListener('click', (e) => {
@@ -603,9 +619,10 @@ function restoreEditOnSpan(el, edit, viewport) {
     } else {
         el.textContent = edit.text || '';
     }
+    const tx = pdfjsLib.Util.transform(viewport.transform, [1, 0, 0, 1, edit.x, edit.y]);
     el.style.color  = edit.color;
-    el.style.left   = `${edit.x * viewport.scale}px`;
-    el.style.top    = `${(viewport.height / viewport.scale - edit.y) * viewport.scale - edit.size * viewport.scale}px`;
+    el.style.left   = `${tx[4]}px`;
+    el.style.top    = `${tx[5] - edit.size * viewport.scale}px`;
     el.style.fontSize = `${edit.size * viewport.scale}px`;
 
     let fontName = edit.font || 'Helvetica';
