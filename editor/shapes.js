@@ -21,7 +21,12 @@ function createShapeNode(edit, container) {
     const wpx = edit.width  * pdfScale;
     const hpx = edit.height * pdfScale;
     const xpx = edit.x      * pdfScale;
-    const ypx = container.offsetHeight - (edit.y * pdfScale) - hpx;
+    // Use the natural page height in pts (stored by renderer) to flip Y correctly.
+    // Avoid using container.offsetHeight/pdfScale which can differ due to DPI scaling.
+    const pageHeightPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+        ? window._pdfPageNaturalSize.height
+        : container.offsetHeight / pdfScale;
+    const ypx = pageHeightPts * pdfScale - (edit.y * pdfScale) - hpx;
 
     const wrapper = document.createElement('div');
     wrapper.dataset.editId  = edit.id;
@@ -335,10 +340,10 @@ function createShapeNode(edit, container) {
         if (ev) {
             ev.width  = newW / pdfScale;
             ev.height = newH / pdfScale;
-            const cont = wrapper.closest('.pdf-page-wrapper');
-            if (cont) {
-                ev.y = (cont.offsetHeight - parseFloat(wrapper.style.top) - newH) / pdfScale;
-            }
+            const pageHeightPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+                ? window._pdfPageNaturalSize.height
+                : (wrapper.closest('.pdf-page-wrapper') || { offsetHeight: 842 * pdfScale }).offsetHeight / pdfScale;
+            ev.y = pageHeightPts - (parseFloat(wrapper.style.top) / pdfScale) - (newH / pdfScale);
         }
     });
 
@@ -387,10 +392,10 @@ function createShapeNode(edit, container) {
         const ev = shapeEdits.find(ed => ed.id === edit.id);
         if (ev) {
             ev.x = newL / pdfScale;
-            const cont = wrapper.closest('.pdf-page-wrapper');
-            if (cont) {
-                ev.y = (cont.offsetHeight - newT - parseFloat(wrapper.style.height)) / pdfScale;
-            }
+            const pageHeightPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+                ? window._pdfPageNaturalSize.height
+                : (wrapper.closest('.pdf-page-wrapper') || { offsetHeight: 842 * pdfScale }).offsetHeight / pdfScale;
+            ev.y = pageHeightPts - (newT / pdfScale) - (parseFloat(wrapper.style.height) / pdfScale);
         }
     });
 
@@ -461,8 +466,15 @@ function addShapeToPdf(type) {
     if (type === 'line')       { width = 150; height = 20;  }
 
     const offset = (shapeEdits.filter(e => e.page === currentPageNum).length % 6) * 20;
-    const cxPx = pageWrapper.offsetWidth  / 2 - (width  / 2) + offset;
-    const cyPx = pageWrapper.offsetHeight / 2 - (height / 2) + offset;
+    // Use exact PDF page height in pts — avoids DPI/rounding errors from offsetHeight/pdfScale.
+    const pageHeightPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+        ? window._pdfPageNaturalSize.height
+        : pageWrapper.offsetHeight / pdfScale;
+    const wPts = width  / pdfScale;  // shape width in PDF pts
+    const hPts = height / pdfScale;  // shape height in PDF pts
+    // Center of page in PDF pts
+    const cxPts = (pageWrapper.offsetWidth  / pdfScale) / 2 - wPts / 2 + offset / pdfScale;
+    const cyPts = pageHeightPts / 2 - hPts / 2 + offset / pdfScale;  // Y from PDF bottom
 
     const bgPicker = document.getElementById('bgColor');
     const defColor = (bgPicker && bgPicker.value) ? bgPicker.value : '#7c3aed';
@@ -476,10 +488,10 @@ function addShapeToPdf(type) {
         bgHex:   defColor,
         opacity: 1,
         zIndex:  _shapeZCounter,
-        x:       cxPx / pdfScale,
-        y:       (pageWrapper.offsetHeight - cyPx - height) / pdfScale,
-        width:   width / pdfScale,
-        height:  height / pdfScale
+        x:       cxPts,
+        y:       cyPts,   // bottom-left Y in PDF points (bottom-up)
+        width:   wPts,
+        height:  hPts
     };
 
     shapeEdits.push(shapeEdit);

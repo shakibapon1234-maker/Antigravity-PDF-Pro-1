@@ -133,6 +133,14 @@ async function renderPage(pdf, pageNum) {
         const page     = await pdf.getPage(pageNum);
         const viewport = page.getViewport({ scale: pdfScale });
 
+        // Store unscaled page dimensions (in PDF user-space points) globally
+        // so shapes.js and save-pdf.js can use the exact coordinate space.
+        const naturalViewport = page.getViewport({ scale: 1.0 });
+        window._pdfPageNaturalSize = {
+            width:  naturalViewport.width,
+            height: naturalViewport.height
+        };
+
         const canvas  = document.createElement('canvas');
         const context = canvas.getContext('2d');
         canvas.height = viewport.height;
