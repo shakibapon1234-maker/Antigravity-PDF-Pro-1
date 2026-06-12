@@ -333,6 +333,44 @@ async function savePdfChanges() {
             }
         }
 
+        // ── Hyperlinks integration ────────────────────────────────────
+        if (window.hyperlinks && window.hyperlinks.length > 0) {
+            for (const link of window.hyperlinks) {
+                const pg = pages[link.page - 1];
+                if (!pg) continue;
+
+                const cropBox = pg.getCropBox() || { x: 0, y: 0 };
+                const cropX = cropBox.x || 0;
+                const cropY = cropBox.y || 0;
+
+                const x1 = link.x + cropX;
+                const y1 = pg.getHeight() - link.y - link.h + cropY;
+                const x2 = link.x + link.w + cropX;
+                const y2 = pg.getHeight() - link.y + cropY;
+
+                const linkAnnot = pdfDoc.context.obj({
+                    Type: 'Annot',
+                    Subtype: 'Link',
+                    Rect: [x1, y1, x2, y2],
+                    Border: [0, 0, 0], // invisible border
+                    A: {
+                        Type: 'Action',
+                        S: 'URI',
+                        URI: PDFLib.PDFString.of(link.url)
+                    }
+                });
+                const linkAnnotRef = pdfDoc.context.register(linkAnnot);
+                
+                const existingAnnots = pg.node.get('Annots');
+                const annotsArray = existingAnnots ? pdfDoc.context.lookup(existingAnnots) : null;
+                if (annotsArray) {
+                    annotsArray.push(linkAnnotRef);
+                } else {
+                    pg.node.set('Annots', pdfDoc.context.newArray([linkAnnotRef]));
+                }
+            }
+        }
+
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         saveAs(blob, 'edited_' + currentPdfFile.name);

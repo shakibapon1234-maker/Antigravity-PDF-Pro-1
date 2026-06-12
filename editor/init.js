@@ -556,6 +556,21 @@ function initEventListeners() {
     // ── সেভ বাটন ─────────────────────────────────────────────────────────
     document.getElementById('btnSavePdf').onclick = savePdfChanges;
 
+    // ── প্রিন্ট বাটন ──────────────────────────────────────────────────────
+    const printPdf = () => {
+        if (currentPdfFile) {
+            window.print();
+        } else {
+            alert('কোনো PDF লোড করা নেই।');
+        }
+    };
+    const btnPrintPdf = document.getElementById('btnPrintPdf');
+    if (btnPrintPdf) btnPrintPdf.onclick = printPdf;
+    if (window.electronAPI?.onTriggerPrint) {
+        window.electronAPI.onTriggerPrint(printPdf);
+    }
+
+
     // ── পেজ নেভিগেশন ────────────────────────────────────────────────────
     document.getElementById('prevPage').onclick = () => {
         if (currentPageNum > 1 && currentPdfObj) { currentPageNum--; renderPage(currentPdfObj, currentPageNum); }

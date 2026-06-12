@@ -220,6 +220,30 @@ function createWindow() {
     event.preventDefault(); // we'll manage title ourselves
   });
 
+  // Enable right-click context menu for copy/paste support (especially in text inputs)
+  mainWindow.webContents.on('context-menu', (event, params) => {
+    const menuTemplate = [];
+    if (params.isEditable) {
+      menuTemplate.push(
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { type: 'separator' },
+        { role: 'selectAll' }
+      );
+    } else if (params.selectionText && params.selectionText.trim() !== '') {
+      menuTemplate.push({ role: 'copy' });
+    } else {
+      return; // No menu for static non-selected text
+    }
+
+    const menu = Menu.buildFromTemplate(menuTemplate);
+    menu.popup({ window: mainWindow });
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -267,6 +291,13 @@ function buildMenu() {
               mainWindow.webContents.send('open-file', filePaths[0]);
             }
           },
+        },
+        {
+          label: 'Print...',
+          accelerator: 'CmdOrCtrl+P',
+          click: () => {
+            if (mainWindow) mainWindow.webContents.send('trigger-print');
+          }
         },
         { type: 'separator' },
         {

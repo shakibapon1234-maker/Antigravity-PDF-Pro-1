@@ -2588,3 +2588,62 @@ body.light-theme .sig-tab.active {
   border-left: 1px solid var(--border, #333);
   margin-left: 4px;
 }
+
+/* ─── Native Print Styles ────────────────────────────────────────────── */
+@media print {
+  body, html {
+    background: #fff !important;
+    color: #000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  /* Hide everything */
+  body > * {
+    display: none !important;
+  }
+  /* Show only the canvas wrapper container */
+  #canvasWrapper, #canvasWrapper * {
+    display: block !important;
+    visibility: visible !important;
+  }
+  #canvasWrapper {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  .pdf-page-wrapper {
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    page-break-after: always !important;
+    page-break-inside: avoid !important;
+    position: relative !important;
+  }
+  .pdf-page-wrapper canvas {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+  /* Ensure editing elements (text, shapes) are visible in print */
+  .text-layer, .placed-shape, .placed-form-field, .placed-image, .placed-hyperlink {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute !important;
+  }
+  /* Hide cursor indicators and other edit controls */
+  .shape-resize-handle, .field-resize-handle, .link-resize-handle, .shape-toolbar, .eraser-dot {
+    display: none !important;
+  }
+}
+

@@ -29,6 +29,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('open-file', (event, filePath) => callback(filePath));
   },
 
+  // Listen for print trigger events
+  onTriggerPrint: (callback) => {
+    ipcRenderer.on('trigger-print', () => callback());
+  },
+
   // Check if running inside Electron
   isElectron: true,
 

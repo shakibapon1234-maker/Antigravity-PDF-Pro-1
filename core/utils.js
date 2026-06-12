@@ -80,7 +80,7 @@ function switchTab(tabId) {
 
 
 function updateToolUI(activeId) {
-    ['btnSelect', 'btnTypeText', 'btnClearText', 'btnCloneArea', 'btnFreehand', 'btnHighlight', 'btnRedact', 'btnMoveArea', 'btnSignature', 'btnWhiteEraser'].forEach(id => {
+    ['btnSelect', 'btnTypeText', 'btnClearText', 'btnCloneArea', 'btnFreehand', 'btnHighlight', 'btnRedact', 'btnMoveArea', 'btnSignature', 'btnWhiteEraser', 'btnLink'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle('active', id === activeId);
     });

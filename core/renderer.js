@@ -79,6 +79,7 @@ async function loadAndRenderPDF(file, password = '') {
             shapeEdits   = [];
             clearStrokes = [];
             if (typeof imageEdits !== 'undefined') imageEdits = [];
+            window.hyperlinks = [];
             undoHistory  = [];
             redoHistory  = [];
 
@@ -247,6 +248,11 @@ async function renderPage(pdf, pageNum) {
         // ── Form Fields পুনরুদ্ধার ───────────────────────────────────────
         if (typeof restoreFormFieldsToDom === 'function') {
             restoreFormFieldsToDom(pageWrapper);
+        }
+
+        // ── Hyperlinks পুনরুদ্ধার ─────────────────────────────────────────
+        if (typeof restoreHyperlinksToDom === 'function') {
+            restoreHyperlinksToDom(pageWrapper);
         }
 
         // bg canvas cache রিসেট
