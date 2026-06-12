@@ -77,9 +77,19 @@ async function savePdfChanges() {
                 const cropBox = pg.getCropBox() || { x: 0, y: 0 };
                 const cropX = cropBox.x || 0;
                 const cropY = cropBox.y || 0;
+
+                // Resolve dimensions — support both width/height and w/h field names,
+                // then fall back to the embedded image's intrinsic size (in pts).
+                const resolvedW = img.width ?? img.w;
+                const resolvedH = img.height ?? img.h;
+                const embeddedDims = embeddedImg.scale(1); // intrinsic dims in pts
+                const drawW = (resolvedW != null && resolvedW > 0) ? resolvedW : embeddedDims.width;
+                const drawH = (resolvedH != null && resolvedH > 0) ? resolvedH : embeddedDims.height;
+
                 const drawOpts = {
                     x: img.x + cropX, y: img.y + cropY,
-                    width: img.width, height: img.height,
+                    width:  drawW,
+                    height: drawH,
                     opacity: img.opacity ?? 1
                 };
                 if (img.rotation && img.rotation !== 0) {

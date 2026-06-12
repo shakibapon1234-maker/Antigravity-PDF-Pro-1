@@ -40,10 +40,13 @@ function addImageToPdf(dataUrl, fileName, initialRect = null) {
     wrap.dataset.imageId = imageId;
     
     if (!initialRect || !initialRect.id) {
+        const pageHeightPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+            ? window._pdfPageNaturalSize.height
+            : container.offsetHeight / pdfScale;
         imageEdits.push({
             id: imageId, page: currentPageNum, dataUrl, name: fileName || 'image',
             x: defL / pdfScale,
-            y: (container.offsetHeight - defT - defH) / pdfScale,
+            y: pageHeightPts - (defT + defH) / pdfScale,
             width: defW / pdfScale, height: defH / pdfScale,
             rotation: 0, opacity: 1, zIndex: _imgZCounter
         });
@@ -77,8 +80,11 @@ function addImageToPdf(dataUrl, fileName, initialRect = null) {
         if (cont) {
             const ed = imageEdits.find(s => s.id === imageId);
             if (ed) {
+                const pageHeightPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+                    ? window._pdfPageNaturalSize.height
+                    : cont.offsetHeight / pdfScale;
                 ed.x = parseFloat(wrap.style.left) / pdfScale;
-                ed.y = (cont.offsetHeight - parseFloat(wrap.style.top) - wrap.offsetHeight) / pdfScale;
+                ed.y = pageHeightPts - (parseFloat(wrap.style.top) + wrap.offsetHeight) / pdfScale;
             }
 
             // If the text tool is active and they DID NOT drag the image, open the text editor on the image
@@ -106,10 +112,13 @@ window.restoreImagesToDom = function(container) {
     if (typeof imageEdits === 'undefined') return;
     const pageImages = imageEdits.filter(img => img.page === currentPageNum);
     pageImages.forEach(img => {
-        const defW = img.width * pdfScale;
-        const defH = img.height * pdfScale;
+        const defW = (img.width ?? img.w) * pdfScale;
+        const defH = (img.height ?? img.h) * pdfScale;
         const defL = img.x * pdfScale;
-        const defT = container.offsetHeight - (img.y * pdfScale) - defH;
+        const pageHeightPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+            ? window._pdfPageNaturalSize.height
+            : container.offsetHeight / pdfScale;
+        const defT = (pageHeightPts - img.y) * pdfScale - defH;
         addImageToPdf(img.dataUrl, img.name, {
             id: img.id, l: defL, t: defT, w: defW, h: defH,
             opacity: img.opacity, rotation: img.rotation
@@ -435,10 +444,13 @@ function attachImageLayerToolbar(wrap, imageId) {
             const ed   = imageEdits.find(s => s.id === imageId);
             const cont = wrap.closest('.pdf-page-wrapper');
             if (ed && cont) {
+                const pageHPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+                    ? window._pdfPageNaturalSize.height
+                    : cont.offsetHeight / pdfScale;
                 ed.width  = wrap.offsetWidth  / pdfScale;
                 ed.height = wrap.offsetHeight / pdfScale;
                 ed.x      = parseFloat(wrap.style.left) / pdfScale;
-                ed.y      = (cont.offsetHeight - parseFloat(wrap.style.top)) / pdfScale - ed.height;
+                ed.y      = pageHPts - parseFloat(wrap.style.top) / pdfScale - ed.height;
             }
         }
     });

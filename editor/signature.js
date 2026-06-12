@@ -267,15 +267,21 @@ function _placeSig(x, y, pageWrapper) {
     _makeSigDraggable(sigEl, pageWrapper);
 
     // Store in imageEdits for PDF export
+    // Use exact PDF page height in pts to avoid DPI-scaling Y-flip errors.
     if (typeof imageEdits !== 'undefined') {
+        const pageHeightPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+            ? window._pdfPageNaturalSize.height
+            : pageWrapper.offsetHeight / pdfScale;
         imageEdits.push({
-            page:     currentPageNum,
-            x:        x / pdfScale,
-            y:        (pageWrapper.offsetHeight - y - sigH) / pdfScale,
-            w:        sigW / pdfScale,
-            h:        sigH / pdfScale,
-            dataUrl:  _sigDataUrl,
-            isSig:    true
+            page:    currentPageNum,
+            x:       x / pdfScale,
+            y:       pageHeightPts - (y + sigH) / pdfScale,
+            width:   sigW / pdfScale,   // save-pdf.js reads 'width'/'height'
+            height:  sigH / pdfScale,
+            w:       sigW / pdfScale,   // legacy aliases
+            h:       sigH / pdfScale,
+            dataUrl: _sigDataUrl,
+            isSig:   true
         });
     }
 }

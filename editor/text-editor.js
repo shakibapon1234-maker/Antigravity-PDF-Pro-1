@@ -972,16 +972,19 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         const isTransparent = btnTransBg && btnTransBg.classList.contains('active');
         const finalBgHex = isTransparent ? 'transparent' : (input.dataset.bgHex || '#ffffff');
 
+        const _pageHPts980 = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+            ? window._pdfPageNaturalSize.height
+            : container.offsetHeight / pdfScale;
         const editData = {
             id: 'new-' + Date.now(),
             page:  currentPageNum,
             isNew: true,
             originalX: x / pdfScale,
-            originalY: (container.offsetHeight - y) / pdfScale - currentStyle.fontSize,
+            originalY: _pageHPts980 - y / pdfScale - currentStyle.fontSize,
             originalWidth: finalWidth,
             originalHeight: finalHeight,
             x:     wrapLeft / pdfScale,
-            y:     (container.offsetHeight - wrapTop) / pdfScale - currentStyle.fontSize,
+            y:     _pageHPts980 - wrapTop / pdfScale - currentStyle.fontSize,
             text:  newText,
             size:  currentStyle.fontSize,
             color: currentStyle.color,
@@ -1093,8 +1096,10 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
                     if (cont2) {
                         const edIdx = textEdits.findIndex(ed => ed.id === editData.id);
                         if (edIdx > -1) {
+                            const _phDrag = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+                                ? window._pdfPageNaturalSize.height : cont2.offsetHeight / pdfScale;
                             textEdits[edIdx].x = parseFloat(textItem.style.left) / pdfScale;
-                            textEdits[edIdx].y = (cont2.offsetHeight - parseFloat(textItem.style.top)) / pdfScale - textEdits[edIdx].size;
+                            textEdits[edIdx].y = _phDrag - parseFloat(textItem.style.top) / pdfScale - textEdits[edIdx].size;
                         }
                     }
                     document.removeEventListener('mousemove', _onShMove);
@@ -1319,7 +1324,9 @@ function finalizeDragging() {
         const newTop = parseFloat(dragTarget.style.top);
         
         edit.x = newLeft / pdfScale;
-        edit.y = (cont.offsetHeight / pdfScale) - (newTop / pdfScale) - edit.size;
+        const _phFinal = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+            ? window._pdfPageNaturalSize.height : cont.offsetHeight / pdfScale;
+        edit.y = _phFinal - newTop / pdfScale - edit.size;
 
         // Re-sample background color if it's not transparent/overridden
         const btnTransBg = document.getElementById('btnTransparentBg');
@@ -1496,9 +1503,11 @@ function endClearStroke(container) {
             // (PDF-lib can't embed arbitrary image patches inline easily)
             let pe = clearStrokes.find(s => s.page === currentPageNum);
             if (!pe) { pe = { page: currentPageNum, rects: [] }; clearStrokes.push(pe); }
+            const _phClear1 = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+                ? window._pdfPageNaturalSize.height : container.offsetHeight / pdfScale;
             pe.rects.push({
                 x: l / pdfScale,
-                y: (container.offsetHeight - t - h) / pdfScale,
+                y: _phClear1 - (t + h) / pdfScale,
                 w: w / pdfScale,
                 h: h / pdfScale,
                 r: bgSample.r,
@@ -1822,9 +1831,11 @@ function endClearTextStroke(container) {
     // 3. Save stroke to clearStrokes for PDF export
     let pe = clearStrokes.find(s => s.page === currentPageNum);
     if (!pe) { pe = { page: currentPageNum, rects: [] }; clearStrokes.push(pe); }
+    const _phClear2 = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+        ? window._pdfPageNaturalSize.height : container.offsetHeight / pdfScale;
     pe.rects.push({
         x: l / pdfScale,
-        y: (container.offsetHeight - t - h) / pdfScale,
+        y: _phClear2 - (t + h) / pdfScale,
         w: w / pdfScale,
         h: h / pdfScale,
         r: bgSample.r, g: bgSample.g, b: bgSample.b,
@@ -1860,9 +1871,9 @@ function endClearTextStroke(container) {
         const editId = span.dataset.editId || `ct-${currentPageNum}-${Math.round(sl)}-${Math.round(st)}`;
         const clearEntry = {
             id: editId, page: currentPageNum, isNew: false,
-            originalX: sl / pdfScale, originalY: (container.offsetHeight - st - sh) / pdfScale,
+            originalX: sl / pdfScale, originalY: _phClear2 - (st + sh) / pdfScale,
             originalWidth: sw / pdfScale, originalHeight: sh / pdfScale,
-            x: sl / pdfScale, y: (container.offsetHeight - st - sh) / pdfScale,
+            x: sl / pdfScale, y: _phClear2 - (st + sh) / pdfScale,
             text: '', size: parseFloat(span.style.fontSize) / pdfScale || 12,
             color: 'transparent', bgHex: 'transparent',
             bgR: 1, bgG: 1, bgB: 1,
@@ -2182,10 +2193,14 @@ function finalizeMoveArea() {
     // Save state for PDF download
     // 1. Clear the original area
     let pe = clearStrokes.find(s => s.page === currentPageNum);
+    const moveAreaPageHPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+        ? window._pdfPageNaturalSize.height
+        : container.offsetHeight / pdfScale;
+
     if (!pe) { pe = { page: currentPageNum, rects: [] }; clearStrokes.push(pe); }
     pe.rects.push({
         x: origLeft / pdfScale, 
-        y: (container.offsetHeight - origTop - height) / pdfScale,
+        y: moveAreaPageHPts - (origTop + height) / pdfScale,
         w: width / pdfScale, 
         h: height / pdfScale,
         r: 1, g: 1, b: 1, // Whiteout
@@ -2198,7 +2213,7 @@ function finalizeMoveArea() {
         page: currentPageNum,
         dataUrl: captureCanvas.toDataURL('image/png'),
         x: newLeft / pdfScale,
-        y: (container.offsetHeight - newTop - height) / pdfScale,
+        y: moveAreaPageHPts - (newTop + height) / pdfScale,
         width: width / pdfScale,
         height: height / pdfScale,
         opacity: 1,

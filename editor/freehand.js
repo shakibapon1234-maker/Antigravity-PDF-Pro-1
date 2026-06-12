@@ -104,7 +104,7 @@ function _fhRedraw() {
 }
 
 function _storeFreehandToState(path, pageWrapper) {
-    // Convert canvas path to SVG dataURL and store in imageEdits for export
+    // Convert canvas path to PNG dataURL and store in imageEdits for export
     const tmp = document.createElement('canvas');
     tmp.width  = pageWrapper.offsetWidth;
     tmp.height = pageWrapper.offsetHeight;
@@ -119,7 +119,7 @@ function _storeFreehandToState(path, pageWrapper) {
     tc.lineJoin    = 'round';
     tc.stroke();
 
-    // Get bounding box
+    // Get bounding box of the drawn stroke
     const xs = path.pts.map(p => p.x);
     const ys = path.pts.map(p => p.y);
     const x1 = Math.max(0, Math.min(...xs) - path.size);
@@ -134,11 +134,22 @@ function _storeFreehandToState(path, pageWrapper) {
     crop.width = bw; crop.height = bh;
     crop.getContext('2d').drawImage(tmp, x1, y1, bw, bh, 0, 0, bw, bh);
 
+    // Use exact PDF page height in pts to avoid DPI-scaling Y-flip errors.
+    // window._pdfPageNaturalSize is set by renderer.js after each page render.
+    const pageHeightPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+        ? window._pdfPageNaturalSize.height
+        : pageWrapper.offsetHeight / pdfScale;
+
     if (typeof imageEdits !== 'undefined') {
         imageEdits.push({
             page:    currentPageNum,
             x:       x1 / pdfScale,
-            y:       (pageWrapper.offsetHeight - y2) / pdfScale,
+            // y = PDF bottom-up: distance from page bottom to bottom of bounding box
+            y:       pageHeightPts - (y2 / pdfScale),
+            // save-pdf.js reads 'width'/'height' — use those field names
+            width:   bw / pdfScale,
+            height:  bh / pdfScale,
+            // keep w/h aliases for any other code that reads them
             w:       bw / pdfScale,
             h:       bh / pdfScale,
             dataUrl: crop.toDataURL('image/png'),
@@ -238,11 +249,15 @@ function _applyRedaction(l, t, w, h, container) {
     });
 
     // 3. Store in clearStrokes for PDF export (black rectangle)
+    // Use exact PDF page height in pts to avoid DPI-scaling Y-flip errors.
+    const pageHeightPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+        ? window._pdfPageNaturalSize.height
+        : container.offsetHeight / pdfScale;
     let pe = clearStrokes.find(s => s.page === currentPageNum);
     if (!pe) { pe = { page: currentPageNum, rects: [] }; clearStrokes.push(pe); }
     pe.rects.push({
         x: l / pdfScale,
-        y: (container.offsetHeight - t - h) / pdfScale,
+        y: pageHeightPts - (t + h) / pdfScale,
         w: w / pdfScale,
         h: h / pdfScale,
         r: 0, g: 0, b: 0,
@@ -320,15 +335,22 @@ function startHighlightStroke(x, y, container) {
 
 function _saveHighlight(l, t, w, h, color) {
     captureUndoSnapshot('Highlight');
+    // Use exact PDF page height in pts to avoid DPI-scaling Y-flip errors.
+    const pageHeightPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+        ? window._pdfPageNaturalSize.height
+        : ((_hlContainer?.offsetHeight || 0) / pdfScale);
     // Store as a transparent-colored shape for PDF export
     if (typeof shapeEdits !== 'undefined') {
         shapeEdits.push({
             page: currentPageNum,
             type: 'highlight',
             x:    l / pdfScale,
-            y:    ((_hlContainer?.offsetHeight || 0) - t - h) / pdfScale,
+            y:    pageHeightPts - (t + h) / pdfScale,
             w:    w / pdfScale,
             h:    h / pdfScale,
+            // also store as width/height for consistency with shape drawing code
+            width:  w / pdfScale,
+            height: h / pdfScale,
             color,
             opacity: 0.35
         });

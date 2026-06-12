@@ -560,6 +560,11 @@ function _commitWhiteErase(container, l, t, w, h) {
     `;
     container.appendChild(wd);
 
+    // Use exact PDF page height in pts to avoid DPI-scaling Y-flip errors.
+    const eraserPageHPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+        ? window._pdfPageNaturalSize.height
+        : container.offsetHeight / pdfScale;
+
     // ── text spans clear ──────────────────────────────────────────────────────
     const cr = container.getBoundingClientRect();
     container.querySelectorAll('.editable-text-unit').forEach(span => {
@@ -582,8 +587,8 @@ function _commitWhiteErase(container, l, t, w, h) {
                 || `we-${currentPageNum}-${Math.round(sl)}-${Math.round(st)}`;
             const entry = {
                 id: editId, page: currentPageNum, isNew: false,
-                originalX: sl/pdfScale, originalY: (container.offsetHeight-st-sh)/pdfScale,
-                x: sl/pdfScale, y: (container.offsetHeight-st-sh)/pdfScale,
+                originalX: sl/pdfScale, originalY: eraserPageHPts - (st+sh)/pdfScale,
+                x: sl/pdfScale, y: eraserPageHPts - (st+sh)/pdfScale,
                 text:'', size: parseFloat(span.style.fontSize)/pdfScale||12,
                 color:'transparent', bgHex:'#ffffff', bgR:1,bgG:1,bgB:1,
                 font:'Helvetica', isBold:false, isItalic:false, isUnderline:false,
@@ -600,7 +605,7 @@ function _commitWhiteErase(container, l, t, w, h) {
     let pe = clearStrokes.find(s => s.page === currentPageNum);
     if (!pe) { pe = { page: currentPageNum, rects: [] }; clearStrokes.push(pe); }
     pe.rects.push({
-        x:l/pdfScale, y:(container.offsetHeight-t-h)/pdfScale,
+        x:l/pdfScale, y: eraserPageHPts - (t+h)/pdfScale,
         w:w/pdfScale, h:h/pdfScale,
         r:1,g:1,b:1, patch:null, isWhiteErase:true
     });
