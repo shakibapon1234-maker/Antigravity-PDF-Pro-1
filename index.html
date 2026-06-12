@@ -2045,10 +2045,15 @@
         if (window._tempExports) exports = undefined;
       })();
     </script>
-    <script src="ui/libs/html2pdf.bundle.min.js"></script>
-    <script src="ui/libs/xlsx.full.min.js"></script>
     <!-- jsPDF — PDF encryption/password protection support -->
     <script src="ui/libs/jspdf.umd.min.js"></script>
+    <script>
+      if (typeof window.jspdf !== 'undefined' && typeof window.jsPDF === 'undefined') {
+        window.jsPDF = window.jspdf.jsPDF;
+      }
+    </script>
+    <script src="ui/libs/html2pdf.bundle.min.js"></script>
+    <script src="ui/libs/xlsx.full.min.js"></script>
     <script>
       (function() {
         if (window._tempModule) module = window._tempModule;
