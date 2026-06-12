@@ -47,7 +47,7 @@ copy /Y "node_modules\lucide\dist\umd\lucide.min.js" "ui\libs\lucide.min.js" >nu
 if %errorlevel%==0 (echo   [OK] lucide) else (echo   [FAIL] lucide)
 
 :: html2pdf
-copy /Y "node_modules\html2pdf.js\dist\html2pdf.min.js" "ui\libs\html2pdf.bundle.min.js" >nul 2>&1
+copy /Y "node_modules\html2pdf.js\dist\html2pdf.bundle.min.js" "ui\libs\html2pdf.bundle.min.js" >nul 2>&1
 if %errorlevel%==0 (echo   [OK] html2pdf) else (echo   [FAIL] html2pdf)
 
 :: xlsx
@@ -85,7 +85,7 @@ copy /Y "node_modules\sortablejs\Sortable.min.js" "ui\libs\Sortable.min.js" >nul
 copy /Y "node_modules\tesseract.js\dist\tesseract.min.js" "ui\libs\tesseract.min.js" >nul 2>&1
 copy /Y "node_modules\tesseract.js\dist\worker.min.js" "ui\libs\tesseract.worker.min.js" >nul 2>&1
 copy /Y "node_modules\lucide\dist\umd\lucide.min.js" "ui\libs\lucide.min.js" >nul 2>&1
-copy /Y "node_modules\html2pdf.js\dist\html2pdf.min.js" "ui\libs\html2pdf.bundle.min.js" >nul 2>&1
+copy /Y "node_modules\html2pdf.js\dist\html2pdf.bundle.min.js" "ui\libs\html2pdf.bundle.min.js" >nul 2>&1
 copy /Y "node_modules\xlsx\dist\xlsx.full.min.js" "ui\libs\xlsx.full.min.js" >nul 2>&1
 copy /Y "node_modules\jspdf\dist\jspdf.umd.min.js" "ui\libs\jspdf.umd.min.js" >nul 2>&1
 copy /Y "node_modules\mammoth\mammoth.browser.min.js" "ui\libs\mammoth.browser.min.js" >nul 2>&1
