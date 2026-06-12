@@ -273,7 +273,7 @@ const PdfCompare = (() => {
     const viewport = page.getViewport({ scale });
     canvas.width = viewport.width;
     canvas.height = viewport.height;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     await page.render({ canvasContext: ctx, viewport }).promise;
   }
 
@@ -298,9 +298,9 @@ const PdfCompare = (() => {
     canvasDiff.width = w;
     canvasDiff.height = h;
 
-    const ctxA = canvasA.getContext('2d');
-    const ctxB = canvasB.getContext('2d');
-    const ctxD = canvasDiff.getContext('2d');
+    const ctxA = canvasA.getContext('2d', { willReadFrequently: true });
+    const ctxB = canvasB.getContext('2d', { willReadFrequently: true });
+    const ctxD = canvasDiff.getContext('2d', { willReadFrequently: true });
 
     // White background
     ctxD.fillStyle = '#ffffff';

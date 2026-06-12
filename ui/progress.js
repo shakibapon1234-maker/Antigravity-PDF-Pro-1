@@ -529,7 +529,7 @@
                 setTimeout(() => {
                     AGProgress.done();
                     // operation-specific success toast
-                    if (name) {
+                    if (name && !name.startsWith('edited_')) {
                         const n = name.replace(/_/g, ' ');
                         AGToast.success('✓ সম্পন্ন! ' + n + ' ডাউনলোড হয়েছে।');
                     }
@@ -561,6 +561,12 @@
             }
         };
         window.savePdfChanges._agPatched = true;
+
+        // Re-bind click / onclick if element exists
+        const saveBtn = document.getElementById('btnSavePdf');
+        if (saveBtn) {
+            saveBtn.onclick = window.savePdfChanges;
+        }
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────

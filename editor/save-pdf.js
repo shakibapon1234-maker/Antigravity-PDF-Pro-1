@@ -366,7 +366,7 @@ async function savePdfChanges() {
                 if (annotsArray) {
                     annotsArray.push(linkAnnotRef);
                 } else {
-                    pg.node.set('Annots', pdfDoc.context.newArray([linkAnnotRef]));
+                    pg.node.set('Annots', pdfDoc.context.obj([linkAnnotRef]));
                 }
             }
         }
@@ -387,7 +387,10 @@ async function savePdfChanges() {
 
     } catch (err) {
         console.error(err);
-        alert('Failed to save PDF: ' + err.message);
+        if (typeof AGProgress === 'undefined') {
+            alert('Failed to save PDF: ' + err.message);
+        }
+        throw err;
     }
 }
 
