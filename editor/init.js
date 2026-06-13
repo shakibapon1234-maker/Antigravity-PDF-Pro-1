@@ -464,7 +464,7 @@ function initEventListeners() {
     document.querySelectorAll('.btn-tool, .color-picker-wrapper, #btnIncreaseFont, #btnDecreaseFont, #fontFamily, #fontSize').forEach(el => {
         el.addEventListener('mousedown', (e) => {
             if (el.tagName === 'SELECT' || el.tagName === 'INPUT') return;
-            const noPreventList = ['btnSelect','btnTypeText','btnClearText','btnCloneArea','btnInsertImage','btnUndo','btnClearEdits','btnShapeMenu','btnMoveArea','btnCreateTable'];
+            const noPreventList = ['btnSelect','btnTypeText','btnClearText','btnCloneArea','btnInsertImage','btnUndo','btnRedo','btnClearEdits','btnShapeMenu','btnMoveArea','btnCreateTable'];
             if (noPreventList.includes(el.id)) return;
             e.preventDefault();
         });

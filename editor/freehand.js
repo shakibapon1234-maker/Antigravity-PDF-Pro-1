@@ -17,13 +17,21 @@ let _fhSize       = 3;
 let _fhPaths      = [];      // all drawn paths stored for undo
 let _fhCurrentPts = [];
 let _fhStartPt    = null;   // for Shift straight-line mode
+let _fhLastShift  = false;  // was previous mousemove in shift-mode?
 let _fhDocUpHandler = null; // document-level mouseup for out-of-canvas release
 
 function startFreehand(pageWrapper) {
     if (_fhActive) { stopFreehand(pageWrapper); return; }
     _fhActive = true;
 
-    // Create overlay SVG canvas
+    // Remove any static snapshot canvas left from when the tool was inactive
+    const existingStatic = pageWrapper.querySelector('.fh-static-canvas');
+    if (existingStatic) existingStatic.remove();
+
+    // Remove any stale interactive canvas
+    if (_fhCanvas) { _fhCanvas.remove(); _fhCanvas = null; _fhCtx = null; }
+
+    // Create overlay canvas
     _fhCanvas = document.createElement('canvas');
     _fhCanvas.className = 'freehand-canvas';
     _fhCanvas.width     = pageWrapper.offsetWidth;
@@ -38,7 +46,7 @@ function startFreehand(pageWrapper) {
     pageWrapper.appendChild(_fhCanvas);
     _fhCtx = _fhCanvas.getContext('2d');
 
-    // Redraw existing paths
+    // Redraw all existing paths on the new canvas
     _fhRedraw();
 
     const getXY = (e) => {
@@ -60,56 +68,21 @@ function startFreehand(pageWrapper) {
         return { x: start.x + (dx > 0 ? d : -d), y: start.y + (dy > 0 ? d : -d) }; // 45°
     };
 
-    _fhCanvas.addEventListener('mousedown', _fhOnDown = (e) => {
-        _fhDrawing    = true;
-        _fhStartPt    = getXY(e);
-        _fhCurrentPts = [_fhStartPt];
-        _fhCtx.beginPath();
-        _fhCtx.moveTo(_fhStartPt.x, _fhStartPt.y);
-        e.preventDefault();
-    });
-
-    _fhCanvas.addEventListener('mousemove', _fhOnMove = (e) => {
-        if (!_fhDrawing) return;
-        let p = getXY(e);
-
-        if (e.shiftKey && _fhStartPt) {
-            // Straight-line preview: redraw entire canvas then draw preview line
-            p = constrainToLine(_fhStartPt, p);
-            _fhRedraw();
-            _fhCtx.beginPath();
-            _fhCtx.moveTo(_fhStartPt.x, _fhStartPt.y);
-            _fhCtx.lineTo(p.x, p.y);
-            _fhCtx.strokeStyle = _fhColor;
-            _fhCtx.lineWidth   = _fhSize;
-            _fhCtx.lineCap     = 'round';
-            _fhCtx.lineJoin    = 'round';
-            _fhCtx.stroke();
-            // Track only start and current end for the straight segment
-            _fhCurrentPts = [_fhStartPt, p];
-        } else {
-            _fhCurrentPts.push(p);
-            _fhCtx.lineTo(p.x, p.y);
-            _fhCtx.strokeStyle = _fhColor;
-            _fhCtx.lineWidth   = _fhSize;
-            _fhCtx.lineCap     = 'round';
-            _fhCtx.lineJoin    = 'round';
-            _fhCtx.stroke();
-        }
-        e.preventDefault();
-    });
-
-    // Internal commit function (canvas mouseup or document mouseup)
-    const _fhCommit = () => {
+    // ── Commit function (declared first so mousedown can reference it) ──────────
+    const _fhDoCommit = () => {
         if (!_fhDrawing) return;
         _fhDrawing = false;
         _fhStartPt = null;
+
         if (_fhCurrentPts.length > 1) {
             captureUndoSnapshot('Freehand draw');
             _fhPaths.push({ pts: [..._fhCurrentPts], color: _fhColor, size: _fhSize, page: currentPageNum });
             _storeFreehandToState(_fhPaths[_fhPaths.length - 1], pageWrapper);
+            _fhRedraw(); // redraw so the committed stroke renders from _fhPaths
         }
+
         _fhCurrentPts = [];
+
         // Clean up the document-level safety handler
         if (_fhDocUpHandler) {
             document.removeEventListener('mouseup', _fhDocUpHandler);
@@ -117,13 +90,65 @@ function startFreehand(pageWrapper) {
         }
     };
 
-    _fhCanvas.addEventListener('mouseup', _fhOnUp = _fhCommit);
+    _fhCanvas.addEventListener('mousedown', _fhOnDown = (e) => {
+        // If a previous stroke was never committed, force-commit it first.
+        if (_fhDrawing) _fhDoCommit();
 
-    // Document-level mouseup so releasing outside the canvas still commits the stroke
-    _fhDocUpHandler = (e) => {
-        if (e.target !== _fhCanvas) _fhCommit();
-    };
-    document.addEventListener('mouseup', _fhDocUpHandler);
+        _fhDrawing    = true;
+        _fhStartPt    = getXY(e);
+        _fhCurrentPts = [_fhStartPt];
+        _fhLastShift  = false;
+
+        // Re-register the document-level mouseup for THIS stroke
+        if (_fhDocUpHandler) document.removeEventListener('mouseup', _fhDocUpHandler);
+        _fhDocUpHandler = (docE) => {
+            if (docE.target !== _fhCanvas) _fhDoCommit();
+        };
+        document.addEventListener('mouseup', _fhDocUpHandler);
+
+        // Draw a dot at the start point so single-clicks are visible
+        _fhCtx.beginPath();
+        _fhCtx.arc(_fhStartPt.x, _fhStartPt.y, _fhSize / 2, 0, Math.PI * 2);
+        _fhCtx.fillStyle = _fhColor;
+        _fhCtx.fill();
+
+        e.preventDefault();
+    });
+
+    _fhCanvas.addEventListener('mousemove', _fhOnMove = (e) => {
+        if (!_fhDrawing) return;
+        let p = getXY(e);
+        const isShift = e.shiftKey && _fhStartPt;
+
+        if (isShift) {
+            p = constrainToLine(_fhStartPt, p);
+            _fhCurrentPts = [_fhStartPt, p];
+        } else {
+            _fhCurrentPts.push(p);
+        }
+
+        // Full redraw every frame — robust, no accumulated ctx path bugs
+        _fhRedraw();
+
+        // Draw current in-progress stroke on top
+        if (_fhCurrentPts.length >= 2) {
+            _fhCtx.beginPath();
+            _fhCtx.moveTo(_fhCurrentPts[0].x, _fhCurrentPts[0].y);
+            for (let i = 1; i < _fhCurrentPts.length; i++) {
+                _fhCtx.lineTo(_fhCurrentPts[i].x, _fhCurrentPts[i].y);
+            }
+            _fhCtx.strokeStyle = _fhColor;
+            _fhCtx.lineWidth   = _fhSize;
+            _fhCtx.lineCap     = 'round';
+            _fhCtx.lineJoin    = 'round';
+            _fhCtx.stroke();
+        }
+
+        _fhLastShift = isShift;
+        e.preventDefault();
+    });
+
+    _fhCanvas.addEventListener('mouseup', _fhOnUp = _fhDoCommit);
 
     pageWrapper.style.cursor = 'crosshair';
     document.getElementById('btnFreehand')?.classList.add('active');
@@ -133,11 +158,48 @@ function stopFreehand(pageWrapper) {
     _fhActive  = false;
     _fhDrawing = false;
     _fhStartPt = null;
+
     // Remove document-level mouseup safety handler
     if (_fhDocUpHandler) {
         document.removeEventListener('mouseup', _fhDocUpHandler);
         _fhDocUpHandler = null;
     }
+
+    // ── Before removing the interactive canvas, paint all strokes onto a
+    // ── static canvas so they remain visible while the pencil tool is off.
+    if (pageWrapper) {
+        const paths = _fhPaths.filter(p => p.page === currentPageNum);
+        if (paths.length > 0) {
+            let sc = pageWrapper.querySelector('.fh-static-canvas');
+            if (!sc) {
+                sc = document.createElement('canvas');
+                sc.className = 'fh-static-canvas';
+                sc.style.cssText = `
+                    position:absolute; left:0; top:0;
+                    width:100%; height:100%;
+                    z-index:30; pointer-events:none;
+                `;
+                pageWrapper.appendChild(sc);
+            }
+            sc.width  = pageWrapper.offsetWidth;
+            sc.height = pageWrapper.offsetHeight;
+            const ctx = sc.getContext('2d');
+            ctx.clearRect(0, 0, sc.width, sc.height);
+            paths.forEach(path => {
+                if (path.pts.length < 2) return;
+                ctx.beginPath();
+                ctx.moveTo(path.pts[0].x, path.pts[0].y);
+                for (let i = 1; i < path.pts.length; i++) ctx.lineTo(path.pts[i].x, path.pts[i].y);
+                ctx.strokeStyle = path.color;
+                ctx.lineWidth   = path.size;
+                ctx.lineCap     = 'round';
+                ctx.lineJoin    = 'round';
+                ctx.stroke();
+            });
+        }
+    }
+
+    // Now remove the interactive canvas
     if (_fhCanvas) { _fhCanvas.remove(); _fhCanvas = null; _fhCtx = null; }
     if (pageWrapper) pageWrapper.style.cursor = '';
     document.getElementById('btnFreehand')?.classList.remove('active');
@@ -454,8 +516,90 @@ function clearFreehandPaths() {
     _fhPaths      = [];
     _fhCurrentPts = [];
     _fhStartPt    = null;
+    _fhLastShift  = false;
     _fhDrawing    = false;
 }
+
+/**
+ * Called by undo.js after renderPage() finishes (which destroys the old DOM).
+ * If the pencil tool was active, this re-attaches the overlay canvas to the
+ * newly created pageWrapper and redraws all committed strokes on the current page.
+ * If the pencil tool is not active, it just ensures the canvas is removed (no orphan).
+ */
+window.fhReattachCanvas = function() {
+    const newWrapper = document.querySelector('.pdf-page-wrapper');
+    if (!newWrapper) return;
+
+    // Remove stale canvas if any
+    if (_fhCanvas) {
+        _fhCanvas.remove();
+        _fhCanvas = null;
+        _fhCtx    = null;
+    }
+
+    if (!_fhActive) {
+        // Tool not active — just redraw paths as a static snapshot image
+        // (so restored strokes are visible even without the tool open)
+        _fhRenderStaticPaths(newWrapper);
+        return;
+    }
+
+    // Re-create the canvas overlay on the new wrapper
+    _fhCanvas = document.createElement('canvas');
+    _fhCanvas.className = 'freehand-canvas';
+    _fhCanvas.width     = newWrapper.offsetWidth;
+    _fhCanvas.height    = newWrapper.offsetHeight;
+    _fhCanvas.style.cssText = `
+        position:absolute; left:0; top:0;
+        width:100%; height:100%;
+        z-index:150; cursor:crosshair;
+        pointer-events:auto;
+        touch-action:none;
+    `;
+    newWrapper.appendChild(_fhCanvas);
+    _fhCtx = _fhCanvas.getContext('2d');
+    _fhRedraw();
+};
+
+/**
+ * Renders all committed freehand paths for the current page as a static
+ * transparent PNG image overlay — used when the pencil tool is not active
+ * so undone/redone strokes stay visible on screen without needing the tool open.
+ */
+function _fhRenderStaticPaths(wrapper) {
+    const paths = _fhPaths.filter(p => p.page === currentPageNum);
+    if (paths.length === 0) return;
+
+    // Re-use existing static canvas if already present
+    let staticCanvas = wrapper.querySelector('.fh-static-canvas');
+    if (!staticCanvas) {
+        staticCanvas = document.createElement('canvas');
+        staticCanvas.className = 'fh-static-canvas';
+        staticCanvas.style.cssText = `
+            position:absolute; left:0; top:0;
+            width:100%; height:100%;
+            z-index:30; pointer-events:none;
+        `;
+        wrapper.appendChild(staticCanvas);
+    }
+    staticCanvas.width  = wrapper.offsetWidth;
+    staticCanvas.height = wrapper.offsetHeight;
+
+    const ctx = staticCanvas.getContext('2d');
+    ctx.clearRect(0, 0, staticCanvas.width, staticCanvas.height);
+    paths.forEach(path => {
+        if (path.pts.length < 2) return;
+        ctx.beginPath();
+        ctx.moveTo(path.pts[0].x, path.pts[0].y);
+        path.pts.forEach(pt => ctx.lineTo(pt.x, pt.y));
+        ctx.strokeStyle = path.color;
+        ctx.lineWidth   = path.size;
+        ctx.lineCap     = 'round';
+        ctx.lineJoin    = 'round';
+        ctx.stroke();
+    });
+}
+
 
 // ════════════════════════════════════════════
 // INIT

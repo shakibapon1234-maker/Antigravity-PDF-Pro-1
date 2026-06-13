@@ -34,6 +34,16 @@ document.addEventListener('DOMContentLoaded', () => {
         renderMergeFileList();
     }
 
+    // Expose so the file-drop modal and thumbnail hook can call it
+    window.loadMergePdfs = function(filesOrArray) {
+        const list = filesOrArray instanceof FileList
+            ? Array.from(filesOrArray)
+            : Array.isArray(filesOrArray)
+                ? filesOrArray
+                : [filesOrArray];
+        handleMergeFiles(list);
+    };
+
     function renderMergeFileList() {
         const listContainer = document.getElementById('mergeFileList');
         const actionsContainer = document.getElementById('mergeActions');

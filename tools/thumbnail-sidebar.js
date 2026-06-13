@@ -280,3 +280,64 @@ window.ThumbnailSidebar = ThumbnailSidebar;
 document.addEventListener('editor:pageChanged', (e) => {
   if (e.detail && e.detail.page) ThumbnailSidebar.onEditorPageChange(e.detail.page);
 });
+
+// ─── Universal Tool Hook ──────────────────────────────────────────────────────
+// Intercepts every window.loadXxxPdf function so Thumbs works in ALL tools,
+// not only the text editor.
+(function installThumbHook() {
+  const TOOL_LOAD_FNS = [
+    'loadCompressPdf',
+    'loadRotatePdf',
+    'loadProtectPdf',
+    'loadUnlockPdf',
+    'loadWatermarkPdf',
+    'loadOrganizePdf',
+    'loadSplitPdf',
+    'loadCropPdf',
+    'loadMergePdfs',
+  ];
+
+  const wrapped = new Set();
+
+  async function feedThumbsFromFile(file) {
+    if (!file || !window.pdfjsLib) return;
+    try {
+      const buf = await file.arrayBuffer();
+      const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+      ThumbnailSidebar.loadDocument(doc);
+    } catch (err) {
+      console.warn('[ThumbnailSidebar] Could not generate thumbnails for',
+                   file && file.name, err);
+    }
+  }
+
+  function wrapLoadFn(name) {
+    if (wrapped.has(name)) return;          // already patched
+    const original = window[name];
+    if (typeof original !== 'function') return;
+    wrapped.add(name);
+    window[name] = function(fileOrFiles, ...rest) {
+      const file = fileOrFiles instanceof FileList
+        ? fileOrFiles[0]
+        : Array.isArray(fileOrFiles)
+          ? fileOrFiles[0]
+          : fileOrFiles;
+      if (file instanceof File) feedThumbsFromFile(file);
+      return original.call(this, fileOrFiles, ...rest);
+    };
+  }
+
+  function patchAll() { TOOL_LOAD_FNS.forEach(wrapLoadFn); }
+
+  // Run after DOM + all scripts are ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      patchAll();
+      setTimeout(patchAll, 800); // catch late-registering tools
+    }, { once: true });
+  } else {
+    // DOM already loaded (script loaded async/defer)
+    patchAll();
+    setTimeout(patchAll, 800);
+  }
+})();

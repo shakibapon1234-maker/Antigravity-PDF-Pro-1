@@ -2,7 +2,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const { PDFDocument } = window.PDFLib;
     
     let splitPdfFile = null;
-    let splitPdfDoc = null;
+    let splitPdfDoc = null;       // pdf-lib doc (for download/save)
+    let splitPdfJsDoc = null;     // pdf.js doc (for thumbnail rendering)
+    let splitArrayBuffer = null;  // raw bytes – kept for re-use
     let splitTotalPages = 0;
     let selectedPageNumbers = new Set();
 
@@ -24,16 +26,38 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    // Expose globally so the file-drop modal in index.html can call it
+    window.loadSplitPdf = loadSplitPdf;
+
     async function loadSplitPdf(file) {
         try {
             splitPdfFile = file;
-            const arrayBuffer = await file.arrayBuffer();
-            splitPdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+
+            // Read once → keep the raw bytes so we can reload without re-reading
+            splitArrayBuffer = await file.arrayBuffer();
+
+            // pdf-lib: used for page extraction / download
+            splitPdfDoc = await PDFDocument.load(splitArrayBuffer.slice(), { ignoreEncryption: true });
             splitTotalPages = splitPdfDoc.getPageCount();
-            
+
+            // pdf.js: used for thumbnail rendering in the sidebar
+            if (window.pdfjsLib) {
+                try {
+                    const loadingTask = pdfjsLib.getDocument({ data: splitArrayBuffer.slice() });
+                    splitPdfJsDoc = await loadingTask.promise;
+                    if (typeof ThumbnailSidebar !== 'undefined') {
+                        ThumbnailSidebar.loadDocument(splitPdfJsDoc);
+                    }
+                } catch (thumbErr) {
+                    console.warn('[split] Thumbnail sidebar skipped:', thumbErr);
+                }
+            }
+
             document.getElementById('splitEmptyState').classList.add('d-none');
             document.getElementById('splitWorkspace').classList.remove('d-none');
-            
+
+            // Reset selection on new file
+            selectedPageNumbers.clear();
             renderSplitPreview();
         } catch (err) {
             alert('Failed to load PDF: ' + err.message);
@@ -42,34 +66,110 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderSplitPreview() {
         const previewContainer = document.getElementById('splitPreview');
-        const pageItems = [];
-        
+        if (!previewContainer) return;
+
+        previewContainer.innerHTML = '';
+
         for (let i = 1; i <= splitTotalPages; i++) {
             const isSelected = selectedPageNumbers.has(i);
-            pageItems.push(`
-                <div class="split-page-item ${isSelected ? 'selected' : ''}" data-page="${i}">
-                    <div class="page-number">${i}</div>
-                    <div class="page-checkbox">
-                        <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="window.togglePageSelection(${i})">
-                    </div>
-                </div>
-            `);
+
+            const item = document.createElement('div');
+            item.className = 'split-page-item' + (isSelected ? ' selected' : '');
+            item.dataset.page = i;
+
+            // Canvas thumbnail placeholder
+            const canvasWrap = document.createElement('div');
+            canvasWrap.className = 'split-thumb-wrap';
+
+            const canvas = document.createElement('canvas');
+            canvas.className = 'split-thumb-canvas';
+            canvas.id = `split-thumb-${i}`;
+            canvasWrap.appendChild(canvas);
+
+            // Spinner overlay (shown while rendering)
+            const spinner = document.createElement('div');
+            spinner.className = 'split-thumb-spinner';
+            spinner.id = `split-spinner-${i}`;
+            canvasWrap.appendChild(spinner);
+
+            item.appendChild(canvasWrap);
+
+            const pageNumDiv = document.createElement('div');
+            pageNumDiv.className = 'page-number';
+            pageNumDiv.textContent = i;
+            item.appendChild(pageNumDiv);
+
+            const checkboxDiv = document.createElement('div');
+            checkboxDiv.className = 'page-checkbox';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = isSelected;
+            cb.addEventListener('change', () => togglePageSelection(i));
+            checkboxDiv.appendChild(cb);
+            item.appendChild(checkboxDiv);
+
+            // Click on the card (not just checkbox) toggles selection
+            item.addEventListener('click', (e) => {
+                if (e.target !== cb) {
+                    cb.checked = !cb.checked;
+                    togglePageSelection(i);
+                }
+            });
+
+            previewContainer.appendChild(item);
         }
-        
-        if (previewContainer) {
-            previewContainer.innerHTML = pageItems.join('');
-        }
+
         updateSelectedPagesDisplay();
+
+        // Render thumbnails asynchronously
+        if (splitPdfJsDoc) {
+            renderAllSplitThumbnails();
+        }
     }
 
-    window.togglePageSelection = function(pageNum) {
+    async function renderAllSplitThumbnails() {
+        if (!splitPdfJsDoc) return;
+        const SCALE = 0.22;
+
+        for (let i = 1; i <= splitTotalPages; i++) {
+            try {
+                const page = await splitPdfJsDoc.getPage(i);
+                const viewport = page.getViewport({ scale: SCALE });
+
+                const canvas = document.getElementById(`split-thumb-${i}`);
+                const spinner = document.getElementById(`split-spinner-${i}`);
+                if (!canvas) continue;
+
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                const ctx = canvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport }).promise;
+
+                if (spinner) spinner.style.display = 'none';
+            } catch (e) {
+                console.warn(`[split] thumb error page ${i}:`, e);
+            }
+        }
+    }
+
+    function togglePageSelection(pageNum) {
         if (selectedPageNumbers.has(pageNum)) {
             selectedPageNumbers.delete(pageNum);
         } else {
             selectedPageNumbers.add(pageNum);
         }
-        renderSplitPreview();
-    };
+        // Update just the visual state of the clicked card without full re-render
+        const item = document.querySelector(`.split-page-item[data-page="${pageNum}"]`);
+        if (item) {
+            const isNowSelected = selectedPageNumbers.has(pageNum);
+            item.classList.toggle('selected', isNowSelected);
+            const cb = item.querySelector('input[type="checkbox"]');
+            if (cb) cb.checked = isNowSelected;
+        }
+        updateSelectedPagesDisplay();
+    }
+    window.togglePageSelection = togglePageSelection;
 
     function updateSelectedPagesDisplay() {
         const display = document.getElementById('selectedPagesDisplay');
@@ -201,6 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnDownloadSplit = document.getElementById('btnDownloadSplit');
     if (btnDownloadSplit) {
         btnDownloadSplit.onclick = async () => {
+            // Apply any typed page range first
             if (pageRangeInput && pageRangeInput.value.trim()) {
                 const input = pageRangeInput.value.trim();
                 const pages = parsePageRange(input);
@@ -213,50 +314,132 @@ document.addEventListener('DOMContentLoaded', () => {
                         selectedPageNumbers.add(p);
                     }
                 });
-                renderSplitPreview();
             }
-            
+
             if (selectedPageNumbers.size === 0) {
                 alert('Please select at least one page.');
                 return;
             }
-            
-            if (!splitPdfDoc) {
+
+            if (!splitArrayBuffer) {
                 alert('No PDF file loaded.');
                 return;
             }
-            
+
+            // Update button UI
+            const origHtml = btnDownloadSplit.innerHTML;
+            btnDownloadSplit.disabled = true;
+            btnDownloadSplit.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Processing...';
+            if (window.lucide) lucide.createIcons();
+
             try {
                 const splitModeNode = document.querySelector('input[name="splitMode"]:checked');
                 const splitMode = splitModeNode ? splitModeNode.value : 'extract';
-                const newPdf = await PDFDocument.create();
-                
-                const pageIndices = Array.from(selectedPageNumbers).map(n => n - 1);
-                
+
+                // Build the list of page indices to work with (0-based)
+                const allIndices = Array.from({ length: splitTotalPages }, (_, i) => i);
+                const selectedSet = new Set(Array.from(selectedPageNumbers).map(n => n - 1));
+
+                let targetIndices; // 0-based page indices for the output PDF
                 if (splitMode === 'extract') {
-                    const copiedPages = await newPdf.copyPages(splitPdfDoc, pageIndices);
-                    copiedPages.forEach(page => newPdf.addPage(page));
+                    targetIndices = Array.from(selectedSet).sort((a, b) => a - b);
                 } else {
-                    const allIndices = Array.from({ length: splitTotalPages }, (_, i) => i);
-                    const removeIndices = pageIndices;
-                    const keepIndices = allIndices.filter(i => !removeIndices.includes(i));
-                    const copiedPages = await newPdf.copyPages(splitPdfDoc, keepIndices);
-                    copiedPages.forEach(page => newPdf.addPage(page));
+                    // remove mode: keep everything EXCEPT selected
+                    targetIndices = allIndices.filter(i => !selectedSet.has(i));
+                    if (targetIndices.length === 0) {
+                        alert('Cannot remove all pages — at least one page must remain.');
+                        btnDownloadSplit.disabled = false;
+                        btnDownloadSplit.innerHTML = origHtml;
+                        if (window.lucide) lucide.createIcons();
+                        return;
+                    }
                 }
-                
-                const pdfBytes = await newPdf.save();
+
+                // ── Stage 1: Try pdf-lib copyPages (fast, keeps text searchable) ──
+                let pdfBytes = null;
+                try {
+                    const freshDoc = await PDFDocument.load(splitArrayBuffer.slice(), { ignoreEncryption: true });
+                    const newPdf = await PDFDocument.create();
+                    const copiedPages = await newPdf.copyPages(freshDoc, targetIndices);
+                    copiedPages.forEach(page => newPdf.addPage(page));
+                    const candidate = await newPdf.save();
+
+                    // Heuristic: if output is suspiciously small relative to input
+                    // (< 5 % of original per page on average), assume blank pages
+                    const avgBytesPerPage = candidate.byteLength / targetIndices.length;
+                    const BLANK_THRESHOLD = 1500; // bytes – a truly blank page is ~800 B
+                    if (avgBytesPerPage > BLANK_THRESHOLD) {
+                        pdfBytes = candidate; // looks good
+                    } else {
+                        console.warn('[split] copyPages produced suspiciously small output, switching to canvas render');
+                    }
+                } catch (copyErr) {
+                    console.warn('[split] copyPages failed, switching to canvas render:', copyErr);
+                }
+
+                // ── Stage 2: Canvas fallback — guaranteed content (uses pdf.js) ──
+                if (!pdfBytes) {
+                    // Make sure we have a pdf.js doc
+                    if (!splitPdfJsDoc) {
+                        const loadingTask = pdfjsLib.getDocument({ data: splitArrayBuffer.slice() });
+                        splitPdfJsDoc = await loadingTask.promise;
+                    }
+
+                    const RENDER_SCALE = 2.0; // 2× for crisp output
+                    const newPdf = await PDFDocument.create();
+
+                    for (let idx = 0; idx < targetIndices.length; idx++) {
+                        const pageNum = targetIndices[idx] + 1; // 1-based for pdf.js
+                        btnDownloadSplit.innerHTML =
+                            `<i data-lucide="loader-2" class="spin"></i> Rendering ${idx + 1}/${targetIndices.length}...`;
+                        if (window.lucide) lucide.createIcons();
+
+                        const pdfJsPage = await splitPdfJsDoc.getPage(pageNum);
+                        const viewport = pdfJsPage.getViewport({ scale: RENDER_SCALE });
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = viewport.width;
+                        canvas.height = viewport.height;
+                        const ctx = canvas.getContext('2d');
+
+                        // White background (prevents black bg on JPEG conversion)
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                        await pdfJsPage.render({ canvasContext: ctx, viewport }).promise;
+
+                        // High-quality JPEG
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+                        const base64 = dataUrl.split(',')[1];
+                        const imgBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+                        const jpegImg = await newPdf.embedJpg(imgBytes);
+
+                        // Use original page dimensions (un-scaled)
+                        const nativeW = viewport.width / RENDER_SCALE;
+                        const nativeH = viewport.height / RENDER_SCALE;
+                        const newPage = newPdf.addPage([nativeW, nativeH]);
+                        newPage.drawImage(jpegImg, { x: 0, y: 0, width: nativeW, height: nativeH });
+                    }
+
+                    pdfBytes = await newPdf.save();
+                }
+
+                // ── Download ──────────────────────────────────────────────────
                 const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                
-                const baseName = splitPdfFile.name.replace('.pdf', '');
+                const baseName = splitPdfFile.name.replace(/\.pdf$/i, '');
                 window.saveAs(blob, `${baseName}_split.pdf`);
                 if (window.AGProgress) AGProgress.done();
                 if (window.AGToast) AGToast.success('✓ Split সম্পন্ন! ফাইল ডাউনলোড হয়েছে।');
-                
+
             } catch (err) {
                 console.error(err);
                 if (window.AGProgress) AGProgress.error();
                 if (window.AGToast) AGToast.error('Split ব্যর্থ: ' + err.message);
                 else alert('Failed to split PDF: ' + err.message);
+            } finally {
+                btnDownloadSplit.disabled = false;
+                btnDownloadSplit.innerHTML = origHtml;
+                if (window.lucide) lucide.createIcons();
             }
         };
     }
