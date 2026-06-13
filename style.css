@@ -2167,21 +2167,25 @@ body.light-theme .sig-tab.active {
 
 /* ─── Thumbnail Sidebar ─────────────────────────────────────────────── */
 .thumb-sidebar {
-  width: 140px;
-  min-width: 140px;
-  height: 100%;
-  background: var(--sidebar-bg, #1e1e2e);
-  border-right: 1px solid var(--border, #333);
+  position: fixed;
+  top: 0;
+  left: var(--sidebar-w, 260px);  /* right after the nav sidebar */
+  width: 160px;
+  height: 100vh;
+  background: var(--sidebar-bg, #1a1a2e);
+  border-right: 1px solid var(--border, #2a2a3e);
+  box-shadow: 4px 0 20px rgba(0,0,0,0.4);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: width 0.25s ease, opacity 0.2s;
-  flex-shrink: 0;
+  z-index: 900;   /* below modals (9999) but above content */
+  transition: transform 0.25s cubic-bezier(.4,0,.2,1), opacity 0.2s;
+  transform: translateX(0);
+  opacity: 1;
 }
 
 .thumb-sidebar.hidden {
-  width: 0;
-  min-width: 0;
+  transform: translateX(-100%);
   opacity: 0;
   pointer-events: none;
 }

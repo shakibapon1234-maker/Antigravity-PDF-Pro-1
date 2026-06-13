@@ -454,7 +454,7 @@ async function savePdfChanges() {
             }
         }
 
-        const pdfBytes = await pdfDoc.save();
+        const pdfBytes = await pdfDoc.save({ useObjectStreams: false });
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         saveAs(blob, 'edited_' + currentPdfFile.name);
 

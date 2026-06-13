@@ -151,6 +151,14 @@ uploadBtn.addEventListener('click', () => fileInput.click());
             if (emptyState) emptyState.classList.add('d-none');
             if (workspace) { workspace.classList.remove('d-none'); workspace.style.display = 'flex'; }
             if (previewContainer) previewContainer.style.cursor = 'grab';
+
+            // Feed thumbnails sidebar
+            if (window.ThumbnailSidebar && window.pdfjsLib) {
+                pdfjsLib.getDocument({ data: currentFileData.slice(0) }).promise
+                    .then(doc => ThumbnailSidebar.loadDocument(doc))
+                    .catch(()=>{});
+            }
+
             updatePreview();
         };
         reader.readAsArrayBuffer(file);
@@ -163,6 +171,25 @@ uploadBtn.addEventListener('click', () => fileInput.click());
             el.addEventListener('change', pushWmState);
         }
     });
+
+    if (wmImageInput) {
+        wmImageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) {
+                currentWatermarkImage = null;
+                updatePreview();
+                pushWmState();
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function() {
+                currentWatermarkImage = new Uint8Array(this.result);
+                updatePreview();
+                pushWmState();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    }
 
     // --- Drag-to-move watermark on preview canvas ---
     let isDragging = false;
@@ -428,6 +455,9 @@ uploadBtn.addEventListener('click', () => fileInput.click());
 
             watermarkedPdfBytes = await pdfDoc.save({ useObjectStreams: false });
 
+            // Hide the global progress spinner
+            if (window.AGProgress) AGProgress.done();
+
             applyBtn.innerHTML = '<i data-lucide="check-circle"></i> Done!';
             if (downloadBtn) downloadBtn.disabled = false;
 
@@ -438,6 +468,7 @@ uploadBtn.addEventListener('click', () => fileInput.click());
 
         } catch (err) {
             console.error('Watermark error:', err);
+            if (window.AGProgress) AGProgress.error();
             alert('Error applying watermark: ' + err.message);
             applyBtn.innerHTML = '<i data-lucide="zap"></i> Apply Watermark';
         } finally {

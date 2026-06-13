@@ -12,7 +12,7 @@ const ThumbnailSidebar = (() => {
   let isRendering = false;
   let thumbnailCache = new Map(); // pageNum -> dataURL
 
-  const THUMB_SCALE = 0.18; // thumbnail render scale
+  const THUMB_SCALE = 0.25; // thumbnail render scale — must be >0.18 to avoid blank render
 
   // ─── Build sidebar DOM ────────────────────────────────────────────────────────
   function init() {
@@ -36,16 +36,8 @@ const ThumbnailSidebar = (() => {
       </div>
     `;
 
-    // Insert before main canvas area
-    const editorArea = document.getElementById('editor-area') ||
-                       document.getElementById('canvas-container') ||
-                       document.querySelector('.editor-container') ||
-                       document.querySelector('main');
-    if (editorArea && editorArea.parentNode) {
-      editorArea.parentNode.insertBefore(sidebar, editorArea);
-    } else {
-      document.body.appendChild(sidebar);
-    }
+    // Always append to body — sidebar is position:fixed so layout doesn't matter
+    document.body.appendChild(sidebar);
 
     sidebar.querySelector('.thumb-close-btn').addEventListener('click', hide);
 
@@ -145,19 +137,27 @@ const ThumbnailSidebar = (() => {
     if (!currentDoc || pageNum > currentDoc.numPages) return;
 
     try {
-      const page = await currentDoc.getPage(pageNum);
+      const page     = await currentDoc.getPage(pageNum);
       const viewport = page.getViewport({ scale: THUMB_SCALE });
 
       const canvas = document.getElementById(`thumb-canvas-${pageNum}`);
       if (!canvas) return;
 
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+      // Set actual pixel dimensions
+      canvas.width  = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
 
       const ctx = canvas.getContext('2d');
-      await page.render({ canvasContext: ctx, viewport }).promise;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const dataURL = canvas.toDataURL('image/jpeg', 0.7);
+      // White background so pages don't look transparent
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const renderTask = page.render({ canvasContext: ctx, viewport });
+      await renderTask.promise;
+
+      const dataURL = canvas.toDataURL('image/jpeg', 0.8);
       thumbnailCache.set(pageNum, dataURL);
 
       // Hide placeholder, show canvas
@@ -217,7 +217,7 @@ const ThumbnailSidebar = (() => {
     }
   }
 
-  // ─── Visibility ───────────────────────────────────────────────────────────────
+  // ─── Visibility ─────────────────────────────────────────────────────
   function show() {
     init();
     const sidebar = document.getElementById('thumb-sidebar');
@@ -225,6 +225,9 @@ const ThumbnailSidebar = (() => {
       sidebar.classList.remove('hidden');
       isVisible = true;
     }
+    // Shift main content right to avoid overlap
+    const main = document.querySelector('.main-content');
+    if (main) main.classList.add('thumb-open');
     renderVisibleThumbnails();
   }
 
@@ -234,6 +237,9 @@ const ThumbnailSidebar = (() => {
       sidebar.classList.add('hidden');
       isVisible = false;
     }
+    // Restore main content
+    const main = document.querySelector('.main-content');
+    if (main) main.classList.remove('thumb-open');
   }
 
   function toggle() {
@@ -281,10 +287,48 @@ document.addEventListener('editor:pageChanged', (e) => {
   if (e.detail && e.detail.page) ThumbnailSidebar.onEditorPageChange(e.detail.page);
 });
 
+
 // ─── Universal Tool Hook ──────────────────────────────────────────────────────
-// Intercepts every window.loadXxxPdf function so Thumbs works in ALL tools,
-// not only the text editor.
+// Strategy A: intercept ALL <input type="file"> change events at document level
+//   → catches tool-specific upload buttons that bypass window.loadXxxPdf
+// Strategy B: wrap window.loadXxxPdf functions (catches global drag-drop handler)
 (function installThumbHook() {
+
+  // IDs of file inputs that should NOT trigger thumbnail loading
+  // (e.g. the watermark image picker, signature upload, etc.)
+  const SKIP_INPUT_IDS = new Set([
+    'wmImageInput',         // watermark image
+    'signatureImageInput',  // signature upload
+    'stampImageInput',      // stamp image
+  ]);
+
+  // ── Helper: render PDF bytes into ThumbnailSidebar ──────────────────────────
+  async function feedThumbsFromFile(file) {
+    if (!file || !window.pdfjsLib) return;
+    if (!file.name || !file.name.toLowerCase().endsWith('.pdf')) return;
+    try {
+      const buf  = await file.arrayBuffer();
+      const doc  = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+      ThumbnailSidebar.loadDocument(doc);
+    } catch (err) {
+      console.warn('[ThumbnailSidebar] Could not generate thumbnails for',
+                   file && file.name, err);
+    }
+  }
+
+  // ── Strategy A: global capture-phase 'change' on every file input ────────────
+  // Fires BEFORE the tool's own handler so thumbnails load immediately.
+  document.addEventListener('change', function(e) {
+    const el = e.target;
+    if (!el || el.tagName !== 'INPUT' || el.type !== 'file') return;
+    if (SKIP_INPUT_IDS.has(el.id)) return;          // non-PDF input → skip
+
+    const file = el.files && el.files[0];
+    if (file) feedThumbsFromFile(file);
+  }, true /* capture */);
+
+  // ── Strategy B: wrap window.loadXxxPdf functions ─────────────────────────────
+  // Catches the global drag-drop handler in index.html (window.loadXxxPdf(file))
   const TOOL_LOAD_FNS = [
     'loadCompressPdf',
     'loadRotatePdf',
@@ -295,33 +339,21 @@ document.addEventListener('editor:pageChanged', (e) => {
     'loadSplitPdf',
     'loadCropPdf',
     'loadMergePdfs',
+    'loadPdfToImage',
+    'loadPageNumbersPdf',
   ];
 
   const wrapped = new Set();
 
-  async function feedThumbsFromFile(file) {
-    if (!file || !window.pdfjsLib) return;
-    try {
-      const buf = await file.arrayBuffer();
-      const doc = await pdfjsLib.getDocument({ data: buf }).promise;
-      ThumbnailSidebar.loadDocument(doc);
-    } catch (err) {
-      console.warn('[ThumbnailSidebar] Could not generate thumbnails for',
-                   file && file.name, err);
-    }
-  }
-
   function wrapLoadFn(name) {
-    if (wrapped.has(name)) return;          // already patched
+    if (wrapped.has(name)) return;
     const original = window[name];
     if (typeof original !== 'function') return;
     wrapped.add(name);
     window[name] = function(fileOrFiles, ...rest) {
-      const file = fileOrFiles instanceof FileList
-        ? fileOrFiles[0]
-        : Array.isArray(fileOrFiles)
-          ? fileOrFiles[0]
-          : fileOrFiles;
+      const file = fileOrFiles instanceof FileList ? fileOrFiles[0]
+                 : Array.isArray(fileOrFiles)      ? fileOrFiles[0]
+                 :                                   fileOrFiles;
       if (file instanceof File) feedThumbsFromFile(file);
       return original.call(this, fileOrFiles, ...rest);
     };
@@ -329,15 +361,15 @@ document.addEventListener('editor:pageChanged', (e) => {
 
   function patchAll() { TOOL_LOAD_FNS.forEach(wrapLoadFn); }
 
-  // Run after DOM + all scripts are ready
+  // Run once DOM is ready, then again after 1 s to catch late registrations
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       patchAll();
-      setTimeout(patchAll, 800); // catch late-registering tools
+      setTimeout(patchAll, 1000);
     }, { once: true });
   } else {
-    // DOM already loaded (script loaded async/defer)
     patchAll();
-    setTimeout(patchAll, 800);
+    setTimeout(patchAll, 1000);
   }
 })();
+
