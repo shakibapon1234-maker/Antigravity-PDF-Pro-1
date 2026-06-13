@@ -443,16 +443,23 @@ async function setupTextLayer(page, viewport, container) {
             const origHeight = (edit.originalHeight || item.height || 12) * viewport.scale;
 
             // ── Background colour for the cover patch ──────────────────────
-            // IMPORTANT: Do NOT call generateInpaintedPatch here.
-            // It captures the canvas at the text position which *includes* the
-            // rendered dark text, producing a "black shadow" artifact.
-            // Instead, determine the background colour by:
-            //   1. Using a pre-computed patch stored on the edit (eraser tool).
-            //   2. Sampling the page background from a margin point (above the
-            //      text line) so we read the paper colour, not the glyph pixels.
-            //   3. Falling back to explicit bgHex / coverBgHex on the edit.
-            //   4. Final fallback: white.
-            let patchDataUrl = edit.patch || null; // only use if eraser pre-computed it
+            // Generate dynamically via Coons patch edge interpolation if missing,
+            // which handles gradients/transitions perfectly.
+            let patchDataUrl = edit.patch || null;
+            if (!patchDataUrl && typeof generateInpaintedPatch === 'function') {
+                const mc = container.querySelector('canvas') || document.querySelector('.pdf-page-wrapper canvas');
+                if (mc) {
+                    const csx = mc.width  / (container.offsetWidth  || mc.width);
+                    const csy = mc.height / (container.offsetHeight || mc.height);
+                    patchDataUrl = generateInpaintedPatch(
+                        Math.round(origLeft * csx), Math.round(origTop * csy),
+                        Math.round(origWidth * csx), Math.round(origHeight * csy)
+                    );
+                    if (patchDataUrl) {
+                        edit.patch = patchDataUrl; // Save back to editData so exporter can use it
+                    }
+                }
+            }
 
             let coverBgHex = edit.coverBgHex ||
                 ((edit.bgHex && edit.bgHex !== 'transparent') ? edit.bgHex : null);
