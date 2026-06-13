@@ -18,10 +18,10 @@ let _fhPaths      = [];      // all drawn paths stored for undo
 let _fhCurrentPts = [];
 let _fhStartPt    = null;   // for Shift straight-line mode
 let _fhLastShift  = false;  // was previous mousemove in shift-mode?
-let _fhDocUpHandler = null; // document-level mouseup for out-of-canvas release
-let _fhOnDown     = null;   // named handler refs so we can removeEventListener cleanly
-let _fhOnMove     = null;
-let _fhOnUp       = null;
+let _fhDocUpHandler = null; // kept for backward-compat, no longer used actively
+let _fhOnDown     = null;   // canvas mousedown handler ref
+let _fhOnMove     = null;   // document mousemove handler ref (per-stroke, self-cleaning)
+let _fhOnUp       = null;   // document mouseup handler ref (per-stroke, self-cleaning)
 
 const _fhGetXY = (e) => {
     if (!_fhCanvas) return { x: 0, y: 0 };
@@ -65,12 +65,6 @@ const _fhDoCommit = () => {
 
     _fhCurrentPts = [];
     _fhStartPt    = null;
-
-    // Clean up the document-level safety handler
-    if (_fhDocUpHandler) {
-        document.removeEventListener('mouseup', _fhDocUpHandler);
-        _fhDocUpHandler = null;
-    }
 };
 
 function startFreehand(pageWrapper) {
@@ -92,11 +86,9 @@ function stopFreehand(pageWrapper) {
     _fhDrawing = false;
     _fhStartPt = null;
 
-    // Remove document-level mouseup safety handler
-    if (_fhDocUpHandler) {
-        document.removeEventListener('mouseup', _fhDocUpHandler);
-        _fhDocUpHandler = null;
-    }
+    // Clean up any in-flight document-level stroke handlers
+    if (_fhOnMove) { document.removeEventListener('mousemove', _fhOnMove); _fhOnMove = null; }
+    if (_fhOnUp)   { document.removeEventListener('mouseup',   _fhOnUp);   _fhOnUp   = null; }
 
     // ── Before removing the interactive canvas, paint all strokes onto a
     // ── static canvas so they remain visible while the pencil tool is off.
@@ -132,11 +124,9 @@ function stopFreehand(pageWrapper) {
         }
     }
 
-    // Remove listeners explicitly, then remove the canvas
+    // Remove canvas mousedown listener, then remove the canvas itself
     if (_fhCanvas) {
         if (_fhOnDown) { _fhCanvas.removeEventListener('mousedown', _fhOnDown); _fhOnDown = null; }
-        if (_fhOnMove) { _fhCanvas.removeEventListener('mousemove', _fhOnMove); _fhOnMove = null; }
-        if (_fhOnUp)   { _fhCanvas.removeEventListener('mouseup',   _fhOnUp);   _fhOnUp   = null; }
         _fhCanvas.remove(); _fhCanvas = null; _fhCtx = null;
     }
     if (pageWrapper) pageWrapper.style.cursor = '';
@@ -468,11 +458,13 @@ window.fhReattachCanvas = function() {
     const newWrapper = document.querySelector('.pdf-page-wrapper');
     if (!newWrapper) return;
 
-    // Remove stale canvas if any + its listeners
+    // Remove stale canvas mousedown listener + canvas itself
     if (_fhCanvas) {
         if (_fhOnDown) { _fhCanvas.removeEventListener('mousedown', _fhOnDown); _fhOnDown = null; }
-        if (_fhOnMove) { _fhCanvas.removeEventListener('mousemove', _fhOnMove); _fhOnMove = null; }
-        if (_fhOnUp)   { _fhCanvas.removeEventListener('mouseup',   _fhOnUp);   _fhOnUp   = null; }
+        // Any in-flight move/up handlers are document-level and self-cleaning,
+        // but force-clean them here in case of rapid page changes mid-stroke.
+        if (_fhOnMove) { document.removeEventListener('mousemove', _fhOnMove); _fhOnMove = null; }
+        if (_fhOnUp)   { document.removeEventListener('mouseup',   _fhOnUp);   _fhOnUp   = null; }
         _fhCanvas.remove();
         _fhCanvas = null;
         _fhCtx    = null;
@@ -501,21 +493,17 @@ window.fhReattachCanvas = function() {
     _fhCtx = _fhCanvas.getContext('2d');
 
     // Attach mouse event listeners to the new canvas!
+    // NOTE: mousemove and mouseup are on DOCUMENT (not canvas) so that:
+    //   1. Shift key modifier is always reliably captured even outside canvas
+    //   2. Strokes complete correctly even if mouse leaves canvas boundary
     _fhCanvas.addEventListener('mousedown', _fhOnDown = (e) => {
+        if (e.button !== 0) return; // left button only
         if (_fhDrawing) _fhDoCommit();
 
         _fhDrawing    = true;
         _fhStartPt    = _fhGetXY(e);
         _fhCurrentPts = [_fhStartPt];
-        _fhLastShift  = false;
-
-        if (_fhDocUpHandler) document.removeEventListener('mouseup', _fhDocUpHandler);
-        _fhDocUpHandler = (docE) => {
-            if (!_fhCanvas.contains(docE.target) && docE.target !== _fhCanvas) {
-                _fhDoCommit();
-            }
-        };
-        document.addEventListener('mouseup', _fhDocUpHandler);
+        _fhLastShift  = e.shiftKey;
 
         // Draw a dot at the start point so single-clicks are visible
         _fhCtx.beginPath();
@@ -523,45 +511,58 @@ window.fhReattachCanvas = function() {
         _fhCtx.fillStyle = _fhColor;
         _fhCtx.fill();
 
-        e.preventDefault();
-        e.stopPropagation();
-    });
+        // Attach document-level move + up so modifier keys (Shift) are always
+        // read from the live event object — canvas-level events can miss them
+        // when the cursor moves fast or focus shifts.
+        const onDocMove = _fhOnMove = (ev) => {
+            if (!_fhDrawing || !_fhStartPt) return;
+            let p = _fhGetXY(ev);
+            const isShift = ev.shiftKey;
 
-    _fhCanvas.addEventListener('mousemove', _fhOnMove = (e) => {
-        if (!_fhDrawing || !_fhStartPt) return;
-        let p = _fhGetXY(e);
-        const isShift = e.shiftKey;
-
-        if (isShift) {
-            p = _fhConstrainToLine(_fhStartPt, p);
-            _fhCurrentPts = [_fhStartPt, p];
-        } else {
-            _fhCurrentPts.push(p);
-        }
-
-        _fhRedraw();
-
-        // Draw current in-progress stroke on top
-        if (_fhCurrentPts.length >= 2) {
-            _fhCtx.beginPath();
-            _fhCtx.moveTo(_fhCurrentPts[0].x, _fhCurrentPts[0].y);
-            for (let i = 1; i < _fhCurrentPts.length; i++) {
-                _fhCtx.lineTo(_fhCurrentPts[i].x, _fhCurrentPts[i].y);
+            if (isShift) {
+                // Constrain to horizontal / vertical / 45° from the stroke start
+                p = _fhConstrainToLine(_fhStartPt, p);
+                _fhCurrentPts = [_fhStartPt, p];
+            } else {
+                if (_fhLastShift) {
+                    // Just released Shift — keep the last constrained point as
+                    // the new anchor so the free stroke continues smoothly
+                    _fhCurrentPts = [_fhCurrentPts[_fhCurrentPts.length - 1] || _fhStartPt];
+                }
+                _fhCurrentPts.push(p);
             }
-            _fhCtx.strokeStyle = _fhColor;
-            _fhCtx.lineWidth   = _fhSize;
-            _fhCtx.lineCap     = 'round';
-            _fhCtx.lineJoin    = 'round';
-            _fhCtx.stroke();
-        }
+            _fhLastShift = isShift;
 
-        _fhLastShift = isShift;
+            _fhRedraw();
+
+            // Draw current in-progress stroke on top
+            if (_fhCurrentPts.length >= 2) {
+                _fhCtx.beginPath();
+                _fhCtx.moveTo(_fhCurrentPts[0].x, _fhCurrentPts[0].y);
+                for (let i = 1; i < _fhCurrentPts.length; i++) {
+                    _fhCtx.lineTo(_fhCurrentPts[i].x, _fhCurrentPts[i].y);
+                }
+                _fhCtx.strokeStyle = _fhColor;
+                _fhCtx.lineWidth   = _fhSize;
+                _fhCtx.lineCap     = 'round';
+                _fhCtx.lineJoin    = 'round';
+                _fhCtx.stroke();
+            }
+        };
+
+        const onDocUp = _fhOnUp = (ev) => {
+            document.removeEventListener('mousemove', onDocMove);
+            document.removeEventListener('mouseup',   onDocUp);
+            _fhOnMove = null;
+            _fhOnUp   = null;
+            _fhDoCommit();
+        };
+
+        document.addEventListener('mousemove', onDocMove);
+        document.addEventListener('mouseup',   onDocUp);
+
         e.preventDefault();
-    });
-
-    _fhCanvas.addEventListener('mouseup', _fhOnUp = (e) => {
         e.stopPropagation();
-        _fhDoCommit();
     });
 
     _fhRedraw();
@@ -633,6 +634,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeTool = 'freehand';
                     startFreehand(pw);
                     if (typeof updateToolUI === 'function') updateToolUI('btnFreehand');
+
+                    const freehandEscListener = (e) => {
+                        if (activeTool !== 'freehand') {
+                            document.removeEventListener('keydown', freehandEscListener);
+                            return;
+                        }
+                        if (e.key === 'Escape' || e.key === 'Esc') {
+                            const selectBtn = document.getElementById('btnSelect');
+                            if (selectBtn) selectBtn.click();
+                        }
+                    };
+                    document.addEventListener('keydown', freehandEscListener);
                 }
             }
         });
@@ -652,6 +665,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeTool = 'redact';
                     startRedactionMode(pw);
                     if (typeof updateToolUI === 'function') updateToolUI('btnRedact');
+
+                    const redactEscListener = (e) => {
+                        if (activeTool !== 'redact') {
+                            document.removeEventListener('keydown', redactEscListener);
+                            return;
+                        }
+                        if (e.key === 'Escape' || e.key === 'Esc') {
+                            const selectBtn = document.getElementById('btnSelect');
+                            if (selectBtn) selectBtn.click();
+                        }
+                    };
+                    document.addEventListener('keydown', redactEscListener);
                 }
             }
         });
@@ -671,6 +696,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeTool = 'highlight';
                     startHighlightMode(pw);
                     if (typeof updateToolUI === 'function') updateToolUI('btnHighlight');
+
+                    const highlightEscListener = (e) => {
+                        if (activeTool !== 'highlight') {
+                            document.removeEventListener('keydown', highlightEscListener);
+                            return;
+                        }
+                        if (e.key === 'Escape' || e.key === 'Esc') {
+                            const selectBtn = document.getElementById('btnSelect');
+                            if (selectBtn) selectBtn.click();
+                        }
+                    };
+                    document.addEventListener('keydown', highlightEscListener);
                 }
             }
         });
