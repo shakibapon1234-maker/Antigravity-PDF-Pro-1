@@ -139,11 +139,23 @@ function initEventListeners() {
     document.getElementById('btnClearEdits').addEventListener('click', () => {
         if (confirm('Clear all edits on this document?')) {
             textEdits    = [];
+            shapeEdits   = [];
             clearStrokes = [];
-            imageEdits   = [];
+            if (typeof imageEdits !== 'undefined') imageEdits = [];
+            window.hyperlinks = [];
+            if (typeof window.formFields !== 'undefined') window.formFields = [];
+            if (typeof window.createdTables !== 'undefined') window.createdTables = [];
+            if (typeof _fhPaths !== 'undefined') _fhPaths = [];
+            if (typeof _fhCurrentPts !== 'undefined') _fhCurrentPts = [];
+            selectedTextItem = null;
+            isDragging = false;
+            dragTarget = null;
+            _shapeZCounter = 60;
+            _imgZCounter = 65;
             undoHistory  = [];
-            document.querySelectorAll('.pdf-image-wrapper, .pdf-image-element').forEach(el => el.remove());
-            document.querySelectorAll('.clear-patch').forEach(el => el.remove());
+            redoHistory  = [];
+            
+            document.querySelectorAll('.pdf-image-wrapper, .pdf-image-element, .pdf-shape-element, .clear-patch, .hyperlink-patch, .created-table').forEach(el => el.remove());
             updateUndoButtonState();
             renderPage(currentPdfObj, currentPageNum);
         }

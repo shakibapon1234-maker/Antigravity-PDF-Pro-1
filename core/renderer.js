@@ -79,11 +79,24 @@ async function loadAndRenderPDF(file, password = '') {
             document.getElementById('pdfEditorContainer').style.display = 'flex';
 
             // Reset edit state for fresh PDF load
+            if (typeof deactivateAllTools === 'function') deactivateAllTools();
+            activeTool = 'text';
+            if (typeof updateToolUI === 'function') updateToolUI('btnTypeText');
+
             textEdits    = [];
             shapeEdits   = [];
             clearStrokes = [];
             if (typeof imageEdits !== 'undefined') imageEdits = [];
             window.hyperlinks = [];
+            if (typeof window.formFields !== 'undefined') window.formFields = [];
+            if (typeof window.createdTables !== 'undefined') window.createdTables = [];
+            if (typeof _fhPaths !== 'undefined') _fhPaths = [];
+            if (typeof _fhCurrentPts !== 'undefined') _fhCurrentPts = [];
+            selectedTextItem = null;
+            isDragging = false;
+            dragTarget = null;
+            _shapeZCounter = 60;
+            _imgZCounter = 65;
             undoHistory  = [];
             redoHistory  = [];
 
