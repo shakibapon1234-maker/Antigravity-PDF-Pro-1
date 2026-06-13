@@ -405,27 +405,52 @@ uploadBtn.addEventListener('click', () => fileInput.click());
             for (let i = 0; i < totalPages; i++) {
                 applyBtn.innerHTML = `Processing ${i + 1}/${totalPages}...`;
                 const page = pages[i];
-                const { width, height } = page.getSize();
+                
+                // Get page crop box (visible area) and rotation
+                const cropBox = page.getCropBox() || { x: 0, y: 0, width: page.getWidth(), height: page.getHeight() };
+                const cropX = cropBox.x || 0;
+                const cropY = cropBox.y || 0;
+                const cropW = cropBox.width || page.getWidth();
+                const cropH = cropBox.height || page.getHeight();
+                const pageRot = page.getRotation().angle || 0;
 
                 const opacity = parseFloat(wmOpacity.value);
                 const rot = parseInt(wmRotation.value);
                 const scaleVal = parseFloat(wmScale.value);
 
-                // PDF coordinate system: origin = bottom-left
-                // wmPosX/Y are 0-100% sliders
-                const xCtr = width * (parseFloat(wmPosX.value) / 100);
-                const yCtr = height * (parseFloat(wmPosY.value) / 100);
-                const pdfRot = degrees(-rot);
+                // Map sliders (screen space percentages) to PDF coordinates accounting for rotation
+                const normX = parseFloat(wmPosX.value) / 100;
+                const normY = parseFloat(wmPosY.value) / 100;
+
+                let xCtr, yCtr;
+                if (pageRot === 90) {
+                    xCtr = cropX + cropW * (1 - normY);
+                    yCtr = cropY + cropH * normX;
+                } else if (pageRot === 180) {
+                    xCtr = cropX + cropW * (1 - normX);
+                    yCtr = cropY + cropH * (1 - normY);
+                } else if (pageRot === 270) {
+                    xCtr = cropX + cropW * normY;
+                    yCtr = cropY + cropH * (1 - normX);
+                } else { // pageRot === 0
+                    xCtr = cropX + cropW * normX;
+                    yCtr = cropY + cropH * normY;
+                }
+
+                const pdfRot = degrees(-rot - pageRot);
+                const theta = ((-rot - pageRot) * Math.PI) / 180;
 
                 if (watermarkType === 'text' && wmText.value) {
                     const fSize = parseInt(wmSize.value) * scaleVal;
                     const tw = font.widthOfTextAtSize(wmText.value, fSize);
+                    const th = fSize; // approximate height
 
-                    // Simple centering: just offset by half text width
-                    // PDF-lib rotates around the (x,y) point, so position at center
+                    // Center text at (xCtr, yCtr) accounting for rotation around its baseline-left origin
+                    const x = xCtr - (tw / 2) * Math.cos(theta) + (th / 2) * Math.sin(theta);
+                    const y = yCtr - (tw / 2) * Math.sin(theta) - (th / 2) * Math.cos(theta);
+
                     page.drawText(wmText.value, {
-                        x: xCtr - tw / 2,
-                        y: yCtr,
+                        x, y,
                         size: fSize,
                         font,
                         color: hexToRgbLib(wmColor.value, rgb),
@@ -434,7 +459,6 @@ uploadBtn.addEventListener('click', () => fileInput.click());
                     });
                 } else if (wmImg) {
                     // Calculate target size relative to PAGE, not native image resolution
-                    // Preview uses baseSize=250 at 0.8 scale = 312.5 PDF points base
                     const baseSize = 312.5; // matches preview's 250px / 0.8
                     const nativeW = wmImg.width;
                     const nativeH = wmImg.height;
@@ -442,10 +466,12 @@ uploadBtn.addEventListener('click', () => fileInput.click());
                     const iw = nativeW * imgFitScale * scaleVal;
                     const ih = nativeH * imgFitScale * scaleVal;
 
-                    // Center image at (xCtr, yCtr)
+                    // Center image at (xCtr, yCtr) accounting for rotation around its bottom-left origin
+                    const x = xCtr - (iw / 2) * Math.cos(theta) + (ih / 2) * Math.sin(theta);
+                    const y = yCtr - (iw / 2) * Math.sin(theta) - (ih / 2) * Math.cos(theta);
+
                     page.drawImage(wmImg, {
-                        x: xCtr - iw / 2,
-                        y: yCtr - ih / 2,
+                        x, y,
                         width: iw, height: ih,
                         opacity,
                         rotate: pdfRot,

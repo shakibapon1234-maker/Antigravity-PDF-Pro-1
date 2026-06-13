@@ -49,56 +49,72 @@ function addImageToPdf(dataUrl, fileName, initialRect = null) {
         }
 
         // ── Drag to move ─────────────────────────────────────────────────────────
-        let _iDrag = false, _iHasDragged = false, _iSX = 0, _iSY = 0, _iOL = 0, _iOT = 0;
         wrap.addEventListener('mousedown', (e) => {
             const tb = wrap.querySelector('.image-toolbar');
             if (e.target.classList.contains('image-resize-handle')) return;
             if (tb && tb.contains(e.target)) return;
 
-            _iDrag = true; _iHasDragged = false; _iSX = e.clientX; _iSY = e.clientY;
-            _iOL = parseFloat(wrap.style.left) || 0;
-            _iOT = parseFloat(wrap.style.top)  || 0;
-            e.stopPropagation();
-        });
-        document.addEventListener('mousemove', (e) => {
-            if (!_iDrag) return;
-            const dx = e.clientX - _iSX;
-            const dy = e.clientY - _iSY;
-            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-                _iHasDragged = true;
-            }
-            wrap.style.left = `${_iOL + dx}px`;
-            wrap.style.top  = `${_iOT + dy}px`;
-        });
-        document.addEventListener('mouseup', () => {
-            if (!_iDrag) return; _iDrag = false;
-            const cont = wrap.closest('.pdf-page-wrapper');
-            if (cont) {
-                const ed = imageEdits.find(s => s.id === imageId);
-                if (ed) {
-                    const pageHeightPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
-                        ? window._pdfPageNaturalSize.height
-                        : cont.offsetHeight / pdfScale;
-                    ed.x = parseFloat(wrap.style.left) / pdfScale;
-                    ed.y = pageHeightPts - (parseFloat(wrap.style.top) + wrap.offsetHeight) / pdfScale;
-                }
+            let _iHasDragged = false;
+            const _iSX = e.clientX;
+            const _iSY = e.clientY;
+            const _iOL = parseFloat(wrap.style.left) || 0;
+            const _iOT = parseFloat(wrap.style.top)  || 0;
+            wrap.style.willChange = 'left, top';
 
-                // If the text tool is active and they DID NOT drag the image, open the text editor on the image
-                if (typeof activeTool !== 'undefined' && activeTool === 'text' && !_iHasDragged) {
-                    const imgLeft = parseFloat(wrap.style.left) + 8;
-                    const imgTop = parseFloat(wrap.style.top) + (currentStyle ? currentStyle.fontSize * pdfScale + 8 : 24);
-                    // Commit any existing floating editor first
-                    document.querySelectorAll('.floating-editor').forEach(fe => {
-                        if (fe._commit) fe._commit();
-                    });
-                    if (typeof currentPdfObj !== 'undefined' && typeof addNewText === 'function') {
-                        currentPdfObj.getPage(currentPageNum).then(page => {
-                            const viewport = page.getViewport({ scale: pdfScale });
-                            addNewText(imgLeft, imgTop, viewport, page, cont, 'transparent');
-                        });
+            let snapshotCaptured = false;
+
+            const onMove = (ev) => {
+                const dx = ev.clientX - _iSX;
+                const dy = ev.clientY - _iSY;
+                if (!_iHasDragged && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
+                    _iHasDragged = true;
+                    if (!snapshotCaptured && typeof captureUndoSnapshot === 'function') {
+                        captureUndoSnapshot('Image moved');
+                        snapshotCaptured = true;
                     }
                 }
-            }
+                wrap.style.left = `${_iOL + dx}px`;
+                wrap.style.top  = `${_iOT + dy}px`;
+            };
+
+            const onUp = () => {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                wrap.style.willChange = '';
+                
+                const cont = wrap.closest('.pdf-page-wrapper');
+                if (cont) {
+                    const ed = imageEdits.find(s => s.id === imageId);
+                    if (ed) {
+                        const pageHeightPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+                            ? window._pdfPageNaturalSize.height
+                            : cont.offsetHeight / pdfScale;
+                        ed.x = parseFloat(wrap.style.left) / pdfScale;
+                        ed.y = pageHeightPts - (parseFloat(wrap.style.top) + wrap.offsetHeight) / pdfScale;
+                    }
+
+                    // If the text tool is active and they DID NOT drag the image, open the text editor on the image
+                    if (typeof activeTool !== 'undefined' && activeTool === 'text' && !_iHasDragged) {
+                        const imgLeft = parseFloat(wrap.style.left) + 8;
+                        const imgTop = parseFloat(wrap.style.top) + (currentStyle ? currentStyle.fontSize * pdfScale + 8 : 24);
+                        // Commit any existing floating editor first
+                        document.querySelectorAll('.floating-editor').forEach(fe => {
+                            if (fe._commit) fe._commit();
+                        });
+                        if (typeof currentPdfObj !== 'undefined' && typeof addNewText === 'function') {
+                            currentPdfObj.getPage(currentPageNum).then(page => {
+                                const viewport = page.getViewport({ scale: pdfScale });
+                                addNewText(imgLeft, imgTop, viewport, page, cont, 'transparent');
+                            });
+                        }
+                    }
+                }
+            };
+
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+            e.stopPropagation();
+            e.preventDefault();
         });
 
         attachImageLayerToolbar(wrap, imageId);
@@ -446,40 +462,49 @@ function attachImageLayerToolbar(wrap, imageId) {
     }));
 
     // ── Resize (drag bottom-right handle) ────────────────────────────────────
-    let isResizing = false, resStartX = 0, resStartY = 0, resOrigW = 0, resOrigH = 0;
-
     resizeHandle.addEventListener('mousedown', (e) => {
         e.stopPropagation(); e.preventDefault();
-        isResizing = true;
-        resStartX  = e.clientX; resStartY = e.clientY;
-        resOrigW   = wrap.offsetWidth; resOrigH = wrap.offsetHeight;
-    });
+        const resStartX = e.clientX;
+        const resStartY = e.clientY;
+        const resOrigW  = wrap.offsetWidth;
+        const resOrigH  = wrap.offsetHeight;
 
-    document.addEventListener('mousemove', (e) => {
-        if (!isResizing) return;
-        const dx = e.clientX - resStartX;
-        const newW = Math.max(30, resOrigW + dx);
-        const newH = newW * (resOrigH / resOrigW);
-        wrap.style.width  = newW + 'px';
-        wrap.style.height = newH + 'px';
-    });
+        let snapshotCaptured = false;
 
-    document.addEventListener('mouseup', () => {
-        if (!isResizing) return;
-        isResizing = false;
-        if (typeof imageEdits !== 'undefined' && typeof pdfScale !== 'undefined') {
-            const ed   = imageEdits.find(s => s.id === imageId);
-            const cont = wrap.closest('.pdf-page-wrapper');
-            if (ed && cont) {
-                const pageHPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
-                    ? window._pdfPageNaturalSize.height
-                    : cont.offsetHeight / pdfScale;
-                ed.width  = wrap.offsetWidth  / pdfScale;
-                ed.height = wrap.offsetHeight / pdfScale;
-                ed.x      = parseFloat(wrap.style.left) / pdfScale;
-                ed.y      = pageHPts - parseFloat(wrap.style.top) / pdfScale - ed.height;
+        const onResizeMove = (ev) => {
+            const dx = ev.clientX - resStartX;
+            const newW = Math.max(30, resOrigW + dx);
+            const newH = newW * (resOrigH / resOrigW);
+            wrap.style.width  = newW + 'px';
+            wrap.style.height = newH + 'px';
+
+            if (!snapshotCaptured && typeof captureUndoSnapshot === 'function') {
+                captureUndoSnapshot('Resize image');
+                snapshotCaptured = true;
             }
-        }
+        };
+
+        const onResizeUp = () => {
+            document.removeEventListener('mousemove', onResizeMove);
+            document.removeEventListener('mouseup', onResizeUp);
+
+            if (typeof imageEdits !== 'undefined' && typeof pdfScale !== 'undefined') {
+                const ed   = imageEdits.find(s => s.id === imageId);
+                const cont = wrap.closest('.pdf-page-wrapper');
+                if (ed && cont) {
+                    const pageHPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+                        ? window._pdfPageNaturalSize.height
+                        : cont.offsetHeight / pdfScale;
+                    ed.width  = wrap.offsetWidth  / pdfScale;
+                    ed.height = wrap.offsetHeight / pdfScale;
+                    ed.x      = parseFloat(wrap.style.left) / pdfScale;
+                    ed.y      = pageHPts - parseFloat(wrap.style.top) / pdfScale - ed.height;
+                }
+            }
+        };
+
+        document.addEventListener('mousemove', onResizeMove);
+        document.addEventListener('mouseup', onResizeUp);
     });
 
     // ── Deselect when clicking elsewhere ─────────────────────────────────────

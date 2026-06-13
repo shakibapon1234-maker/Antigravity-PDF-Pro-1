@@ -11,6 +11,7 @@ const ThumbnailSidebar = (() => {
   let renderQueue = [];
   let isRendering = false;
   let thumbnailCache = new Map(); // pageNum -> dataURL
+  let currentSessionId = 0; // session token to cancel stale render loops
 
   const THUMB_SCALE = 0.25; // thumbnail render scale — must be >0.18 to avoid blank render
 
@@ -51,6 +52,8 @@ const ThumbnailSidebar = (() => {
     thumbnailCache.clear();
     renderQueue = [];
     currentActivePage = 1;
+    isRendering = false; // Reset rendering lock
+    const sessionId = ++currentSessionId; // Start new session
 
     const body = document.getElementById('thumb-sidebar-body');
     body.innerHTML = '';
@@ -66,8 +69,21 @@ const ThumbnailSidebar = (() => {
     // Show sidebar
     show();
 
-    // Render visible thumbnails first (lazy)
-    renderVisibleThumbnails();
+    // Wait for CSS transition to finish so getBoundingClientRect works
+    setTimeout(() => {
+      if (sessionId !== currentSessionId) return;
+      renderVisibleThumbnails();
+
+      // Fallback: if nothing was queued (layout not ready), force-render first pages
+      if (renderQueue.length === 0 && !isRendering) {
+        const forceCount = Math.min(totalPages, 8);
+        for (let i = 1; i <= forceCount; i++) {
+          if (!thumbnailCache.has(i)) renderQueue.push(i);
+        }
+        processQueue(sessionId);
+      }
+    }, 350);
+
     setupScrollListener();
 
     if (window.lucide) window.lucide.createIcons();
@@ -82,9 +98,9 @@ const ThumbnailSidebar = (() => {
     tile.title = `Page ${pageNum}`;
 
     tile.innerHTML = `
-      <div class="thumb-canvas-wrap">
-        <div class="thumb-placeholder"><div class="thumb-spinner"></div></div>
-        <canvas class="thumb-canvas" id="thumb-canvas-${pageNum}" style="display:none"></canvas>
+      <div class="thumb-canvas-wrap" style="position:relative;">
+        <div class="thumb-placeholder" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; z-index:2; background:#ffffff;"><div class="thumb-spinner"></div></div>
+        <canvas class="thumb-canvas" id="thumb-canvas-${pageNum}" style="display:block; width:100%; height:auto;"></canvas>
       </div>
       <div class="thumb-label">
         <span>${pageNum}</span>
@@ -116,28 +132,35 @@ const ThumbnailSidebar = (() => {
       }
     });
 
-    processQueue();
+    processQueue(currentSessionId);
   }
 
-  async function processQueue() {
+  async function processQueue(sessionId) {
     if (isRendering || renderQueue.length === 0) return;
+    if (sessionId !== currentSessionId) return;
     isRendering = true;
 
     while (renderQueue.length > 0) {
+      if (sessionId !== currentSessionId) {
+        isRendering = false;
+        return;
+      }
       const pageNum = renderQueue.shift();
       if (!thumbnailCache.has(pageNum) && currentDoc) {
-        await renderThumbnail(pageNum);
+        await renderThumbnail(pageNum, sessionId);
       }
     }
 
     isRendering = false;
   }
 
-  async function renderThumbnail(pageNum) {
+  async function renderThumbnail(pageNum, sessionId) {
     if (!currentDoc || pageNum > currentDoc.numPages) return;
+    if (sessionId !== currentSessionId) return;
 
     try {
       const page     = await currentDoc.getPage(pageNum);
+      if (sessionId !== currentSessionId) return;
       const viewport = page.getViewport({ scale: THUMB_SCALE });
 
       const canvas = document.getElementById(`thumb-canvas-${pageNum}`);
@@ -154,18 +177,19 @@ const ThumbnailSidebar = (() => {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      if (sessionId !== currentSessionId) return;
       const renderTask = page.render({ canvasContext: ctx, viewport });
       await renderTask.promise;
+      if (sessionId !== currentSessionId) return;
 
       const dataURL = canvas.toDataURL('image/jpeg', 0.8);
       thumbnailCache.set(pageNum, dataURL);
 
-      // Hide placeholder, show canvas
+      // Hide placeholder
       const tile = document.getElementById(`thumb-tile-${pageNum}`);
       if (tile) {
         const placeholder = tile.querySelector('.thumb-placeholder');
         if (placeholder) placeholder.style.display = 'none';
-        canvas.style.display = 'block';
       }
     } catch (err) {
       console.warn(`[thumbnail] Failed to render page ${pageNum}:`, err);
