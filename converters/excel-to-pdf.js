@@ -331,16 +331,52 @@ document.addEventListener('DOMContentLoaded', () => {
                     s:{r:Math.min(selStart.r,selEnd.r),c:Math.min(selStart.c,selEnd.c)},
                     e:{r:Math.max(selStart.r,selEnd.r),c:Math.max(selStart.c,selEnd.c)}
                 };
-            } else exportRange=trueRange;
+            } else {
+                // If no selection is made, default to columns that fit inside the page boundary horizontally
+                const printable = getPrintablePx();
+                if(printable){
+                    let lastCol = trueRange.s.c;
+                    let currentWidth = 0;
+                    for(let C=trueRange.s.c;C<=trueRange.e.c;++C){
+                        const w = cw(C);
+                        if(currentWidth + w <= printable.w + 15){
+                            lastCol = C;
+                            currentWidth += w;
+                        } else {
+                            if(C === trueRange.s.c) lastCol = C; // Include at least the first column
+                            break;
+                        }
+                    }
+                    exportRange = {
+                        s: { r: trueRange.s.r, c: trueRange.s.c },
+                        e: { r: trueRange.e.r, c: lastCol } // Export only fitting columns, all rows
+                    };
+                } else {
+                    exportRange = trueRange;
+                }
+            }
 
             const showGridlines=showGridlinesInput?showGridlinesInput.checked:true;
             const borderStyle  =showGridlines?'1px solid #b0b0b0':'none';
             const orientation  =orientationSelect?orientationSelect.value:'portrait';
             const pageSize     =pageSizeSelect?pageSizeSelect.value:'a4';
 
-            // Build table HTML — NO row/col headers, width:100% to fill the page
+            // Calculate total width of exported columns
+            let totalTableWidth = 0;
+            for(let C=exportRange.s.c;C<=exportRange.e.c;++C){
+                totalTableWidth += cw(C);
+            }
+
+            // Build table HTML — NO row/col headers, using table-layout: fixed and colgroup for exact widths
             let tbl=`<table style="border-collapse:collapse;font-family:Calibri,Arial,sans-serif;
-                color:#000;font-size:11px;table-layout:auto;width:100%;word-break:break-word;">`;
+                color:#000;font-size:11px;table-layout:fixed;width:100%;word-break:break-word;">`;
+            
+            tbl += '<colgroup>';
+            for(let C=exportRange.s.c;C<=exportRange.e.c;++C){
+                tbl += `<col style="width: ${cw(C)}px;">`;
+            }
+            tbl += '</colgroup>';
+
             for(let R=exportRange.s.r;R<=exportRange.e.r;++R){
                 tbl+='<tr>';
                 for(let C=exportRange.s.c;C<=exportRange.e.c;++C){
@@ -356,8 +392,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             tbl+='</table>';
 
-            // Page format
+            // Page format and wrapper container styling
             let pdfFormat;
+            let containerWidthStyle = 'width: 100%;';
             if(pageSize==='fit'){
                 // Dynamic: page exactly matches content
                 const px2mm=0.264583;
@@ -366,17 +403,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 pdfFormat=[Math.max(80,w*px2mm+20),Math.max(40,h*px2mm+20)];
             } else {
                 pdfFormat=pageSize; // fixed: 'a4','letter','legal'
+                const printable = getPrintablePx();
+                if(printable){
+                    const sz = pageSizeSelect ? pageSizeSelect.value : 'a4';
+                    const or = orientationSelect ? orientationSelect.value : 'portrait';
+                    const d  = PAGE_MM[sz] || PAGE_MM.a4;
+                    const pw = or === 'landscape' ? d.h : d.w;
+                    
+                    const marginPx = MARGIN * MM2PX;
+                    if(totalTableWidth > printable.w){
+                        // Content is wider than page printable area; set fixed container width to prevent squishing
+                        containerWidthStyle = `width: ${totalTableWidth + marginPx * 2}px;`;
+                    } else {
+                        // Content fits; use full page width
+                        containerWidthStyle = `width: ${pw * MM2PX}px;`;
+                    }
+                }
             }
 
+            // Map orientation string to standard jsPDF character format ('p' or 'l') for maximum compatibility
+            const jsPdfOrientation = orientation === 'landscape' ? 'l' : 'p';
+
             // Content wrapped in page-width div with margins
-            const content=`<div style="background:#fff;width:100%;padding:10mm;box-sizing:border-box;">${tbl}</div>`;
+            const content=`<div style="background:#fff;${containerWidthStyle}padding:10mm;box-sizing:border-box;">${tbl}</div>`;
 
             const opt={
                 margin:      0,
                 filename:    currentFile.name.replace(/\.[^/.]+$/,'')+'.pdf',
                 image:       {type:'jpeg',quality:1.0},
                 html2canvas: {scale:2,useCORS:true,logging:false,backgroundColor:'#ffffff'},
-                jsPDF:       {unit:'mm',format:pdfFormat,orientation,compress:true}
+                jsPDF:       {unit:'mm',format:pdfFormat,orientation:jsPdfOrientation,compress:true}
             };
 
             await html2pdf().set(opt).from(content).save();
