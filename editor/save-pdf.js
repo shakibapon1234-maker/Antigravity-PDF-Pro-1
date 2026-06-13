@@ -345,9 +345,24 @@ async function savePdfChanges() {
 
         // ── Hyperlinks integration ────────────────────────────────────
         if (window.hyperlinks && window.hyperlinks.length > 0) {
+            // Embed Helvetica once for all link URL labels
+            let _linkLabelFont = null;
+            try {
+                _linkLabelFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            } catch(e) {
+                console.warn('[Hyperlinks] Font embed failed:', e);
+            }
+
             for (const link of window.hyperlinks) {
                 const pg = pages[link.page - 1];
                 if (!pg) continue;
+
+                // Ensure URL has a protocol so PDF readers open it correctly
+                let safeUrl = (link.url || '').trim();
+                if (safeUrl && !/^https?:\/\//i.test(safeUrl)) {
+                    safeUrl = 'https://' + safeUrl;
+                }
+                if (!safeUrl) continue;
 
                 const cropBox = pg.getCropBox() || { x: 0, y: 0 };
                 const cropX = cropBox.x || 0;
@@ -357,26 +372,84 @@ async function savePdfChanges() {
                 const y1 = pg.getHeight() - link.y - link.h + cropY;
                 const x2 = link.x + link.w + cropX;
                 const y2 = pg.getHeight() - link.y + cropY;
+                const boxW = x2 - x1;
+                const boxH = y2 - y1;
 
-                const linkAnnot = pdfDoc.context.obj({
-                    Type: 'Annot',
-                    Subtype: 'Link',
-                    Rect: [x1, y1, x2, y2],
-                    Border: [0, 0, 0], // invisible border
-                    A: {
-                        Type: 'Action',
-                        S: 'URI',
-                        URI: PDFLib.PDFString.of(link.url)
-                    }
+                // Draw the visible blue box into the page content stream
+                pg.drawRectangle({
+                    x: x1, y: y1,
+                    width:  boxW,
+                    height: boxH,
+                    borderColor: PDFLib.rgb(0.01, 0.518, 0.78),
+                    borderWidth: 1,
+                    color: PDFLib.rgb(0.008, 0.518, 0.78),
+                    opacity: 0.12,
                 });
+
+                // Draw the URL label text inside the box (matches the editor UI)
+                if (_linkLabelFont) {
+                    try {
+                        const fontSize  = Math.min(9, boxH * 0.55);
+                        const padX      = 5;
+                        const maxW      = boxW - padX * 2;
+                        // Strip protocol + www for display
+                        let label = safeUrl.replace(/^https?:\/\/(www\.)?/, '');
+                        // Truncate with '...' if too wide
+                        while (label.length > 4 &&
+                               _linkLabelFont.widthOfTextAtSize(label, fontSize) > maxW) {
+                            label = label.slice(0, -1);
+                        }
+                        if (label !== safeUrl.replace(/^https?:\/\/(www\.)?/, '')) {
+                            label += '...';
+                        }
+                        pg.drawText(label, {
+                            x: x1 + padX,
+                            y: y1 + (boxH - fontSize) / 2,
+                            size: fontSize,
+                            font: _linkLabelFont,
+                            color: PDFLib.rgb(0.01, 0.518, 0.78),
+                        });
+                    } catch(e) {
+                        console.warn('[Hyperlinks] Label draw failed:', e);
+                    }
+                }
+
+                // ── Build Link annotation with INLINE Action dict ──────────────
+                // PDF spec requires /A to be an inline dictionary, NOT an
+                // indirect reference.  Using context.register() for the action
+                // dict and pointing /A at a PDFRef causes many viewers to ignore
+                // the link.  Build it all in one context.obj() call instead.
+                const linkAnnot = pdfDoc.context.obj({
+                    Type:    PDFLib.PDFName.of('Annot'),
+                    Subtype: PDFLib.PDFName.of('Link'),
+                    Rect:    [x1, y1, x2, y2],
+                    Border:  [0, 0, 0],   // visual comes from drawRectangle above
+                    A: pdfDoc.context.obj({
+                        Type: PDFLib.PDFName.of('Action'),
+                        S:    PDFLib.PDFName.of('URI'),
+                        URI:  PDFLib.PDFString.of(safeUrl)
+                    })
+                });
+                // Register the annotation itself as an indirect object
                 const linkAnnotRef = pdfDoc.context.register(linkAnnot);
-                
-                const existingAnnots = pg.node.get('Annots');
-                const annotsArray = existingAnnots ? pdfDoc.context.lookup(existingAnnots) : null;
-                if (annotsArray) {
-                    annotsArray.push(linkAnnotRef);
+
+                // Attach the annotation ref to the page's Annots array
+                const existingAnnots = pg.node.get(PDFLib.PDFName.of('Annots'));
+                if (existingAnnots) {
+                    const annotsArray = pdfDoc.context.lookup(existingAnnots);
+                    if (annotsArray && typeof annotsArray.push === 'function') {
+                        annotsArray.push(linkAnnotRef);
+                    } else {
+                        pg.node.set(
+                            PDFLib.PDFName.of('Annots'),
+                            pdfDoc.context.obj([linkAnnotRef])
+                        );
+                    }
                 } else {
-                    pg.node.set('Annots', pdfDoc.context.obj([linkAnnotRef]));
+                    pg.node.set(
+                        PDFLib.PDFName.of('Annots'),
+                        pdfDoc.context.obj([linkAnnotRef])
+                    );
                 }
             }
         }

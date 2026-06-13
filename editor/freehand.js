@@ -8,14 +8,16 @@
 // Freehand Pencil Tool
 // ════════════════════════════════════════════
 
-let _fhActive    = false;
-let _fhDrawing   = false;
-let _fhCanvas    = null;
-let _fhCtx       = null;
-let _fhColor     = '#e53e3e';
-let _fhSize      = 3;
-let _fhPaths     = [];      // all drawn paths stored for undo
+let _fhActive     = false;
+let _fhDrawing    = false;
+let _fhCanvas     = null;
+let _fhCtx        = null;
+let _fhColor      = '#e53e3e';
+let _fhSize       = 3;
+let _fhPaths      = [];      // all drawn paths stored for undo
 let _fhCurrentPts = [];
+let _fhStartPt    = null;   // for Shift straight-line mode
+let _fhDocUpHandler = null; // document-level mouseup for out-of-canvas release
 
 function startFreehand(pageWrapper) {
     if (_fhActive) { stopFreehand(pageWrapper); return; }
@@ -45,35 +47,83 @@ function startFreehand(pageWrapper) {
         return { x: t.clientX - r.left, y: t.clientY - r.top };
     };
 
-    _fhCanvas.addEventListener('mousedown', _fhOnDown   = (e) => {
-        _fhDrawing = true;
-        _fhCurrentPts = [getXY(e)];
+    // Helper: constrain point to straight line from start (Shift key)
+    const constrainToLine = (start, end) => {
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const adx = Math.abs(dx);
+        const ady = Math.abs(dy);
+        // If mostly horizontal → lock Y; if mostly vertical → lock X; else 45°
+        if (adx > ady * 2) return { x: end.x, y: start.y };           // horizontal
+        if (ady > adx * 2) return { x: start.x, y: end.y };           // vertical
+        const d = Math.min(adx, ady);
+        return { x: start.x + (dx > 0 ? d : -d), y: start.y + (dy > 0 ? d : -d) }; // 45°
+    };
+
+    _fhCanvas.addEventListener('mousedown', _fhOnDown = (e) => {
+        _fhDrawing    = true;
+        _fhStartPt    = getXY(e);
+        _fhCurrentPts = [_fhStartPt];
         _fhCtx.beginPath();
-        _fhCtx.moveTo(_fhCurrentPts[0].x, _fhCurrentPts[0].y);
+        _fhCtx.moveTo(_fhStartPt.x, _fhStartPt.y);
         e.preventDefault();
     });
-    _fhCanvas.addEventListener('mousemove', _fhOnMove   = (e) => {
+
+    _fhCanvas.addEventListener('mousemove', _fhOnMove = (e) => {
         if (!_fhDrawing) return;
-        const p = getXY(e);
-        _fhCurrentPts.push(p);
-        _fhCtx.lineTo(p.x, p.y);
-        _fhCtx.strokeStyle = _fhColor;
-        _fhCtx.lineWidth   = _fhSize;
-        _fhCtx.lineCap     = 'round';
-        _fhCtx.lineJoin    = 'round';
-        _fhCtx.stroke();
+        let p = getXY(e);
+
+        if (e.shiftKey && _fhStartPt) {
+            // Straight-line preview: redraw entire canvas then draw preview line
+            p = constrainToLine(_fhStartPt, p);
+            _fhRedraw();
+            _fhCtx.beginPath();
+            _fhCtx.moveTo(_fhStartPt.x, _fhStartPt.y);
+            _fhCtx.lineTo(p.x, p.y);
+            _fhCtx.strokeStyle = _fhColor;
+            _fhCtx.lineWidth   = _fhSize;
+            _fhCtx.lineCap     = 'round';
+            _fhCtx.lineJoin    = 'round';
+            _fhCtx.stroke();
+            // Track only start and current end for the straight segment
+            _fhCurrentPts = [_fhStartPt, p];
+        } else {
+            _fhCurrentPts.push(p);
+            _fhCtx.lineTo(p.x, p.y);
+            _fhCtx.strokeStyle = _fhColor;
+            _fhCtx.lineWidth   = _fhSize;
+            _fhCtx.lineCap     = 'round';
+            _fhCtx.lineJoin    = 'round';
+            _fhCtx.stroke();
+        }
         e.preventDefault();
     });
-    _fhCanvas.addEventListener('mouseup',   _fhOnUp     = () => {
+
+    // Internal commit function (canvas mouseup or document mouseup)
+    const _fhCommit = () => {
         if (!_fhDrawing) return;
         _fhDrawing = false;
+        _fhStartPt = null;
         if (_fhCurrentPts.length > 1) {
             captureUndoSnapshot('Freehand draw');
             _fhPaths.push({ pts: [..._fhCurrentPts], color: _fhColor, size: _fhSize, page: currentPageNum });
             _storeFreehandToState(_fhPaths[_fhPaths.length - 1], pageWrapper);
         }
         _fhCurrentPts = [];
-    });
+        // Clean up the document-level safety handler
+        if (_fhDocUpHandler) {
+            document.removeEventListener('mouseup', _fhDocUpHandler);
+            _fhDocUpHandler = null;
+        }
+    };
+
+    _fhCanvas.addEventListener('mouseup', _fhOnUp = _fhCommit);
+
+    // Document-level mouseup so releasing outside the canvas still commits the stroke
+    _fhDocUpHandler = (e) => {
+        if (e.target !== _fhCanvas) _fhCommit();
+    };
+    document.addEventListener('mouseup', _fhDocUpHandler);
 
     pageWrapper.style.cursor = 'crosshair';
     document.getElementById('btnFreehand')?.classList.add('active');
@@ -82,6 +132,12 @@ function startFreehand(pageWrapper) {
 function stopFreehand(pageWrapper) {
     _fhActive  = false;
     _fhDrawing = false;
+    _fhStartPt = null;
+    // Remove document-level mouseup safety handler
+    if (_fhDocUpHandler) {
+        document.removeEventListener('mouseup', _fhDocUpHandler);
+        _fhDocUpHandler = null;
+    }
     if (_fhCanvas) { _fhCanvas.remove(); _fhCanvas = null; _fhCtx = null; }
     if (pageWrapper) pageWrapper.style.cursor = '';
     document.getElementById('btnFreehand')?.classList.remove('active');
@@ -388,6 +444,18 @@ function handleHighlightMouseDown(e, pageWrapper) {
 function setFreehandColor(color) { _fhColor = color; }
 function setFreehandSize(size)   { _fhSize  = Number(size); }
 function setHighlightColor(color){ _hlColor = color; }
+
+/**
+ * Called by renderer.js when a new PDF is opened.
+ * Wipes all freehand strokes from the previous document so they
+ * do not bleed onto the newly loaded file.
+ */
+function clearFreehandPaths() {
+    _fhPaths      = [];
+    _fhCurrentPts = [];
+    _fhStartPt    = null;
+    _fhDrawing    = false;
+}
 
 // ════════════════════════════════════════════
 // INIT
