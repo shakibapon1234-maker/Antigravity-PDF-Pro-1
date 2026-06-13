@@ -86,6 +86,8 @@ async function loadAndRenderPDF(file, password = '') {
             window.hyperlinks = [];
             undoHistory  = [];
             redoHistory  = [];
+            // Clear freehand paths from the previous document
+            if (typeof clearFreehandPaths === 'function') clearFreehandPaths();
 
             currentPageNum = 1;
             console.log('[renderer] Rendering page:', currentPageNum);

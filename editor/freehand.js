@@ -445,6 +445,18 @@ function setFreehandColor(color) { _fhColor = color; }
 function setFreehandSize(size)   { _fhSize  = Number(size); }
 function setHighlightColor(color){ _hlColor = color; }
 
+/**
+ * Called by renderer.js when a new PDF is opened.
+ * Wipes all freehand strokes from the previous document so they
+ * do not bleed onto the newly loaded file.
+ */
+function clearFreehandPaths() {
+    _fhPaths      = [];
+    _fhCurrentPts = [];
+    _fhStartPt    = null;
+    _fhDrawing    = false;
+}
+
 // ════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════
