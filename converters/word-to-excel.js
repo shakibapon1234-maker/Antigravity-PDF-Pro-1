@@ -76,6 +76,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 extractedTables = [];
                 extractedParagraphs = [];
                 
+                // Helper to clean invisible characters (like zero-width space)
+                function cleanText(str) {
+                    if (!str) return '';
+                    return str.replace(/[\u200B-\u200D\uFEFF\u200E\u200F]/g, '').trim();
+                }
+                
                 // --- Extract ALL tables ---
                 const tables = doc.querySelectorAll('table');
                 tables.forEach((table, index) => {
@@ -84,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const row = [];
                         tr.querySelectorAll('td, th').forEach(td => {
                             // Use textContent (not innerText — innerText doesn't work in DOMParser)
-                            let cellText = td.textContent.trim();
+                            let cellText = cleanText(td.textContent);
                             // Preserve line breaks within cells
                             cellText = cellText.replace(/\s+/g, ' ');
                             row.push(cellText);
@@ -107,13 +113,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Skip tables (already extracted)
                     if (el.tagName === 'TABLE') continue;
                     
-                    const text = el.textContent.trim();
-                    if (text) {
-                        const tag = el.tagName.toLowerCase();
-                        let type = 'Text';
-                        if (tag.startsWith('h')) type = 'Heading';
-                        else if (tag === 'ul' || tag === 'ol') type = 'List';
-                        textRows.push([type, text]);
+                    const tag = el.tagName.toLowerCase();
+                    if (tag === 'ul' || tag === 'ol') {
+                        el.querySelectorAll('li').forEach(li => {
+                            const text = cleanText(li.textContent);
+                            if (text) {
+                                textRows.push(text);
+                            }
+                        });
+                    } else {
+                        const text = cleanText(el.textContent);
+                        if (text) {
+                            textRows.push(text);
+                        }
                     }
                 }
                 if (textRows.length > 0) {
@@ -129,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (extractedParagraphs.length > 0) {
                     statusHtml += `<div style="margin-bottom:10px; padding:10px; background:#e3f2fd; color:#1565c0; border-radius:8px; border:1px solid #bbdefb;">
-                        <strong>📝 ${extractedParagraphs.length} text paragraphs</strong> will be added to a separate "Content" sheet
+                        <strong>📝 ${extractedParagraphs.length} text paragraph(s) detected</strong> — will be added to the Excel sheet
                     </div>`;
                 }
                 if (extractedTables.length === 0 && extractedParagraphs.length === 0) {
@@ -178,12 +190,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Add paragraphs at the end
             if (extractedParagraphs.length > 0) {
-                combinedData.push([]);
-                combinedData.push([]);
-                combinedData.push(['📝 Document Text Content']);
-                combinedData.push(['Type', 'Content']);
+                if (combinedData.length > 0) {
+                    combinedData.push([]);
+                    combinedData.push([]);
+                }
                 extractedParagraphs.forEach(p => {
-                    combinedData.push(p);
+                    combinedData.push([p]);
                 });
             }
 
