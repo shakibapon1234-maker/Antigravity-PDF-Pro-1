@@ -323,7 +323,10 @@
                 min-width: 110px;
             }
             .ag-select:focus { border-color: rgba(184,41,249,0.5); }
-            .ag-select option { background: #1a1a2e; }
+            .ag-select option {
+                background: var(--bg-raised, #1a1a2e);
+                color: var(--text, #e0e0e0);
+            }
 
             /* ── Footer ── */
             .ag-settings-footer {
@@ -379,7 +382,8 @@
             body.light-theme .ag-settings-version { background: #ffffff; }
             body.light-theme .ag-settings-section { background: #f9fafb; border-color: rgba(0,0,0,0.07); }
             body.light-theme .ag-folder-input { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.12); color: #555; }
-            body.light-theme .ag-select { background: #f3f4f6; border-color: rgba(0,0,0,0.12); }
+            body.light-theme .ag-select { background: #f3f4f6; border-color: rgba(0,0,0,0.12); color: #111827; }
+            body.light-theme .ag-select option { background: #ffffff; color: #111827; }
             body.light-theme .ag-toggle-slider { background: rgba(0,0,0,0.12); border-color: rgba(0,0,0,0.1); }
             body.light-theme .ag-toggle-slider::before { background: #fff; }
         `;
