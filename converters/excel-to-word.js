@@ -222,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selStart = null;
             selEnd   = null;
             if(areaSelectInput) areaSelectInput.value = '';
+            if(pageSizeSelect) pageSizeSelect.value = 'fit';
             paintSel();
             updateBorder();
         });
@@ -289,6 +290,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Click outside the preview table → clear selection
     document.addEventListener('mousedown', e => {
+        if (e.target.closest('#e2wWorkspace') || e.target.closest('button') || e.target.closest('select') || e.target.closest('input') || e.target.closest('label')) {
+            return;
+        }
         if(!previewContainer || !previewContainer.contains(e.target)) {
             if(selStart || selEnd) {
                 selStart = null; selEnd = null;

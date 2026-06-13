@@ -165,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btnClearPdfSel').addEventListener('click',()=>{
             selStart=null;selEnd=null;
             if(areaSelectInput)areaSelectInput.value='';
+            if(pageSizeSelect)pageSizeSelect.value='fit';
             paintSel();updateBorder();
         });
         updateBorder();
