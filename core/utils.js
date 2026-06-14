@@ -36,6 +36,11 @@ function switchTab(tabId) {
     if (section) section.classList.add('active');
     const navBtn = document.querySelector(`[data-tab="${tabId}"]`);
     if (navBtn) navBtn.classList.add('active');
+
+    // Hide the PDF thumbnail sidebar when not on the editor tab
+    if (tabId !== 'editor' && window.ThumbnailSidebar && typeof ThumbnailSidebar.hide === 'function') {
+        ThumbnailSidebar.hide();
+    }
 }
 
 // ── Dashboard greeting: reads user name from settings ──────────────────
@@ -268,8 +273,8 @@ function applyToActiveOrSelected(prop, val, applyFn, syncFn) {
 // ক্যানভাস ব্যাকগ্রাউন্ড স্যাম্পলিং
 // ════════════════════════════════════════════
 
-function sampleBackgroundPatch(x, y, width, height, scale) {
-    const pageWrapper = document.querySelector('.pdf-page-wrapper');
+function sampleBackgroundPatch(x, y, width, height, scale, customPageWrapper = null) {
+    const pageWrapper = customPageWrapper || document.querySelector('.pdf-page-wrapper');
     if (!pageWrapper) return null;
     const mainCanvas = pageWrapper.querySelector('canvas');
     if (!mainCanvas) return null;
@@ -298,8 +303,8 @@ function sampleBackgroundPatch(x, y, width, height, scale) {
     }
 }
 
-function sampleBackgroundColor(x, y) {
-    const pageWrapper = document.querySelector('.pdf-page-wrapper');
+function sampleBackgroundColor(x, y, customPageWrapper = null) {
+    const pageWrapper = customPageWrapper || document.querySelector('.pdf-page-wrapper');
     if (!pageWrapper) return { r: 1, g: 1, b: 1, hex: '#ffffff' };
 
     // ── STRATEGY 1: Use inpainted background canvas (text pixels removed) ──

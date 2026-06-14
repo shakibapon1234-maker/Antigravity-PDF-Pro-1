@@ -43,7 +43,8 @@ function startEditing(e, originalItem, transform, viewport, page) {
             patchData = sampleBackgroundPatch(
                 _inputAbsLeftNum / pdfScale - padding,
                 _inputAbsTopNum / pdfScale - padding,
-                patchWidth, patchHeight, pdfScale
+                patchWidth, patchHeight, pdfScale,
+                container
             );
         }
     }
@@ -53,7 +54,7 @@ function startEditing(e, originalItem, transform, viewport, page) {
         const hex = originalItem.bgHex || 'transparent';
         bgColor = { hex, ...(hex === 'transparent' ? {r:1,g:1,b:1} : hexToRgb(hex)) };
     } else if (transform) {
-        bgColor = sampleBackgroundColor(cx, cy);
+        bgColor = sampleBackgroundColor(cx, cy, container);
     } else {
         const existingEdit = textEdits.find(ed => ed.id === originalItem.id);
         const hex = existingEdit?.bgHex || 'transparent';
@@ -93,7 +94,8 @@ function startEditing(e, originalItem, transform, viewport, page) {
             ? generateInpaintedPatch(
                 Math.round(origLeft * csx), Math.round(origTop * csy),
                 Math.round(origWidth * csx), Math.round(origHeight * csy),
-                true // forceCoons
+                true, // forceCoons
+                container
               )
             : null;
 
@@ -142,7 +144,8 @@ function startEditing(e, originalItem, transform, viewport, page) {
         ? generateInpaintedPatch(
             Math.round(_inputAbsLeftNum * csx), Math.round(_inputAbsTopNum * csy),
             Math.round(editW_css * csx), Math.round(editH_css * csy),
-            true // forceCoons
+            true, // forceCoons
+            container
           )
         : null;
 
@@ -171,6 +174,7 @@ function startEditing(e, originalItem, transform, viewport, page) {
               ed.originalY === originalItem.transform[5]
     );
 
+    const btnTransBg = document.getElementById('btnTransparentBg');
     if (edit) {
         currentStyle.fontFamily  = edit.font;
         currentStyle.fontSize    = edit.size;
@@ -182,13 +186,22 @@ function startEditing(e, originalItem, transform, viewport, page) {
         document.getElementById('fontFamily').value = edit.font;
         document.getElementById('fontSize').value   = edit.size;
         document.getElementById('textColor').value  = edit.color;
-        document.getElementById('bgColor').value    = edit.bgHex;
+        document.getElementById('bgColor').value    = (edit.bgHex && edit.bgHex !== 'transparent') ? edit.bgHex : bgColor.hex;
         document.getElementById('btnBold').classList.toggle('active',      edit.isBold);
         document.getElementById('btnItalic').classList.toggle('active',    edit.isItalic);
         document.getElementById('btnUnderline').classList.toggle('active', edit.isUnderline);
+        if (btnTransBg) {
+            const isTrans = edit.bgHex === 'transparent';
+            btnTransBg.classList.toggle('active', isTrans);
+            document.getElementById('bgColor').style.opacity = isTrans ? '0.5' : '1';
+        }
     } else {
-        currentStyle.bgColor = bgColor.hex;
+        currentStyle.bgColor = 'transparent';
         document.getElementById('bgColor').value = bgColor.hex;
+        if (btnTransBg) {
+            btnTransBg.classList.add('active');
+            document.getElementById('bgColor').style.opacity = '0.5';
+        }
         
         // Extract style from the clicked element (el)
         if (el) {
@@ -477,7 +490,8 @@ function startEditing(e, originalItem, transform, viewport, page) {
             ? generateInpaintedPatch(
                 Math.round(cpLeft * csx), Math.round(cpTop * csy),
                 Math.round(cpWidth * csx), Math.round(cpHeight * csy),
-                true // forceCoons
+                true, // forceCoons
+                container
               )
             : null;
 
@@ -745,13 +759,14 @@ function addNewText(x, y, viewport, page, container, overrideBgHex) {
         patchData = sampleBackgroundPatch(
             x / pdfScale,
             y / pdfScale - patchHeight / 2,
-            patchWidth, patchHeight, pdfScale
+            patchWidth, patchHeight, pdfScale,
+            container
         );
         const btnTransBg = document.getElementById('btnTransparentBg');
         if (btnTransBg && btnTransBg.classList.contains('active')) {
             bgColor = { hex: 'transparent', r: 1, g: 1, b: 1 };
         } else {
-            bgColor = sampleBackgroundColor(x, y);
+            bgColor = sampleBackgroundColor(x, y, container);
             currentStyle.bgColor = bgColor.hex;
             document.getElementById('bgColor').value = bgColor.hex;
         }
@@ -1513,8 +1528,7 @@ function endClearStroke(container) {
                 r: bgSample.r,
                 g: bgSample.g,
                 b: bgSample.b,
-                // Store patch for PDF embed if needed in future
-                patch: patchDataUrl || null
+                patch: null   // solid color only — avoids black patch artifacts
             });
         }
         eraserRectEl.remove();
@@ -1594,9 +1608,9 @@ function invalidateBgCanvas() {
 // Returns a dataURL of the background patch at (x,y,width,height) in CANVAS
 // pixel coordinates. Uses the background canvas cache for pixel-perfect results.
 // Falls back to Coons-patch edge interpolation if re-render is not ready yet.
-function generateInpaintedPatch(x, y, width, height, forceCoons = false) {
+function generateInpaintedPatch(x, y, width, height, forceCoons = false, customPageWrapper = null) {
     try {
-        const pageWrapper = document.querySelector('.pdf-page-wrapper');
+        const pageWrapper = customPageWrapper || document.querySelector('.pdf-page-wrapper');
         const mainCanvas  = pageWrapper?.querySelector('canvas');
         if (!mainCanvas) return null;
 
@@ -1654,21 +1668,29 @@ function _coonsPatchFromMainCanvas(mainCanvas, pageWrapper, px, py, pw, ph) {
     }
 
     // Small-radius median filter — radius fixed to 2
-    // to filter out noise, while avoiding astronomical complexity
+    // to filter out noise, while avoiding astronomical complexity.
+    // Also filters out dark text pixels (luminance < 150) to prevent black artifacts.
     function getCleanEdgeColor(cx, cy) {
         const radius = 2;
         const rArr = [], gArr = [], bArr = [];
         for (let dy = -radius; dy <= radius; dy++) {
             for (let dx = -radius; dx <= radius; dx++) {
                 const p = getPix(cx + dx, cy + dy);
-                rArr.push(p.r); gArr.push(p.g); bArr.push(p.b);
+                const lum = p.r * 0.299 + p.g * 0.587 + p.b * 0.114;
+                if (lum >= 150) {
+                    rArr.push(p.r); gArr.push(p.g); bArr.push(p.b);
+                }
             }
         }
-        rArr.sort((a, b) => a - b);
-        gArr.sort((a, b) => a - b);
-        bArr.sort((a, b) => a - b);
-        const mid = rArr.length >> 1;
-        return { r: rArr[mid], g: gArr[mid], b: bArr[mid] };
+        if (rArr.length > 0) {
+            rArr.sort((a, b) => a - b);
+            gArr.sort((a, b) => a - b);
+            bArr.sort((a, b) => a - b);
+            const mid = rArr.length >> 1;
+            return { r: rArr[mid], g: gArr[mid], b: bArr[mid] };
+        } else {
+            return getPix(cx, cy); // fallback
+        }
     }
 
     // Calculate exact text position relative to temp canvas
@@ -1808,7 +1830,9 @@ function endClearTextStroke(container) {
     const patchDataUrl = typeof generateInpaintedPatch === 'function'
         ? generateInpaintedPatch(
             Math.round(l * csx), Math.round(t * csy),
-            Math.round(w * csx), Math.round(h * csy))
+            Math.round(w * csx), Math.round(h * csy),
+            false,
+            container)
         : null;
 
     const bgSample = typeof sampleBackgroundColor === 'function'
@@ -1816,7 +1840,6 @@ function endClearTextStroke(container) {
         : { r: 1, g: 1, b: 1, hex: '#ffffff' };
 
     // 2. Create ONE visual patch covering EXACTLY the dragged area
-    // z-index:50 ensures patch appears above text layer spans (z-index ~2-10)
     const patchEl = document.createElement('div');
     patchEl.className = 'clear-patch';
     patchEl.style.cssText = `

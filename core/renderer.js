@@ -453,7 +453,9 @@ async function setupTextLayer(page, viewport, container) {
                     const csy = mc.height / (container.offsetHeight || mc.height);
                     patchDataUrl = generateInpaintedPatch(
                         Math.round(origLeft * csx), Math.round(origTop * csy),
-                        Math.round(origWidth * csx), Math.round(origHeight * csy)
+                        Math.round(origWidth * csx), Math.round(origHeight * csy),
+                        false,
+                        container
                     );
                     if (patchDataUrl) {
                         edit.patch = patchDataUrl; // Save back to editData so exporter can use it
@@ -470,7 +472,7 @@ async function setupTextLayer(page, viewport, container) {
                 const sampleX = Math.max(0, origLeft - 4);
                 const sampleY = Math.max(0, origTop  - 4);
                 const bg = typeof sampleBackgroundColor === 'function'
-                    ? sampleBackgroundColor(sampleX, sampleY)
+                    ? sampleBackgroundColor(sampleX, sampleY, container)
                     : null;
                 coverBgHex = (bg && bg.hex) ? bg.hex : '#ffffff';
             }
@@ -574,17 +576,27 @@ async function setupTextLayer(page, viewport, container) {
             const renderedW = spanRect.width  || textItem.offsetWidth  || 60;
             const renderedH = spanRect.height || textItem.offsetHeight || (item.height * pdfScale);
 
-            const mc   = pw.querySelector('canvas');
-            const csx  = mc ? mc.width  / pw.offsetWidth  : 1;
-            const csy  = mc ? mc.height / pw.offsetHeight : 1;
+            const bgSample = typeof sampleBackgroundColor === 'function'
+                ? sampleBackgroundColor(relLeft + renderedW / 2, relTop + renderedH / 2, pw)
+                : { r: 1, g: 1, b: 1, hex: '#ffffff' };
+
+            const mc = pw.querySelector('canvas');
+            const scaleX = mc ? mc.width / pw.offsetWidth : pdfScale;
+            const scaleY = mc ? mc.height / pw.offsetHeight : pdfScale;
             const patchDataUrl = typeof generateInpaintedPatch === 'function'
                 ? generateInpaintedPatch(
-                    Math.round(relLeft   * csx), Math.round(relTop    * csy),
-                    Math.round(renderedW * csx), Math.round(renderedH * csy))
+                    Math.round(relLeft * scaleX), Math.round(relTop * scaleY),
+                    Math.round(renderedW * scaleX), Math.round(renderedH * scaleY),
+                    false,
+                    pw
+                )
                 : null;
-            const bgSample = typeof sampleBackgroundColor === 'function'
-                ? sampleBackgroundColor(relLeft + renderedW / 2, relTop + renderedH / 2)
-                : { r: 1, g: 1, b: 1, hex: '#ffffff' };
+
+            // Correct PDF Y coordinate: use _pdfPageNaturalSize.height (PDF points),
+            // NOT pw.offsetHeight/pdfScale (CSS pixels ÷ scale ≠ PDF points on cropped pages)
+            const _pageHeightPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+                ? window._pdfPageNaturalSize.height
+                : pw.offsetHeight / pdfScale;
 
             const clearEntry = {
                 id: editId, page: currentPageNum, isNew: false,
@@ -592,7 +604,7 @@ async function setupTextLayer(page, viewport, container) {
                 originalWidth: item.width || (renderedW / pdfScale),
                 originalHeight: item.height || (renderedH / pdfScale),
                 x: relLeft / pdfScale,
-                y: (pw.offsetHeight - relTop - renderedH) / pdfScale,
+                y: _pageHeightPts - (relTop + renderedH) / pdfScale,
                 text: '', size: item.height || 12,
                 color: 'transparent', bgHex: 'transparent',
                 bgR: 1, bgG: 1, bgB: 1, font: 'Helvetica',
@@ -604,11 +616,14 @@ async function setupTextLayer(page, viewport, container) {
             if (existingIdx > -1) textEdits[existingIdx] = clearEntry;
             else textEdits.push(clearEntry);
 
+            // Store in clearStrokes for PDF export
             let pe = clearStrokes.find(s => s.page === currentPageNum);
             if (!pe) { pe = { page: currentPageNum, rects: [] }; clearStrokes.push(pe); }
             pe.rects.push({
-                x: relLeft / pdfScale, y: (pw.offsetHeight - relTop - renderedH) / pdfScale,
-                w: renderedW / pdfScale, h: renderedH / pdfScale,
+                x: relLeft / pdfScale,
+                y: _pageHeightPts - (relTop + renderedH) / pdfScale,
+                w: renderedW / pdfScale,
+                h: renderedH / pdfScale,
                 r: bgSample.r, g: bgSample.g, b: bgSample.b,
                 patch: patchDataUrl || null
             });
@@ -619,14 +634,14 @@ async function setupTextLayer(page, viewport, container) {
             textItem.style.backgroundColor = 'transparent';
             textItem.style.backgroundImage = 'none';
 
+            // Visual patch
             const patchEl = document.createElement('div');
             patchEl.className = 'clear-patch';
             patchEl.style.cssText = `
                 position:absolute; left:${relLeft}px; top:${relTop}px;
                 width:${renderedW}px; height:${renderedH}px;
                 background-color:${bgSample.hex};
-                background-image:${patchDataUrl ? `url(${patchDataUrl})` : 'none'};
-                background-size:100% 100%; background-repeat:no-repeat;
+                ${patchDataUrl ? `background-image:url(${patchDataUrl});background-size:100% 100%;background-repeat:no-repeat;` : ''}
                 pointer-events:none; z-index:5;
             `;
             pw.appendChild(patchEl);

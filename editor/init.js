@@ -443,9 +443,16 @@ function initEventListeners() {
     window.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') return;
         const k = e.key ? e.key.toLowerCase() : '';
+        if (e.key === 'Escape' || e.key === 'Esc') {
+            if (activeTool === 'freehand') {
+                const selectBtn = document.getElementById('btnSelect');
+                if (selectBtn) selectBtn.click();
+            }
+        }
         if (k === 'v') document.getElementById('btnSelect').click();
         else if (k === 't') document.getElementById('btnTypeText').click();
         else if (k === 'e') document.getElementById('btnClearText').click();
+        else if (k === 'p') document.getElementById('btnFreehand').click();
         else if (e.ctrlKey && k === 'b') { e.preventDefault(); document.getElementById('btnBold').click(); }
         else if (e.ctrlKey && k === 'i') { e.preventDefault(); document.getElementById('btnItalic').click(); }
         else if (e.ctrlKey && k === 'u') { e.preventDefault(); document.getElementById('btnUnderline').click(); }

@@ -23,6 +23,11 @@ let _fhOnDown     = null;   // canvas mousedown handler ref
 let _fhOnMove     = null;   // document mousemove handler ref (per-stroke, self-cleaning)
 let _fhOnUp       = null;   // document mouseup handler ref (per-stroke, self-cleaning)
 
+let _fhShiftPressed = false;
+const _fhKeyDown = (e) => { if (e.key === 'Shift') _fhShiftPressed = true; };
+const _fhKeyUp   = (e) => { if (e.key === 'Shift') _fhShiftPressed = false; };
+const _fhBlur    = () => { _fhShiftPressed = false; };
+
 const _fhGetXY = (e) => {
     if (!_fhCanvas) return { x: 0, y: 0 };
     const r = _fhCanvas.getBoundingClientRect();
@@ -71,6 +76,15 @@ function startFreehand(pageWrapper) {
     if (_fhActive) { stopFreehand(pageWrapper); return; }
     _fhActive = true;
 
+    // Disable selection on body permanently while freehand is active
+    document.body.style.userSelect = 'none';
+    document.body.style.webkitUserSelect = 'none';
+
+    // Register global key listeners to track Shift key state
+    document.addEventListener('keydown', _fhKeyDown);
+    document.addEventListener('keyup', _fhKeyUp);
+    window.addEventListener('blur', _fhBlur);
+
     // Remove any static snapshot canvas left from when the tool was inactive
     const existingStatic = pageWrapper.querySelector('.fh-static-canvas');
     if (existingStatic) existingStatic.remove();
@@ -85,6 +99,16 @@ function stopFreehand(pageWrapper) {
     _fhActive  = false;
     _fhDrawing = false;
     _fhStartPt = null;
+
+    // Restore text selection
+    document.body.style.userSelect = '';
+    document.body.style.webkitUserSelect = '';
+
+    // Remove key listeners
+    document.removeEventListener('keydown', _fhKeyDown);
+    document.removeEventListener('keyup', _fhKeyUp);
+    window.removeEventListener('blur', _fhBlur);
+    _fhShiftPressed = false;
 
     // Clean up any in-flight document-level stroke handlers
     if (_fhOnMove) { document.removeEventListener('mousemove', _fhOnMove); _fhOnMove = null; }
@@ -492,10 +516,6 @@ window.fhReattachCanvas = function() {
     newWrapper.appendChild(_fhCanvas);
     _fhCtx = _fhCanvas.getContext('2d');
 
-    // Attach mouse event listeners to the new canvas!
-    // NOTE: mousemove and mouseup are on DOCUMENT (not canvas) so that:
-    //   1. Shift key modifier is always reliably captured even outside canvas
-    //   2. Strokes complete correctly even if mouse leaves canvas boundary
     _fhCanvas.addEventListener('mousedown', _fhOnDown = (e) => {
         if (e.button !== 0) return; // left button only
         if (_fhDrawing) _fhDoCommit();
@@ -503,7 +523,7 @@ window.fhReattachCanvas = function() {
         _fhDrawing    = true;
         _fhStartPt    = _fhGetXY(e);
         _fhCurrentPts = [_fhStartPt];
-        _fhLastShift  = e.shiftKey;
+        _fhLastShift  = e.shiftKey || _fhShiftPressed;
 
         // Draw a dot at the start point so single-clicks are visible
         _fhCtx.beginPath();
@@ -517,7 +537,7 @@ window.fhReattachCanvas = function() {
         const onDocMove = _fhOnMove = (ev) => {
             if (!_fhDrawing || !_fhStartPt) return;
             let p = _fhGetXY(ev);
-            const isShift = ev.shiftKey;
+            const isShift = ev.shiftKey || _fhShiftPressed;
 
             if (isShift) {
                 // Constrain to horizontal / vertical / 45° from the stroke start

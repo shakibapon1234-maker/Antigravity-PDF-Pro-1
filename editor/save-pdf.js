@@ -204,8 +204,10 @@ async function savePdfChanges() {
             const cropX = cropBox.x || 0;
             const cropY = cropBox.y || 0;
 
-            // 1. Draw background cover rectangle or image patch at the ORIGINAL position for edited original text
-            if (!edit.isNew) {
+            // 1. Draw background cover at the ORIGINAL position (only for actual text replacements)
+            // Skip clear-only entries (text='' + bgHex=transparent): clearStrokes already covers them.
+            const isClearOnly = !edit.isNew && (!edit.text || !edit.text.trim()) && edit.bgHex === 'transparent';
+            if (!edit.isNew && !isClearOnly) {
                 let drewPatch = false;
                 if (edit.patch && edit.patch.startsWith('data:')) {
                     try {
@@ -216,8 +218,8 @@ async function savePdfChanges() {
                         const coverHeight = edit.originalHeight || edit.height || edit.size;
                         const coverWidth = edit.originalWidth || edit.width || 40;
                         pg.drawImage(embeddedPatch, {
-                            x: edit.originalX,
-                            y: edit.originalY,
+                            x: edit.originalX + cropX,
+                            y: edit.originalY + cropY,
                             width: coverWidth,
                             height: coverHeight
                         });
@@ -226,21 +228,23 @@ async function savePdfChanges() {
                         console.error('Failed to draw edit background patch in PDF:', e);
                     }
                 }
-                
                 if (!drewPatch) {
+                    // Use sampled bg color (coverBgHex); fall back to #ffffff if transparent/empty to hide old text under the replacement
                     const coverBgHex = edit.coverBgHex || ((edit.bgHex && edit.bgHex !== 'transparent') ? edit.bgHex : '#ffffff');
-                    const bgColor = hexToRgb(coverBgHex);
-                    const descent = edit.size * 0.25;
-                    const coverHeight = Math.max(edit.originalHeight || edit.height || edit.size, edit.size + descent + 2);
-                    const coverWidth = edit.originalWidth || edit.width || 40;
-                    const padding = 2;
-                    pg.drawRectangle({
-                        x: edit.originalX - padding,
-                        y: edit.originalY - descent - padding,
-                        width: coverWidth + padding * 2,
-                        height: coverHeight + padding * 2,
-                        color: rgb(bgColor.r, bgColor.g, bgColor.b)
-                    });
+                    if (coverBgHex) {
+                        const bgColor = hexToRgb(coverBgHex);
+                        const descent = edit.size * 0.25;
+                        const coverHeight = Math.max(edit.originalHeight || edit.height || edit.size, edit.size + descent + 2);
+                        const coverWidth = edit.originalWidth || edit.width || 40;
+                        const padding = 2;
+                        pg.drawRectangle({
+                            x: edit.originalX + cropX - padding,
+                            y: edit.originalY + cropY - descent - padding,
+                            width: coverWidth + padding * 2,
+                            height: coverHeight + padding * 2,
+                            color: rgb(bgColor.r, bgColor.g, bgColor.b)
+                        });
+                    }
                 }
             }
 
@@ -259,9 +263,12 @@ async function savePdfChanges() {
                 const descent = edit.size * 0.25;
                 const coverHeight = Math.max(edit.height || edit.size, edit.size + descent + 2);
                 const padding = 2;
+                // New items use cropX/cropY; edited originals already include crop in their stored coords
+                const cx = edit.isNew ? cropX : 0;
+                const cy = edit.isNew ? cropY : 0;
                 pg.drawRectangle({
-                    x: edit.x - padding + (edit.isNew ? cropX : 0),
-                    y: edit.y - descent - padding + (edit.isNew ? cropY : 0),
+                    x: edit.x - padding + cx,
+                    y: edit.y - descent - padding + cy,
                     width: coverWidth + padding * 2,
                     height: coverHeight + padding * 2,
                     color: rgb(bgColor.r, bgColor.g, bgColor.b)
@@ -271,9 +278,12 @@ async function savePdfChanges() {
             // Draw text on top of background
             if (font && edit.text && edit.text.trim()) {
                 const color = hexToRgb(edit.color);
+                // New items use cropX/cropY; edited originals already include crop in their stored coords
+                const cx = edit.isNew ? cropX : 0;
+                const cy = edit.isNew ? cropY : 0;
                 pg.drawText(edit.text, {
-                    x: edit.x + (edit.isNew ? cropX : 0),
-                    y: edit.y + (edit.isNew ? cropY : 0),
+                    x: edit.x + cx,
+                    y: edit.y + cy,
                     size: edit.size,
                     font, color: rgb(color.r, color.g, color.b)
                 });
@@ -281,8 +291,8 @@ async function savePdfChanges() {
                 if (edit.isUnderline) {
                     const tw = font.widthOfTextAtSize(edit.text, edit.size);
                     pg.drawLine({
-                        start: { x: edit.x + (edit.isNew ? cropX : 0),      y: edit.y + (edit.isNew ? cropY : 0) - 2 },
-                        end:   { x: edit.x + (edit.isNew ? cropX : 0) + tw,  y: edit.y + (edit.isNew ? cropY : 0) - 2 },
+                        start: { x: edit.x + cx,      y: edit.y + cy - 2 },
+                        end:   { x: edit.x + cx + tw,  y: edit.y + cy - 2 },
                         thickness: 1,
                         color: rgb(color.r, color.g, color.b)
                     });
