@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 TITLE Antigravity PDF Pro — GitHub Sync & Update
 COLOR 0B
 cls

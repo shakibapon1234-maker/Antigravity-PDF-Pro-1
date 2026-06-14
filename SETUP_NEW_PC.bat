@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 TITLE Antigravity PDF Pro — নতুন PC Setup
 COLOR 0A
 cls

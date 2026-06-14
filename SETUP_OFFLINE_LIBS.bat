@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 echo ================================================
 echo  Antigravity PDF Pro - Offline Library Setup
 echo  (CDN dependencies কে local করা হচ্ছে)
