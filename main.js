@@ -1,3 +1,11 @@
+const Sentry = require('@sentry/electron/main');
+
+// Initialize Sentry for crash reporting & error tracking
+Sentry.init({
+  dsn: process.env.SENTRY_DSN || 'https://placeholder-dsn@o0.ingest.sentry.io/0', // Placeholder DSN (can be replaced with user's Sentry DSN)
+  debug: false,
+});
+
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell, Tray, nativeImage } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
@@ -585,6 +593,7 @@ function setupIPC() {
       return { success: false, error: err.message };
     }
   });
+
 }
 
 // ─── App lifecycle ─────────────────────────────────────────────────────────────

@@ -4,6 +4,13 @@
  * No direct Node.js access from renderer — security best practice.
  */
 const { contextBridge, ipcRenderer } = require('electron');
+const { init: initSentry } = require('@sentry/electron/renderer');
+
+try {
+  initSentry();
+} catch (e) {
+  console.warn('[preload] Failed to initialize Sentry renderer SDK:', e);
+}
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // Show native Save dialog — returns { canceled, filePath }

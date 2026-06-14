@@ -54,6 +54,7 @@ async function switchTab(tabId) {
 
 // ── Dashboard greeting: reads user name from settings ──────────────────
 (function initDashboardGreeting() {
+    if (typeof document === 'undefined') return;
     function applyGreeting(name) {
         const el = document.getElementById('dashboardGreeting');
         if (!el) return;
@@ -456,5 +457,11 @@ function getStandardFontName(fontName, styles = null) {
     }
     
     return 'Arial';
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        hexToRgb
+    };
 }
 
