@@ -4,6 +4,13 @@
  * No direct Node.js access from renderer — security best practice.
  */
 const { contextBridge, ipcRenderer } = require('electron');
+const { init: initSentry } = require('@sentry/electron/renderer');
+
+try {
+  initSentry();
+} catch (e) {
+  console.warn('[preload] Failed to initialize Sentry renderer SDK:', e);
+}
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // Show native Save dialog — returns { canceled, filePath }
@@ -40,6 +47,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Electron Store IPC wrappers
   storeGet: (key) => ipcRenderer.invoke('store-get', key),
   storeSet: (key, value) => ipcRenderer.invoke('store-set', key, value),
+
+  // Get unique hardware ID for licensing
+  getHardwareId: () => ipcRenderer.invoke('get-hardware-id'),
 
   // Read a file from disk by its full path (for Recent Files)
   readFileByPath: (filePath) => ipcRenderer.invoke('read-file-by-path', filePath),

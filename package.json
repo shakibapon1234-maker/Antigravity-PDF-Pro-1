@@ -12,7 +12,10 @@
     "build-portable": "electron-builder --win portable --x64",
     "build-all": "electron-builder --win nsis portable --x64",
     "server-only": "node server.js",
-    "setup-libs": "node scripts/setup-libs.js"
+    "setup-libs": "node scripts/setup-libs.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "build": {
     "appId": "com.antigravity.pdf-pro",
@@ -43,12 +46,16 @@
       {
         "from": "bin",
         "to": "bin",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "assets",
         "to": "assets",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "asar": false,
@@ -56,11 +63,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "assets/icon.ico",
@@ -97,22 +108,26 @@
     },
     "publish": [
       {
-        "provider": "generic",
-        "url": "https://updates.antigravitypdfpro.com/"
+        "provider": "github",
+        "owner": "shakibapon1234-maker",
+        "repo": "Antigravity-PDF-Pro-1"
       }
     ]
   },
   "dependencies": {
+    "@sentry/electron": "^7.13.0",
     "electron-log": "^5.4.4",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.0.0",
     "express": "^4.22.1",
     "multer": "^1.4.5-lts.1",
+    "node-machine-id": "^1.1.12",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^3.11.174"
   },
   "devDependencies": {
     "@pdf-lib/fontkit": "^0.0.4",
+    "@playwright/test": "^1.60.0",
     "bootstrap-icons": "^1.11.3",
     "docx": "^7.1.0",
     "electron": "^31.0.0",
@@ -125,6 +140,7 @@
     "mammoth": "^1.6.0",
     "sortablejs": "^1.15.0",
     "tesseract.js": "^5.0.0",
+    "vitest": "^4.1.8",
     "xlsx": "^0.18.5"
   }
 }
