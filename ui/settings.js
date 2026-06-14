@@ -13,7 +13,10 @@
         theme: 'dark',
         autoBackup: true,
         backupCount: 5,
-        language: 'en'             // Reserved for future use
+        language: 'en',            // Reserved for future use
+        aiProvider: 'offline',     // offline, gemini, openai
+        aiApiKey: '',
+        aiModel: 'gemini-1.5-flash'
     };
 
     // ── In-memory cache (avoids repeated IPC calls) ───────────────────────────
@@ -497,7 +500,69 @@
                             <select id="agSelectTheme" class="ag-select">
                                 <option value="dark">🌙 Dark</option>
                                 <option value="light">☀️ Light</option>
-                                <option value="system">🖥 System</option>
+                            </select>
+                        </div>
+
+                        <!-- Smart Invert Reader -->
+                        <div class="ag-settings-row" id="agSmartInvertRow">
+                            <div class="ag-settings-row-icon ag-row-icon-cyan">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                            </div>
+                            <div class="ag-settings-row-info">
+                                <span class="ag-settings-row-label">Smart Dark Reader</span>
+                                <span class="ag-settings-row-desc">PDF-এর সাদা পেজ ইনভার্ট করে রাতে পড়ার সুবিধা দেয়</span>
+                            </div>
+                            <label class="ag-toggle" title="Smart Dark Reader">
+                                <input type="checkbox" id="agToggleSmartInvert">
+                                <span class="ag-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        </div>
+                    </div>
+
+                    <!-- SECTION: AI & API Settings -->
+                    <div class="ag-settings-section">
+                        <div class="ag-settings-section-title">🤖 AI & Translation Settings</div>
+
+                        <!-- AI Provider -->
+                        <div class="ag-settings-row">
+                            <div class="ag-settings-row-icon ag-row-icon-purple">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l-7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                            </div>
+                            <div class="ag-settings-row-info">
+                                <span class="ag-settings-row-label">AI Engine Provider</span>
+                                <span class="ag-settings-row-desc">এআই অ্যাসিস্ট্যান্টের প্রোভাইডার সিলেক্ট করুন</span>
+                            </div>
+                            <select id="agSelectAiProvider" class="ag-select">
+                                <option value="offline">🔌 Offline / Mock Engine</option>
+                                <option value="gemini">♊ Google Gemini API</option>
+                                <option value="openai">🧠 OpenAI API</option>
+                            </select>
+                        </div>
+
+                        <!-- API Key -->
+                        <div class="ag-settings-row" id="agAiApiKeyRow" style="display: none;">
+                            <div class="ag-settings-row-icon ag-row-icon-purple">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            </div>
+                            <div class="ag-settings-row-info">
+                                <span class="ag-settings-row-label">API Key</span>
+                                <span class="ag-settings-row-desc">আপনার Gemini বা OpenAI API Key প্রদান করুন</span>
+                            </div>
+                            <input type="password" id="agAiApiKeyInput" class="ag-folder-input" placeholder="Paste your API key here" style="flex:1; max-width: 200px;">
+                        </div>
+
+                        <!-- AI Model -->
+                        <div class="ag-settings-row" id="agAiModelRow" style="display: none;">
+                            <div class="ag-settings-row-icon ag-row-icon-purple">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                            </div>
+                            <div class="ag-settings-row-info">
+                                <span class="ag-settings-row-label">AI Model</span>
+                                <span class="ag-settings-row-desc">পছন্দের AI মডেল সিলেক্ট করুন</span>
+                            </div>
+                            <select id="agSelectAiModel" class="ag-select">
                             </select>
                         </div>
                     </div>
@@ -583,6 +648,22 @@
             themeSel.value = storeTheme;
         }
 
+        // Smart Invert
+        const smartInvertToggle = document.getElementById('agToggleSmartInvert');
+        if (smartInvertToggle) {
+            // Load saved state
+            let saved = false;
+            if (window.electronAPI && window.electronAPI.storeGet) {
+                try { saved = await window.electronAPI.storeGet('smartInvert') || false; } catch {}
+            } else {
+                try { saved = localStorage.getItem('ag_smartInvert') === 'true'; } catch {}
+            }
+            smartInvertToggle.checked = !!saved;
+            // Show/hide Smart Invert row based on theme (only useful in dark mode)
+            const row = document.getElementById('agSmartInvertRow');
+            if (row) row.style.display = document.body.classList.contains('light-theme') ? 'none' : 'flex';
+        }
+
         // Version
         if (window.electronAPI && window.electronAPI.getVersion) {
             try {
@@ -590,6 +671,49 @@
                 const verEl = document.getElementById('agSettingsVersion');
                 if (verEl) verEl.textContent = 'Version ' + ver;
             } catch {}
+        }
+
+        // AI Provider & API Settings
+        const aiProviderSel = document.getElementById('agSelectAiProvider');
+        const aiApiKeyInp   = document.getElementById('agAiApiKeyInput');
+
+        if (aiProviderSel) {
+            aiProviderSel.value = settings.aiProvider || 'offline';
+            if (aiApiKeyInp) aiApiKeyInp.value = settings.aiApiKey || '';
+            updateAiRowsVisibility(settings.aiProvider || 'offline');
+            populateAiModels(settings.aiProvider || 'offline', settings.aiModel);
+        }
+    }
+
+    function updateAiRowsVisibility(provider) {
+        const keyRow = document.getElementById('agAiApiKeyRow');
+        const modelRow = document.getElementById('agAiModelRow');
+        if (provider === 'offline') {
+            if (keyRow) keyRow.style.display = 'none';
+            if (modelRow) modelRow.style.display = 'none';
+        } else {
+            if (keyRow) keyRow.style.display = 'flex';
+            if (modelRow) modelRow.style.display = 'flex';
+        }
+    }
+
+    function populateAiModels(provider, currentModel) {
+        const modelSel = document.getElementById('agSelectAiModel');
+        if (!modelSel) return;
+        modelSel.innerHTML = '';
+        if (provider === 'gemini') {
+            modelSel.innerHTML = `
+                <option value="gemini-1.5-flash">gemini-1.5-flash (Recommended)</option>
+                <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+            `;
+        } else if (provider === 'openai') {
+            modelSel.innerHTML = `
+                <option value="gpt-4o-mini">gpt-4o-mini (Recommended)</option>
+                <option value="gpt-4o">gpt-4o</option>
+            `;
+        }
+        if (currentModel) {
+            modelSel.value = currentModel;
         }
     }
 
@@ -606,13 +730,19 @@
         const backupToggle   = document.getElementById('agToggleAutoBackup');
         const backupCountSel = document.getElementById('agSelectBackupCount');
         const themeSel       = document.getElementById('agSelectTheme');
+        const aiProviderSel  = document.getElementById('agSelectAiProvider');
+        const aiApiKeyInp    = document.getElementById('agAiApiKeyInput');
+        const aiModelSel     = document.getElementById('agSelectAiModel');
 
         const newSettings = {
             displayName:  nameInput ? nameInput.value.trim() : '',
             outputFolder: folderInput ? folderInput.value : '',
             autoBackup:   backupToggle ? backupToggle.checked : true,
             backupCount:  backupCountSel ? parseInt(backupCountSel.value, 10) : 5,
-            theme:        themeSel ? themeSel.value : 'dark'
+            theme:        themeSel ? themeSel.value : 'dark',
+            aiProvider:   aiProviderSel ? aiProviderSel.value : 'offline',
+            aiApiKey:     aiApiKeyInp ? aiApiKeyInp.value.trim() : '',
+            aiModel:      aiModelSel ? aiModelSel.value : 'gemini-1.5-flash'
         };
 
         await saveSettings(newSettings);
@@ -640,6 +770,24 @@
 
         // Apply theme immediately
         applyThemeFromSettings(newSettings.theme);
+
+        // Apply Smart Invert
+        const smartInvertChk = document.getElementById('agToggleSmartInvert');
+        if (smartInvertChk) {
+            const si = smartInvertChk.checked;
+            if (si) {
+                document.body.classList.add('smart-invert-active');
+            } else {
+                document.body.classList.remove('smart-invert-active');
+            }
+            const btn = document.getElementById('btnSmartInvert');
+            if (btn) btn.classList.toggle('active', si);
+            if (window.electronAPI && window.electronAPI.storeSet) {
+                window.electronAPI.storeSet('smartInvert', si).catch(() => {});
+            } else {
+                try { localStorage.setItem('ag_smartInvert', si); } catch {}
+            }
+        }
 
         // Sync theme toggle icon
         updateThemeToggleIcon(newSettings.theme);
@@ -753,6 +901,15 @@
         document.getElementById('agSelectTheme')?.addEventListener('change', function () {
             applyThemeFromSettings(this.value);
             updateThemeToggleIcon(this.value);
+            // Show/hide Smart Invert row when switching theme
+            const row = document.getElementById('agSmartInvertRow');
+            if (row) row.style.display = this.value === 'light' ? 'none' : 'flex';
+        });
+
+        // AI Provider select → update visibility and populate models
+        document.getElementById('agSelectAiProvider')?.addEventListener('change', function () {
+            updateAiRowsVisibility(this.value);
+            populateAiModels(this.value);
         });
 
         // Backdrop click to close

@@ -113,6 +113,22 @@
                     <i data-lucide="file-output"></i>
                     <span>PDF to Word</span>
                 </button>
+                <button class="nav-item" data-tab="pdf-to-excel">
+                    <i data-lucide="file-spreadsheet"></i>
+                    <span>PDF to Excel</span>
+                </button>
+                <button class="nav-item" data-tab="pdf-to-pptx">
+                    <i data-lucide="presentation"></i>
+                    <span>PDF to PPTX</span>
+                </button>
+                <button class="nav-item" data-tab="ai-assistant">
+                    <i data-lucide="bot"></i>
+                    <span>AI Assistant</span>
+                </button>
+                <button class="nav-item" data-tab="auto-translate">
+                    <i data-lucide="languages"></i>
+                    <span>Auto Translation</span>
+                </button>
                 <button class="nav-item" data-tab="merge">
                     <i data-lucide="combine"></i>
                     <span>Merge PDF</span>
@@ -216,6 +232,7 @@
                 </div>
                 <div class="user-actions">
                     <button class="btn-icon" id="btnOpenArchive" title="Open Archive"><i data-lucide="inbox"></i></button>
+                    <button class="btn-icon" id="btnSmartInvert" title="Smart Dark Mode Reader" style="display:none;"><i data-lucide="contrast"></i></button>
                     <button class="btn-icon" id="btnToggleTheme" title="Toggle Theme"><i data-lucide="sun" id="themeIcon"></i></button>
                     <button class="btn-icon"><i data-lucide="bell"></i></button>
                     <button class="btn-icon" id="agSettingsBtn" title="Settings"><i data-lucide="settings"></i></button>
@@ -273,6 +290,18 @@
                             <h3>PDF to Word</h3>
                             <p>Convert PDF documents to editable DOCX format.</p>
                             <span class="tool-tag">Popular</span>
+                        </div>
+                        <div class="tool-card teal" onclick="switchTab('pdf-to-excel')">
+                            <div class="card-icon"><i data-lucide="file-spreadsheet"></i></div>
+                            <h3>PDF to Excel</h3>
+                            <p>Extract tables from your PDF into an Excel sheet.</p>
+                            <span class="pro-tag">PRO</span>
+                        </div>
+                        <div class="tool-card orange" onclick="switchTab('pdf-to-pptx')">
+                            <div class="card-icon"><i data-lucide="presentation"></i></div>
+                            <h3>PDF to PPTX</h3>
+                            <p>Convert PDF into an editable PowerPoint presentation.</p>
+                            <span class="pro-tag">PRO</span>
                         </div>
                         <div class="tool-card green" onclick="switchTab('merge')">
                             <div class="card-icon"><i data-lucide="combine"></i></div>
@@ -332,6 +361,18 @@
                         </div>
                         
                         <!-- New Featured Tools -->
+                        <div class="tool-card purple" onclick="switchTab('ai-assistant')">
+                            <div class="card-icon"><i data-lucide="bot"></i></div>
+                            <h3>AI Assistant</h3>
+                            <p>Chat with your PDF, extract summaries, and ask questions.</p>
+                            <span class="pro-tag">PRO</span>
+                        </div>
+                        <div class="tool-card indigo" onclick="switchTab('auto-translate')">
+                            <div class="card-icon"><i data-lucide="languages"></i></div>
+                            <h3>Auto Translation</h3>
+                            <p>Translate entire PDFs while preserving layout and formatting.</p>
+                            <span class="pro-tag">PRO</span>
+                        </div>
                         <div class="tool-card red" onclick="switchTab('protect-pdf')">
                             <div class="card-icon"><i data-lucide="lock"></i></div>
                             <h3>Protect PDF</h3>
@@ -393,9 +434,14 @@
                 <section id="editor" class="tab-content">
                     <div class="section-header">
                         <h2>Advanced PDF Text Editor</h2>
-                        <button class="btn btn-primary" id="btnUploadEditor">
-                            <i data-lucide="upload-cloud"></i> Upload PDF
-                        </button>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn btn-secondary" id="btnCloudImportEditor" style="background: var(--bg-raised); border: 1px solid var(--border); color: var(--text-primary); border-radius: 8px; padding: 8px 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                                <i data-lucide="cloud"></i> Import from Cloud
+                            </button>
+                            <button class="btn btn-primary" id="btnUploadEditor">
+                                <i data-lucide="upload-cloud"></i> Upload PDF
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="editor-workspace">
@@ -934,6 +980,124 @@
                             <button class="btn btn-success w-100 mt-3" id="btnDownloadWord">
                                 <i data-lucide="download"></i> Download .docx
                             </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PDF to Excel Section -->
+                <section id="pdf-to-excel" class="tab-content">
+                    <div class="section-header">
+                        <h2>Convert PDF to Excel</h2>
+                    </div>
+                    <div class="converter-box">
+                        <div class="drop-zone" onclick="document.getElementById('pdfExcelInput').click();">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="file-spreadsheet"></i>
+                            <p>Drag & drop your PDF file here or <span>browse</span></p>
+                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Extracts tabular data accurately to XLSX format</p>
+                            <input type="file" id="pdfExcelInput" accept=".pdf" hidden onchange="alert('File selected. Excel engine is under development.');">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PDF to PPTX Section -->
+                <section id="pdf-to-pptx" class="tab-content">
+                    <div class="section-header">
+                        <h2>Convert PDF to PowerPoint</h2>
+                    </div>
+                    <div class="converter-box">
+                        <div class="drop-zone" onclick="document.getElementById('pdfPptxInput').click();">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
+                            </div>
+                            <i data-lucide="presentation"></i>
+                            <p>Drag & drop your PDF file here or <span>browse</span></p>
+                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Converts PDF pages into presentation slides</p>
+                            <input type="file" id="pdfPptxInput" accept=".pdf" hidden onchange="alert('File selected. PPTX engine is under development.');">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- AI Assistant Section -->
+                <section id="ai-assistant" class="tab-content">
+                    <div class="section-header">
+                        <h2>AI PDF Assistant</h2>
+                    </div>
+                    
+                    <!-- UPLOAD STATE -->
+                    <div id="ai-upload-state" class="converter-box">
+                        <div class="drop-zone" onclick="document.getElementById('aiInput').click();">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                            </div>
+                            <i data-lucide="bot" style="width: 48px; height: 48px; color: var(--accent-purple); animation: pulse 2s infinite;"></i>
+                            <p style="margin-top: 15px;">Upload PDF to start Chatting</p>
+                            <input type="file" id="aiInput" accept=".pdf" hidden>
+                        </div>
+                    </div>
+
+                    <!-- CHAT STATE (Hidden by default) -->
+                    <div id="ai-chat-state" class="ai-layout d-none">
+                        <!-- Left Panel: File details & Summary -->
+                        <div class="ai-sidebar">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <h3 style="margin:0; font-size:16px;">Document Info</h3>
+                                <button class="btn btn-outline btn-sm" id="btnAiReset" style="padding:4px 8px;">New File</button>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:13px; display:flex; flex-direction:column; gap:6px;">
+                                <div style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" id="aiDocName">file.pdf</div>
+                                <div style="color:var(--text-muted);" id="aiDocMeta">0 KB • 0 pages</div>
+                            </div>
+                            <button class="btn btn-primary" id="btnAiSummarize" style="width:100%;">⚡ Auto Summarize</button>
+                            <div class="ai-summary-box" id="aiSummaryBox">
+                                <h4 style="margin:0 0 8px 0; font-size:14px; font-weight:600;">Document Summary</h4>
+                                <div id="aiSummaryText" style="color:var(--text-muted); font-size:13px; line-height:1.6; white-space: pre-wrap;">সামারি দেখতে উপরের "Auto Summarize" বাটনে ক্লিক করুন।</div>
+                            </div>
+                        </div>
+
+                        <!-- Right Panel: Chat history & Input -->
+                        <div class="ai-chat-container">
+                            <div class="ai-chat-header">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <i data-lucide="message-square" style="width:18px; height:18px; color:var(--accent-purple);"></i>
+                                    <span style="font-weight:600;" id="aiChatStatus">Chatting with Document</span>
+                                </div>
+                                <span style="font-size:12px; color:var(--text-muted);" id="aiEngineLabel">Mode: Offline</span>
+                            </div>
+                            
+                            <div class="ai-chat-history" id="aiChatHistory">
+                                <div class="ai-chat-message assistant">
+                                    হ্যালো! পিডিএফ ফাইলটি সফলভাবে আপলোড করা হয়েছে। আপনি এই ফাইলের যেকোনো তথ্য নিয়ে আমাকে প্রশ্ন করতে পারেন, অথবা বাম প্যানেলের "Auto Summarize" বাটনে ক্লিক করে এর মূল সারসংক্ষেপ জেনে নিতে পারেন।
+                                </div>
+                            </div>
+
+                            <form class="ai-chat-input-bar" id="aiChatForm" onsubmit="return false;">
+                                <input type="text" id="aiChatInput" placeholder="পিডিএফ সম্পর্কে যেকোনো প্রশ্ন করুন..." autocomplete="off">
+                                <button class="btn btn-primary" type="submit" id="btnAiSend" style="padding:10px 20px;">
+                                    <i data-lucide="send" style="width:16px; height:16px;"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Auto Translate Section -->
+                <section id="auto-translate" class="tab-content">
+                    <div class="section-header">
+                        <h2>Auto Translation</h2>
+                    </div>
+                    <div class="converter-box">
+                        <div class="drop-zone" onclick="document.getElementById('translateInput').click();">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                            </div>
+                            <i data-lucide="languages" style="width: 48px; height: 48px; color: var(--accent-indigo);"></i>
+                            <p style="margin-top: 15px;">Upload PDF to Translate</p>
+                            <input type="file" id="translateInput" accept=".pdf" hidden onchange="alert('File selected. Connecting to Translation API...');">
                         </div>
                     </div>
                 </section>
@@ -2487,6 +2651,54 @@
 
     <!-- eyedropper-eraser.js → editor/eraser.js তে সরানো হয়েছে -->
     <!-- toolbar-layout-toggle.js → ui/toolbar.js তে সরানো হয়েছে -->
+    <!-- Cloud Import Modal -->
+    <div id="cloudImportModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center;">
+        <div style="background: var(--bg-surface); padding: 30px; border-radius: 16px; border: 1px solid var(--border); width: 100%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="cloud"></i> Import from Cloud</h3>
+                <button id="btnCloseCloudModal" style="background: none; border: none; color: var(--text-muted); cursor: pointer;"><i data-lucide="x"></i></button>
+            </div>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Connect your cloud storage account to securely import PDF documents directly into Antigravity PDF Pro.</p>
+            
+            <div style="display: grid; gap: 12px;">
+                <button class="btn btn-secondary" onclick="alert('Google Drive integration requires API setup.');" style="display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 12px 16px; width: 100%; background: var(--bg-raised); border-color: var(--border);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 16H20L12 2Z" fill="#34A853"/><path d="M12 2L4 16H8L16 2H12Z" fill="#FBBC04"/><path d="M4 16H20L16 23H0L4 16Z" fill="#4285F4"/><path d="M20 16L16 23H8L12 16H20Z" fill="#EA4335"/></svg>
+                    <span>Google Drive</span>
+                </button>
+                <button class="btn btn-secondary" onclick="alert('Dropbox integration requires API setup.');" style="display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 12px 16px; width: 100%; background: var(--bg-raised); border-color: var(--border);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L6 6L12 10L18 6L12 2Z" fill="#0061FF"/><path d="M6 14L12 10L6 6L0 10L6 14Z" fill="#0061FF"/><path d="M18 14L24 10L18 6L12 10L18 14Z" fill="#0061FF"/><path d="M12 22L6 18L12 14L18 18L12 22Z" fill="#0061FF"/></svg>
+                    <span>Dropbox</span>
+                </button>
+                <button class="btn btn-secondary" onclick="alert('OneDrive integration requires API setup.');" style="display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 12px 16px; width: 100%; background: var(--bg-raised); border-color: var(--border);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M19 16.5C19 18.9853 16.9853 21 14.5 21C12.0147 21 10 18.9853 10 16.5C10 14.0147 12.0147 12 14.5 12C16.9853 12 19 14.0147 19 16.5Z" fill="#0078D4"/><path d="M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" fill="#0078D4"/></svg>
+                    <span>OneDrive</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnCloud = document.getElementById('btnCloudImportEditor');
+            const modal = document.getElementById('cloudImportModal');
+            const btnClose = document.getElementById('btnCloseCloudModal');
+
+            if(btnCloud && modal && btnClose) {
+                btnCloud.addEventListener('click', () => {
+                    modal.style.display = 'flex';
+                    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                        window.lucide.createIcons();
+                    }
+                });
+                btnClose.addEventListener('click', () => {
+                    modal.style.display = 'none';
+                });
+                modal.addEventListener('click', (e) => {
+                    if(e.target === modal) modal.style.display = 'none';
+                });
+            }
+        });
+    </script>
 </body>
 </html>
 

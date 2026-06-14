@@ -50,16 +50,59 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Helper to apply theme to body and update icon
   function applyTheme(targetTheme) {
+    const invertBtn = document.getElementById('btnSmartInvert');
+    
     if (targetTheme === 'light') {
       document.body.classList.add('light-theme');
       // If it's light theme, show the "moon" icon to switch back to dark
       updateIcon('moon');
       themeBtn.title = 'Switch to Dark Mode';
+      if (invertBtn) invertBtn.style.display = 'none'; // Hide smart invert in light mode
     } else {
       document.body.classList.remove('light-theme');
       // If it's dark theme, show the "sun" icon to switch back to light
       updateIcon('sun');
       themeBtn.title = 'Switch to Light Mode';
+      if (invertBtn) invertBtn.style.display = 'inline-flex'; // Show in dark mode
+    }
+  }
+
+  // --- Smart Dark Mode Reader (Invert) Logic ---
+  const btnSmartInvert = document.getElementById('btnSmartInvert');
+  if (btnSmartInvert) {
+    let smartInvertActive = false;
+    
+    // Load initial state
+    if (window.electronAPI && typeof window.electronAPI.storeGet === 'function') {
+      window.electronAPI.storeGet('smartInvert').then(savedState => {
+        if (savedState === true) {
+          smartInvertActive = true;
+          applySmartInvert();
+        }
+      }).catch(err => console.error('[Theme] Failed to load smartInvert state:', err));
+    }
+
+    btnSmartInvert.addEventListener('click', () => {
+      smartInvertActive = !smartInvertActive;
+      applySmartInvert();
+      
+      if (window.electronAPI && typeof window.electronAPI.storeSet === 'function') {
+        window.electronAPI.storeSet('smartInvert', smartInvertActive).catch(err => {
+          console.error('[Theme] Failed to save smartInvert state:', err);
+        });
+      }
+    });
+
+    function applySmartInvert() {
+      if (smartInvertActive) {
+        document.body.classList.add('smart-invert-active');
+        btnSmartInvert.classList.add('active');
+        btnSmartInvert.title = "Smart Dark Mode Reader (On)";
+      } else {
+        document.body.classList.remove('smart-invert-active');
+        btnSmartInvert.classList.remove('active');
+        btnSmartInvert.title = "Smart Dark Mode Reader (Off)";
+      }
     }
   }
 
