@@ -533,6 +533,16 @@ function setupIPC() {
     return true;
   });
 
+  ipcMain.handle('get-hardware-id', () => {
+    try {
+      const { machineIdSync } = require('node-machine-id');
+      return machineIdSync(false); // false means hashed for privacy
+    } catch (e) {
+      console.error('[main] get-hardware-id error:', e.message);
+      return 'fallback-hwid-error';
+    }
+  });
+
   // ── Read a local file by path (for Recent Files feature) ──────────────
   ipcMain.handle('read-file-by-path', async (event, filePath) => {
     try {

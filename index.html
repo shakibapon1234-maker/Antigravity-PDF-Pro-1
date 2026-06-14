@@ -68,11 +68,13 @@
     .batch-file-actions button { min-width: 80px; }
     .batch-empty-state { text-align: center; padding: 50px 0; }
     .batch-empty-state .large-icon { width: 80px; height: 80px; margin-bottom: 18px; }
+    
+    .pro-tag { background: linear-gradient(90deg, #ff8a00, #e52e71); color: #fff; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px; text-transform: uppercase; }
     </style>
 </head>
 <body class="dark-mode">
     <!-- App Lock Screen -->
-    <div id="appLockScreen" style="position: fixed; inset: 0; background: rgba(10,10,18,0.95); z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(20px);">
+    <div id="appLockScreen" style="position: fixed; inset: 0; background: rgba(10,10,18,0.95); z-index: 999999; display: none; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(20px);">
         <div style="background: var(--bg-surface); border: 1px solid var(--primary-glow); padding: 50px 40px; border-radius: 20px; box-shadow: 0 0 50px rgba(184,41,249,0.2), inset 0 0 30px rgba(0,212,255,0.05); text-align: center; max-width: 400px; width: 90%;">
             <div class="logo-icon" style="margin: 0 auto 20px; width: 60px; height: 60px;">
                 <i data-lucide="shield-check" style="width: 30px; height: 30px; color: #fff;"></i>
@@ -334,7 +336,7 @@
                             <div class="card-icon"><i data-lucide="lock"></i></div>
                             <h3>Protect PDF</h3>
                             <p>Add a password to your PDF to secure your content.</p>
-                            <span class="tool-tag">Security</span>
+                            <span class="pro-tag">PRO</span>
                         </div>
                         <div class="tool-card teal" onclick="switchTab('word-to-excel')">
                             <div class="card-icon"><i data-lucide="file-spreadsheet"></i></div>
@@ -347,6 +349,7 @@
                             <div class="card-icon"><i data-lucide="unlock"></i></div>
                             <h3>Unlock PDF</h3>
                             <p>Remove passwords and restrictions from your PDF files.</p>
+                            <span class="pro-tag">PRO</span>
                         </div>
                         <div class="tool-card blue" onclick="switchTab('watermark-pdf')">
                             <div class="card-icon"><i data-lucide="stamp"></i></div>
@@ -362,7 +365,7 @@
                             <div class="card-icon"><i data-lucide="globe"></i></div>
                             <h3>HTML to PDF</h3>
                             <p>Convert any web page or HTML file into a PDF document.</p>
-                            <span class="tool-tag">New</span>
+                            <span class="pro-tag">PRO</span>
                         </div>
                         <div class="tool-card green" onclick="switchTab('excel-to-pdf')">
                             <div class="card-icon"><i data-lucide="sheet"></i></div>
@@ -380,7 +383,7 @@
                             <div class="card-icon"><i data-lucide="scan-text"></i></div>
                             <h3>OCR — PDF to Text</h3>
                             <p>Extract Bengali &amp; English text from scanned PDFs using AI-powered OCR.</p>
-                            <span class="tool-tag">New</span>
+                            <span class="pro-tag">PRO</span>
                         </div>
 
                     </div>

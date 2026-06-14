@@ -178,9 +178,16 @@ const LicenseManager = (() => {
             return;
         }
 
-        // No saved license → show lock screen
+        const currentHwid = await window.electronAPI?.getHardwareId();
+
+        // No saved license → Free mode
         if (!license || !validateKeyFormat(license.key)) {
-            showLockScreen('Enter your Antigravity PDF Pro license key to activate.');
+            return;
+        }
+
+        // Hardware ID mismatch → invalid
+        if (license.hardwareId && license.hardwareId !== currentHwid) {
+            setStatus('License is bound to another device.', true);
             return;
         }
 
@@ -214,6 +221,7 @@ const LicenseManager = (() => {
     async function verifyAndSave(key) {
         const result = await verifyLicenseOnline(key);
         if (result.ok) {
+            const hwid = await window.electronAPI?.getHardwareId();
             const updated = {
                 key: normalizeKey(key),
                 verifiedOnline: true,
@@ -221,12 +229,12 @@ const LicenseManager = (() => {
                 lastOnlineCheck: Date.now(),
                 purchaserEmail: result.purchaserEmail || '',
                 offlineKey: result.offline || false,
+                hardwareId: hwid
             };
             await saveLicenseData(updated);
             hideLockScreen();
             return true;
         }
-        showLockScreen('License verification failed. Please enter a valid key.');
         return false;
     }
 
@@ -281,6 +289,8 @@ const LicenseManager = (() => {
             return;
         }
 
+        const hwid = await window.electronAPI?.getHardwareId();
+
         await saveLicenseData({
             key: normalized,
             verifiedOnline: true,
@@ -288,6 +298,7 @@ const LicenseManager = (() => {
             lastOnlineCheck: Date.now(),
             purchaserEmail: result.purchaserEmail || '',
             offlineKey: result.offline || false,
+            hardwareId: hwid
         });
 
         hideLockScreen();
@@ -344,7 +355,24 @@ const LicenseManager = (() => {
                 email: d.purchaserEmail || '',
                 activatedAt: d.activatedAt ? new Date(d.activatedAt).toLocaleDateString() : '',
                 isOffline: d.offlineKey || false,
+                hardwareId: d.hardwareId || 'unknown',
             };
         },
+
+        // Check if user is PRO
+        async checkPremiumStatus() {
+            const isDevMode = await window.electronAPI?.isDev();
+            if (isDevMode) return true;
+
+            const license = await getLicenseData();
+            if (!license || !validateKeyFormat(license.key)) return false;
+
+            const currentHwid = await window.electronAPI?.getHardwareId();
+            if (license.hardwareId && license.hardwareId !== currentHwid) return false;
+
+            return license.verifiedOnline;
+        },
+        
+        showLockScreen
     };
 })();

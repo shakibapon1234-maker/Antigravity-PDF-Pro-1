@@ -22,7 +22,16 @@ function openTool(tool) {
     alert(tool.toUpperCase() + ' tool is coming soon!');
 }
 
-function switchTab(tabId) {
+const PREMIUM_TABS = ['ocr-pdf', 'protect-pdf', 'unlock-pdf', 'html-to-pdf'];
+
+async function switchTab(tabId) {
+    if (PREMIUM_TABS.includes(tabId) && typeof LicenseManager !== 'undefined') {
+        const isPro = await LicenseManager.checkPremiumStatus();
+        if (!isPro) {
+            LicenseManager.showLockScreen('This is a PRO feature. Activate your license to unlock.');
+            return;
+        }
+    }
     // Special case: Compare PDF opens as a floating panel, not a regular tab
     if (tabId === 'compare-pdf') {
         if (window.PdfCompare) {
