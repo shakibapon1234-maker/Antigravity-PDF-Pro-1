@@ -208,24 +208,6 @@ function applyStyleToSelection(cssProp, cssVal) {
     if (cssProp === 'fontWeight')     { document.execCommand('bold',      false, null); return true; }
     if (cssProp === 'fontStyle')      { document.execCommand('italic',    false, null); return true; }
     if (cssProp === 'textDecoration') { document.execCommand('underline', false, null); return true; }
-    if (cssProp === 'fontSize') {
-        try {
-            const span = document.createElement('span');
-            span.style.fontSize = cssVal;
-            range.surroundContents(span);
-            sel.removeAllRanges();
-        } catch (e) {
-            try {
-                const frag = range.extractContents();
-                const span = document.createElement('span');
-                span.style.fontSize = cssVal;
-                span.appendChild(frag);
-                range.insertNode(span);
-                sel.removeAllRanges();
-            } catch (e2) {}
-        }
-        return true;
-    }
     return false;
 }
 
@@ -233,11 +215,18 @@ function applyFontSize() {
     const ae = document.querySelector('.floating-editor');
     if (ae) {
         const cssVal = `${currentStyle.fontSize * pdfScale}px`;
-        if (hasEditorSelection()) {
-            applyStyleToSelection('fontSize', cssVal);
-        } else {
-            ae.style.fontSize = cssVal;
-        }
+        
+        // Remove font-size style from any child elements inside the editor so they don't override the editor's font-size
+        ae.querySelectorAll('*').forEach(el => {
+            if (el.style.fontSize) {
+                el.style.fontSize = '';
+                if (!el.getAttribute('style')) {
+                    el.removeAttribute('style');
+                }
+            }
+        });
+        
+        ae.style.fontSize = cssVal;
         return;
     }
     if (selectedTextItem) {

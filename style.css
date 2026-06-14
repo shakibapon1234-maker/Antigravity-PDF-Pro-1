@@ -1584,7 +1584,7 @@ body.eraser-active #canvasWrapper { cursor: none !important; }
 .align-self-center   { align-self: center; }
 .align-items-center  { align-items: center; }
 
-::selection { background: rgba(124,106,247,0.35); color: #fff; }
+::selection, ::-moz-selection { background: rgba(124,106,247,0.35); color: inherit; text-shadow: none; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
