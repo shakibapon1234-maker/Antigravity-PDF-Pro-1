@@ -594,6 +594,40 @@ function setupIPC() {
     }
   });
 
+  // ── Print-to-PDF for Auto Translation (native Chromium renderer) ─────────
+  ipcMain.handle('print-translated-pdf', async (event, { htmlContent, fileName }) => {
+    const win = new BrowserWindow({
+      show: false,
+      width: 1000,
+      height: 1400,
+      webPreferences: { nodeIntegration: false, contextIsolation: true }
+    });
+    try {
+      await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+      // Wait for fonts/layout to settle
+      await new Promise(r => setTimeout(r, 1500));
+      const pdfBuffer = await win.webContents.printToPDF({
+        printBackground: true,
+        pageSize: 'A4',
+        margins: { marginType: 'custom', top: 0, bottom: 0, left: 0, right: 0 }
+      });
+      // Show native save dialog
+      const desktop = app.getPath('desktop');
+      const { canceled, filePath } = await dialog.showSaveDialog({
+        title: 'Save Translated PDF',
+        defaultPath: path.join(desktop, fileName),
+        filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+      });
+      if (!canceled && filePath) {
+        fs.writeFileSync(filePath, pdfBuffer);
+        return { success: true, filePath };
+      }
+      return { success: false, error: 'Cancelled' };
+    } finally {
+      win.destroy();
+    }
+  });
+
 }
 
 // ─── App lifecycle ─────────────────────────────────────────────────────────────

@@ -63,4 +63,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Auto-backup: save a copy of the PDF to userData/.backups/
   saveBackup: (fileName, buffer) => ipcRenderer.invoke('save-backup', { fileName, buffer }),
+
+  // Print translated HTML to PDF using Chromium's native renderer
+  printTranslatedPDF: (htmlContent, fileName) => ipcRenderer.invoke('print-translated-pdf', { htmlContent, fileName }),
 });
