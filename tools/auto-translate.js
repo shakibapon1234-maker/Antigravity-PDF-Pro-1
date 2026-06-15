@@ -16,11 +16,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const translateEngineLabel = document.getElementById('translateEngineLabel');
     const btnStartTranslation = document.getElementById('btnStartTranslation');
 
+    // New Preview Elements
+    const btnDownloadTranslated = document.getElementById('btnDownloadTranslated');
+    const btnPrevTranslatePage = document.getElementById('btnPrevTranslatePage');
+    const btnNextTranslatePage = document.getElementById('btnNextTranslatePage');
+    const translatePageIndicator = document.getElementById('translatePageIndicator');
+    const translateOriginalPreview = document.getElementById('translateOriginalPreview');
+    const translateResultPreview = document.getElementById('translateResultPreview');
+
     if (!translateInput || !translateUploadState || !translateActiveState) return;
 
     let currentFile = null;
     let pageTexts = []; // Store raw text per page
     let translatedPageTexts = []; // Store translated text per page
+    let currentPreviewPageIndex = 0; // Currently viewed page index
 
     const languageNames = {
         bn: 'Bengali (বাংলা)',
@@ -31,6 +40,39 @@ document.addEventListener('DOMContentLoaded', () => {
         ar: 'Arabic (العربية)',
         hi: 'Hindi (हिन्दी)'
     };
+
+    // ─── Update Preview Panel ─────────────────────────────────────────────────
+    function updatePreview() {
+        if (!translateOriginalPreview || !translateResultPreview || !translatePageIndicator) return;
+
+        if (pageTexts.length === 0) {
+            translatePageIndicator.textContent = 'Page 0 of 0';
+            translateOriginalPreview.textContent = 'অনুবাদ শুরু করতে বাম পাশের "Start Translation" বাটনে ক্লিক করুন। মূল টেক্সট এখানে দেখা যাবে।';
+            translateResultPreview.textContent = 'অনূদিত অংশ এখানে দেখা যাবে।';
+            if (btnPrevTranslatePage) btnPrevTranslatePage.disabled = true;
+            if (btnNextTranslatePage) btnNextTranslatePage.disabled = true;
+            return;
+        }
+
+        // Enable/disable page navigation buttons
+        if (btnPrevTranslatePage) btnPrevTranslatePage.disabled = (currentPreviewPageIndex === 0);
+        if (btnNextTranslatePage) btnNextTranslatePage.disabled = (currentPreviewPageIndex === pageTexts.length - 1);
+
+        // Update page indicator
+        translatePageIndicator.textContent = `Page ${currentPreviewPageIndex + 1} of ${pageTexts.length}`;
+
+        // Show original text
+        translateOriginalPreview.textContent = pageTexts[currentPreviewPageIndex] || '';
+
+        // Show translated text (or placeholder if not translated yet)
+        if (translatedPageTexts[currentPreviewPageIndex]) {
+            translateResultPreview.textContent = translatedPageTexts[currentPreviewPageIndex];
+            translateResultPreview.style.color = 'var(--text-primary)';
+        } else {
+            translateResultPreview.textContent = 'অনূদিত অংশ এখানে দেখা যাবে।';
+            translateResultPreview.style.color = 'var(--text-muted)';
+        }
+    }
 
     // ─── File Upload Handler ──────────────────────────────────────────────────
     translateInput.addEventListener('change', async (e) => {
@@ -72,6 +114,12 @@ document.addEventListener('DOMContentLoaded', () => {
             translateUploadState.classList.add('d-none');
             translateActiveState.classList.remove('d-none');
 
+            // Reset page preview index and display page 1 details
+            currentPreviewPageIndex = 0;
+            translatedPageTexts = [];
+            if (btnDownloadTranslated) btnDownloadTranslated.disabled = true;
+            updatePreview();
+
             window.AGProgress.done();
             window.AGToast.success('PDF successfully analyzed for translation!');
         } catch (err) {
@@ -86,9 +134,12 @@ document.addEventListener('DOMContentLoaded', () => {
         currentFile = null;
         pageTexts = [];
         translatedPageTexts = [];
+        currentPreviewPageIndex = 0;
         translateInput.value = '';
         translateUploadState.classList.remove('d-none');
         translateActiveState.classList.add('d-none');
+        if (btnDownloadTranslated) btnDownloadTranslated.disabled = true;
+        updatePreview();
     });
 
     // ─── Update Engine Label ──────────────────────────────────────────────────
@@ -111,6 +162,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show correct label immediately on page load
     updateEngineLabel();
 
+    // ─── Page Navigation Events ───────────────────────────────────────────────
+    if (btnPrevTranslatePage) {
+        btnPrevTranslatePage.addEventListener('click', () => {
+            if (currentPreviewPageIndex > 0) {
+                currentPreviewPageIndex--;
+                updatePreview();
+            }
+        });
+    }
+
+    if (btnNextTranslatePage) {
+        btnNextTranslatePage.addEventListener('click', () => {
+            if (currentPreviewPageIndex < pageTexts.length - 1) {
+                currentPreviewPageIndex++;
+                updatePreview();
+            }
+        });
+    }
+
     // ─── Translate Action ─────────────────────────────────────────────────────
     btnStartTranslation.addEventListener('click', async () => {
         if (!currentFile || pageTexts.length === 0) return;
@@ -120,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         btnStartTranslation.disabled = true;
         btnStartTranslation.textContent = '⌛ Translating...';
+        if (btnDownloadTranslated) btnDownloadTranslated.disabled = true;
 
         window.AGProgress.start('Translating PDF...', `Target: ${targetLangName}`);
 
@@ -132,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             for (let i = 0; i < pageTexts.length; i++) {
                 const pageNum = i + 1;
-                window.AGProgress.set(Math.round((pageNum / pageTexts.length) * 80), 'Translating pages', `Page ${pageNum} of ${pageTexts.length}`);
+                window.AGProgress.set(Math.round((pageNum / pageTexts.length) * 100), 'Translating pages', `Page ${pageNum} of ${pageTexts.length}`);
 
                 const originalText = pageTexts[i];
                 let translatedText = '';
@@ -148,23 +219,56 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 translatedPageTexts.push(translatedText);
+
+                // Update preview live as pages are translated
+                if (i === currentPreviewPageIndex) {
+                    updatePreview();
+                }
             }
 
-            // Generate translated PDF
-            window.AGProgress.set(90, 'Generating translated PDF', 'Building layout');
-            await generateTranslatedPDF(targetLangCode);
-
             window.AGProgress.done();
-            window.AGToast.success(`Translation complete! PDF saved.`);
+            window.AGToast.success(`Translation complete! Preview is ready.`);
+            
+            // Enable download button and refresh preview controls
+            if (btnDownloadTranslated) btnDownloadTranslated.disabled = false;
+            updatePreview();
         } catch (error) {
             console.error('Translation failed', error);
             window.AGProgress.error();
-            window.AGToast.error('Translation failed. Please check settings/API key.');
+            const errMsg = error?.message || 'Unknown error';
+            window.AGToast.error(`Translation failed: ${errMsg}`);
         } finally {
             btnStartTranslation.disabled = false;
-            btnStartTranslation.textContent = '🌍 Translate & Save PDF';
+            btnStartTranslation.textContent = '🌍 Start Translation';
         }
     });
+
+    // ─── Download Translated PDF Action ──────────────────────────────────────
+    if (btnDownloadTranslated) {
+        btnDownloadTranslated.addEventListener('click', async () => {
+            if (translatedPageTexts.length === 0) return;
+
+            btnDownloadTranslated.disabled = true;
+            const originalHtml = btnDownloadTranslated.innerHTML;
+            btnDownloadTranslated.innerHTML = '⌛ Generating PDF...';
+
+            window.AGProgress.start('Generating PDF...', 'Building layout');
+
+            try {
+                const targetLangCode = selectTargetLanguage.value;
+                await generateTranslatedPDF(targetLangCode);
+                window.AGProgress.done();
+                window.AGToast.success('PDF successfully generated and saved.');
+            } catch (err) {
+                console.error('PDF generation failed', err);
+                window.AGProgress.error();
+                window.AGToast.error('Failed to generate PDF.');
+            } finally {
+                btnDownloadTranslated.disabled = false;
+                btnDownloadTranslated.innerHTML = originalHtml;
+            }
+        });
+    }
 
     // ─── Call AI API for Translation ─────────────────────────────────────────
     async function callAIForTranslation(prompt, text, settings) {

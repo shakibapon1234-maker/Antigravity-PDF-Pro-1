@@ -170,10 +170,11 @@ ${keywords.map(kw => `• **${kw}**: ডকুমেন্টের বিভি
             }
         } catch (error) {
             console.error('Summarization failed', error);
-            aiSummaryText.textContent = 'সারাংশ তৈরি করা সম্ভব হয়নি। অনুগ্রহ করে ইন্টারনেট কানেকশন বা সেটিংসের API Key চেক করুন।';
+            const errMsg = error?.message || 'Unknown error';
+            aiSummaryText.textContent = `❌ সারাংশ তৈরি করা সম্ভব হয়নি।\n\nError: ${errMsg}\n\nদয়া করে চেক করুন:\n• API Key সঠিক আছে কিনা\n• ইন্টারনেট সংযোগ আছে কিনা\n• Gemini Free Quota শেষ হয়নি কিনা`;
             btnAiSummarize.disabled = false;
             btnAiSummarize.textContent = '⚡ Auto Summarize';
-            window.AGToast.error('Summarization failed.');
+            window.AGToast.error(`AI Error: ${errMsg.substring(0, 80)}`);
         }
     });
 
@@ -219,8 +220,9 @@ ${relevantContext}`;
             }
         } catch (error) {
             console.error('AI Q&A failed', error);
+            const errMsg = error?.message || 'Unknown error';
             removeTypingIndicator(typingIndicator);
-            appendMessage('error', 'এআই উত্তর দিতে ব্যর্থ হয়েছে। অনুগ্রহ করে নেটওয়ার্ক সংযোগ অথবা এপিআই কি সেটিংস যাচাই করুন।');
+            appendMessage('error', `❌ **AI Error:** ${errMsg}\n\nদয়া করে চেক করুন: API Key, ইন্টারনেট সংযোগ, এবং Gemini quota।`);
             scrollChat();
         }
     });

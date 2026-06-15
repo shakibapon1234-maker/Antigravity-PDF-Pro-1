@@ -16,7 +16,7 @@
         language: 'en',            // Reserved for future use
         aiProvider: 'offline',     // offline, gemini, openai
         aiApiKey: '',
-        aiModel: 'gemini-1.5-flash'
+        aiModel: 'gemini-2.5-flash'
     };
 
     // ── In-memory cache (avoids repeated IPC calls) ───────────────────────────
@@ -35,6 +35,12 @@
             } catch {
                 _cache = Object.assign({}, DEFAULTS);
             }
+        }
+        // Auto-upgrade legacy models to the new Gemini 2.5 Flash model
+        if (_cache.aiModel === 'gemini-1.5-flash') {
+            _cache.aiModel = 'gemini-2.5-flash';
+        } else if (_cache.aiModel === 'gemini-1.5-pro') {
+            _cache.aiModel = 'gemini-2.5-pro';
         }
         return _cache;
     }
@@ -703,8 +709,12 @@
         modelSel.innerHTML = '';
         if (provider === 'gemini') {
             modelSel.innerHTML = `
-                <option value="gemini-1.5-flash">gemini-1.5-flash (Recommended)</option>
-                <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                <option value="gemini-2.5-flash">gemini-2.5-flash (Recommended)</option>
+                <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+                <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+                <option value="gemini-1.5-flash">gemini-1.5-flash (Legacy)</option>
+                <option value="gemini-1.5-pro">gemini-1.5-pro (Legacy)</option>
             `;
         } else if (provider === 'openai') {
             modelSel.innerHTML = `
@@ -742,7 +752,7 @@
             theme:        themeSel ? themeSel.value : 'dark',
             aiProvider:   aiProviderSel ? aiProviderSel.value : 'offline',
             aiApiKey:     aiApiKeyInp ? aiApiKeyInp.value.trim() : '',
-            aiModel:      aiModelSel ? aiModelSel.value : 'gemini-1.5-flash'
+            aiModel:      aiModelSel ? aiModelSel.value : 'gemini-2.5-flash'
         };
 
         await saveSettings(newSettings);
