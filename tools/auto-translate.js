@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // New Preview Elements
     const btnDownloadTranslated = document.getElementById('btnDownloadTranslated');
+    const btnDownloadTranslatedWord = document.getElementById('btnDownloadTranslatedWord');
     const btnPrevTranslatePage = document.getElementById('btnPrevTranslatePage');
     const btnNextTranslatePage = document.getElementById('btnNextTranslatePage');
     const translatePageIndicator = document.getElementById('translatePageIndicator');
@@ -118,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPreviewPageIndex = 0;
             translatedPageTexts = [];
             if (btnDownloadTranslated) btnDownloadTranslated.disabled = true;
+            if (btnDownloadTranslatedWord) btnDownloadTranslatedWord.disabled = true;
             updatePreview();
 
             window.AGProgress.done();
@@ -139,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         translateUploadState.classList.remove('d-none');
         translateActiveState.classList.add('d-none');
         if (btnDownloadTranslated) btnDownloadTranslated.disabled = true;
+        if (btnDownloadTranslatedWord) btnDownloadTranslatedWord.disabled = true;
         updatePreview();
     });
 
@@ -191,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnStartTranslation.disabled = true;
         btnStartTranslation.textContent = '⌛ Translating...';
         if (btnDownloadTranslated) btnDownloadTranslated.disabled = true;
+        if (btnDownloadTranslatedWord) btnDownloadTranslatedWord.disabled = true;
 
         window.AGProgress.start('Translating PDF...', `Target: ${targetLangName}`);
 
@@ -229,8 +233,9 @@ document.addEventListener('DOMContentLoaded', () => {
             window.AGProgress.done();
             window.AGToast.success(`Translation complete! Preview is ready.`);
             
-            // Enable download button and refresh preview controls
+            // Enable download buttons and refresh preview controls
             if (btnDownloadTranslated) btnDownloadTranslated.disabled = false;
+            if (btnDownloadTranslatedWord) btnDownloadTranslatedWord.disabled = false;
             updatePreview();
         } catch (error) {
             console.error('Translation failed', error);
@@ -330,10 +335,16 @@ document.addEventListener('DOMContentLoaded', () => {
             throw new Error('html2pdf library is not loaded. Please refresh or check dependencies.');
         }
 
-        // Create temporary off-screen container
+        // Create temporary off-screen wrapper to hide content from view
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'position: absolute; left: -9999px; top: -9999px; z-index: -9999;';
+
+        // Create temporary container element with fixed width and white background
         const container = document.createElement('div');
-        container.style.cssText = 'position: absolute; left: -9999px; top: -9999px; width: 790px; background: #ffffff; color: #333333; font-family: "SolaimanLipi", "Kalpurush", "Noto Sans Bengali", "Inter", "Roboto", sans-serif;';
-        document.body.appendChild(container);
+        container.style.cssText = 'width: 790px; background: #ffffff; color: #333333; display: block; font-family: "SolaimanLipi", "Kalpurush", "Noto Sans Bengali", "Inter", "Roboto", sans-serif;';
+        
+        wrapper.appendChild(container);
+        document.body.appendChild(wrapper);
 
         for (let i = 0; i < translatedPageTexts.length; i++) {
             const pageDiv = document.createElement('div');
@@ -379,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
             html2canvas: {
                 scale: 2,
                 useCORS: true,
-                letterRendering: true,
+                letterRendering: false,
                 backgroundColor: '#ffffff',
                 logging: false
             },
@@ -390,8 +401,103 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await html2pdf().set(opt).from(container).save();
         } finally {
-            document.body.removeChild(container);
+            document.body.removeChild(wrapper);
         }
+    }
+
+    // ─── Generate Translated Word (.docx) ────────────────────────────────────
+    async function generateTranslatedWord(targetLangCode) {
+        const docxLib = window.docx;
+        if (!docxLib) {
+            throw new Error('docx library is not loaded. Please refresh the app.');
+        }
+        if (typeof saveAs === 'undefined') {
+            throw new Error('FileSaver is not loaded. Please refresh the app.');
+        }
+
+        const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, PageBreak } = docxLib;
+
+        const sections = [];
+
+        for (let i = 0; i < translatedPageTexts.length; i++) {
+            const pageText = translatedPageTexts[i] || '';
+            const lines = pageText.split('\n');
+
+            // Page header paragraph
+            sections.push(
+                new Paragraph({
+                    text: `Translated Page ${i + 1} of ${translatedPageTexts.length}  |  Original: ${currentFile.name}`,
+                    heading: HeadingLevel.HEADING_2,
+                    alignment: AlignmentType.LEFT,
+                    spacing: { before: 200, after: 200 }
+                })
+            );
+
+            // Content paragraphs
+            for (const line of lines) {
+                sections.push(
+                    new Paragraph({
+                        children: [
+                            new TextRun({
+                                text: line,
+                                size: 24,
+                                font: 'SolaimanLipi'
+                            })
+                        ],
+                        spacing: { after: 120 }
+                    })
+                );
+            }
+
+            // Page break between pages (not after last page)
+            if (i < translatedPageTexts.length - 1) {
+                sections.push(
+                    new Paragraph({
+                        children: [new PageBreak()]
+                    })
+                );
+            }
+        }
+
+        const doc = new Document({
+            sections: [
+                {
+                    properties: {},
+                    children: sections
+                }
+            ]
+        });
+
+        const blob = await Packer.toBlob(doc);
+        const nameClean = currentFile.name.replace(/\.[^/.]+$/, '');
+        saveAs(blob, `${nameClean}_translated_${targetLangCode}.docx`);
+    }
+
+    // ─── Word Download Action ─────────────────────────────────────────────────
+    if (btnDownloadTranslatedWord) {
+        btnDownloadTranslatedWord.addEventListener('click', async () => {
+            if (translatedPageTexts.length === 0) return;
+
+            btnDownloadTranslatedWord.disabled = true;
+            const originalHtml = btnDownloadTranslatedWord.innerHTML;
+            btnDownloadTranslatedWord.innerHTML = '⌛ Generating Word...';
+
+            window.AGProgress.start('Generating Word file...', 'Building document');
+
+            try {
+                const targetLangCode = selectTargetLanguage.value;
+                await generateTranslatedWord(targetLangCode);
+                window.AGProgress.done();
+                window.AGToast.success('Word document generated and saved!');
+            } catch (err) {
+                console.error('Word generation failed', err);
+                window.AGProgress.error();
+                window.AGToast.error('Failed to generate Word file: ' + (err.message || err));
+            } finally {
+                btnDownloadTranslatedWord.disabled = false;
+                btnDownloadTranslatedWord.innerHTML = originalHtml;
+            }
+        });
     }
 
     // ─── Mock Translation dictionary ──────────────────────────────────────────

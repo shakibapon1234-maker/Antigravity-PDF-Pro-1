@@ -1143,10 +1143,15 @@
                                 🌍 Start Translation
                             </button>
 
-                            <!-- Download Button (Visible/Enabled after translation) -->
-                            <button class="btn btn-success" id="btnDownloadTranslated" style="width:100%;" disabled>
-                                <i data-lucide="download" style="width:16px; height:16px; margin-right:6px; vertical-align:middle;"></i> Save Translated PDF
-                            </button>
+                            <!-- Download Buttons (Visible/Enabled after translation) -->
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn btn-success" id="btnDownloadTranslated" style="flex:1;" disabled>
+                                    <i data-lucide="download" style="width:16px; height:16px; margin-right:6px; vertical-align:middle;"></i> Save as PDF
+                                </button>
+                                <button class="btn btn-outline" id="btnDownloadTranslatedWord" style="flex:1; border-color:var(--accent-indigo); color:var(--accent-indigo);" disabled>
+                                    <i data-lucide="file-text" style="width:16px; height:16px; margin-right:6px; vertical-align:middle;"></i> Save as Word
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Right Panel: Side-by-Side Live Preview -->
