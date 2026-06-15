@@ -213,6 +213,26 @@
                     <i data-lucide="git-compare"></i>
                     <span>Compare PDF</span>
                 </button>
+                <button class="nav-item" data-tab="auto-redact">
+                    <i data-lucide="shield-alert"></i>
+                    <span>Smart Redaction</span>
+                </button>
+                <button class="nav-item" data-tab="bates-numbering">
+                    <i data-lucide="binary"></i>
+                    <span>Bates Numbering</span>
+                </button>
+                <button class="nav-item" data-tab="flatten-pdf">
+                    <i data-lucide="file-text"></i>
+                    <span>Flatten PDF</span>
+                </button>
+                <button class="nav-item" data-tab="measurement-tools">
+                    <i data-lucide="ruler"></i>
+                    <span>Measurement Tools</span>
+                </button>
+                <button class="nav-item" data-tab="repair-pdf">
+                    <i data-lucide="wrench"></i>
+                    <span>Repair PDF</span>
+                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -425,6 +445,33 @@
                             <h3>OCR — PDF to Text</h3>
                             <p>Extract Bengali &amp; English text from scanned PDFs using AI-powered OCR.</p>
                             <span class="pro-tag">PRO</span>
+                        </div>
+                        <div class="tool-card red" onclick="switchTab('auto-redact')">
+                            <div class="card-icon"><i data-lucide="shield-alert"></i></div>
+                            <h3>Smart Redaction</h3>
+                            <p>Automatically black out email addresses, phone numbers, or custom text.</p>
+                            <span class="pro-tag">PRO</span>
+                        </div>
+                        <div class="tool-card blue" onclick="switchTab('bates-numbering')">
+                            <div class="card-icon"><i data-lucide="binary"></i></div>
+                            <h3>Bates Numbering</h3>
+                            <p>Apply sequential page numbering to headers or footers for legal documents.</p>
+                        </div>
+                        <div class="tool-card purple" onclick="switchTab('flatten-pdf')">
+                            <div class="card-icon"><i data-lucide="file-text"></i></div>
+                            <h3>Flatten PDF</h3>
+                            <p>Merge interactive forms and annotations permanently into the PDF background.</p>
+                        </div>
+                        <div class="tool-card orange" onclick="switchTab('measurement-tools')">
+                            <div class="card-icon"><i data-lucide="ruler"></i></div>
+                            <h3>Measurement Tools</h3>
+                            <p>Measure scale, distance, and perimeter interactively on drawing documents.</p>
+                            <span class="pro-tag">PRO</span>
+                        </div>
+                        <div class="tool-card green" onclick="switchTab('repair-pdf')">
+                            <div class="card-icon"><i data-lucide="wrench"></i></div>
+                            <h3>Repair PDF</h3>
+                            <p>Recover and rebuild damaged, corrupt, or unreadable PDF files.</p>
                         </div>
 
                     </div>
@@ -990,7 +1037,7 @@
                         <h2>Convert PDF to Excel</h2>
                     </div>
                     <div class="converter-box">
-                        <div class="drop-zone" onclick="document.getElementById('pdfExcelInput').click();">
+                        <div class="drop-zone" id="pdfExcelDropZone">
                             <div class="nebula-glow">
                                 <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
                                 <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
@@ -998,7 +1045,19 @@
                             <i data-lucide="file-spreadsheet"></i>
                             <p>Drag & drop your PDF file here or <span>browse</span></p>
                             <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Extracts tabular data accurately to XLSX format</p>
-                            <input type="file" id="pdfExcelInput" accept=".pdf" hidden onchange="alert('File selected. Excel engine is under development.');">
+                            <input type="file" id="pdfExcelInput" accept=".pdf" hidden>
+                        </div>
+                        <div id="conversionStatusExcel" class="conversion-status d-none">
+                            <div class="file-info">
+                                <i data-lucide="file-check"></i>
+                                <span id="fileNameDisplayExcel">document.pdf</span>
+                            </div>
+                            <div class="progress-bar-wrapper">
+                                <div class="progress-bar" id="convProgressExcel"></div>
+                            </div>
+                            <button class="btn btn-success w-100 mt-3" id="btnDownloadExcel" style="display:none;">
+                                <i data-lucide="download"></i> Download .xlsx
+                            </button>
                         </div>
                     </div>
                 </section>
@@ -1009,7 +1068,7 @@
                         <h2>Convert PDF to PowerPoint</h2>
                     </div>
                     <div class="converter-box">
-                        <div class="drop-zone" onclick="document.getElementById('pdfPptxInput').click();">
+                        <div class="drop-zone" id="pdfPptxDropZone">
                             <div class="nebula-glow">
                                 <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
                                 <div class="nebula-blob" style="--blob-color: var(--tab-theme-alt); bottom: 0; right: 0; animation-delay: -5s;"></div>
@@ -1017,7 +1076,19 @@
                             <i data-lucide="presentation"></i>
                             <p>Drag & drop your PDF file here or <span>browse</span></p>
                             <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Converts PDF pages into presentation slides</p>
-                            <input type="file" id="pdfPptxInput" accept=".pdf" hidden onchange="alert('File selected. PPTX engine is under development.');">
+                            <input type="file" id="pdfPptxInput" accept=".pdf" hidden>
+                        </div>
+                        <div id="conversionStatusPptx" class="conversion-status d-none">
+                            <div class="file-info">
+                                <i data-lucide="file-check"></i>
+                                <span id="fileNameDisplayPptx">document.pdf</span>
+                            </div>
+                            <div class="progress-bar-wrapper">
+                                <div class="progress-bar" id="convProgressPptx"></div>
+                            </div>
+                            <button class="btn btn-success w-100 mt-3" id="btnDownloadPptx" style="display:none;">
+                                <i data-lucide="download"></i> Download .pptx
+                            </button>
                         </div>
                     </div>
                 </section>
@@ -2267,6 +2338,249 @@
                     </div>
                 </section>
 
+                <!-- Smart Auto-Redaction Section -->
+                <section id="auto-redact" class="tab-content">
+                    <div class="section-header">
+                        <h2>Smart Auto-Redaction</h2>
+                    </div>
+                    <div class="converter-box">
+                        <div class="drop-zone" id="redactDropZone" onclick="document.getElementById('redactInput').click();">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                            </div>
+                            <i data-lucide="shield-alert"></i>
+                            <p>Drag & drop your PDF file here or <span>browse</span></p>
+                            <input type="file" id="redactInput" accept=".pdf" hidden>
+                        </div>
+                        
+                        <div id="redactConfig" class="d-none" style="margin-top:20px; background:var(--bg-surface); padding:20px; border:1px solid var(--border); border-radius:var(--radius); display:flex; flex-direction:column; gap:16px;">
+                            <h3 style="margin:0; font-size:16px;">Redaction Options</h3>
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                                    <input type="checkbox" id="redactEmail" checked style="width:18px; height:18px;">
+                                    <span>Redact Email Addresses</span>
+                                </label>
+                                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                                    <input type="checkbox" id="redactPhone" checked style="width:18px; height:18px;">
+                                    <span>Redact Phone Numbers</span>
+                                </label>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:6px;">
+                                <label style="font-size:13px; color:var(--text-dim);">Custom Word or Phrase to Redact (Optional)</label>
+                                <input type="text" id="redactCustomText" placeholder="Enter specific word or phrase" class="form-input" style="width:100%;">
+                            </div>
+                            <button class="btn btn-primary w-100" id="btnRunRedact">
+                                <i data-lucide="shield-alert"></i> Scan &amp; Redact PDF
+                            </button>
+                        </div>
+
+                        <div id="conversionStatusRedact" class="conversion-status d-none">
+                            <div class="file-info">
+                                <i data-lucide="file-check"></i>
+                                <span id="fileNameDisplayRedact">document.pdf</span>
+                            </div>
+                            <div class="progress-bar-wrapper">
+                                <div class="progress-bar" id="convProgressRedact"></div>
+                            </div>
+                            <button class="btn btn-success w-100 mt-3" id="btnDownloadRedact" style="display:none;">
+                                <i data-lucide="download"></i> Download Redacted PDF
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Bates Numbering Section -->
+                <section id="bates-numbering" class="tab-content">
+                    <div class="section-header">
+                        <h2>Bates Numbering</h2>
+                    </div>
+                    <div class="converter-box">
+                        <div class="drop-zone" id="batesDropZone" onclick="document.getElementById('batesInput').click();">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                            </div>
+                            <i data-lucide="binary"></i>
+                            <p>Drag & drop your PDF file here or <span>browse</span></p>
+                            <input type="file" id="batesInput" accept=".pdf" hidden>
+                        </div>
+
+                        <div id="batesConfig" class="d-none" style="margin-top:20px; background:var(--bg-surface); padding:20px; border:1px solid var(--border); border-radius:var(--radius); display:flex; flex-direction:column; gap:16px;">
+                            <h3 style="margin:0; font-size:16px;">Bates Settings</h3>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                                <div style="display:flex; flex-direction:column; gap:6px;">
+                                    <label style="font-size:13px; color:var(--text-dim);">Prefix</label>
+                                    <input type="text" id="batesPrefix" value="BATES-" class="form-input">
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap:6px;">
+                                    <label style="font-size:13px; color:var(--text-dim);">Start Number</label>
+                                    <input type="number" id="batesStart" value="1" min="1" class="form-input">
+                                </div>
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                                <div style="display:flex; flex-direction:column; gap:6px;">
+                                    <label style="font-size:13px; color:var(--text-dim);">Number Padding (digits)</label>
+                                    <select id="batesPadding" class="form-input">
+                                        <option value="4">4 digits (e.g. 0001)</option>
+                                        <option value="6" selected>6 digits (e.g. 000001)</option>
+                                        <option value="8">8 digits (e.g. 00000001)</option>
+                                    </select>
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap:6px;">
+                                    <label style="font-size:13px; color:var(--text-dim);">Position</label>
+                                    <select id="batesPosition" class="form-input">
+                                        <option value="bottom-right" selected>Bottom Right</option>
+                                        <option value="bottom-center">Bottom Center</option>
+                                        <option value="bottom-left">Bottom Left</option>
+                                        <option value="top-right">Top Right</option>
+                                        <option value="top-center">Top Center</option>
+                                        <option value="top-left">Top Left</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary w-100" id="btnRunBates">
+                                <i data-lucide="binary"></i> Add Bates Numbering
+                            </button>
+                        </div>
+
+                        <div id="conversionStatusBates" class="conversion-status d-none">
+                            <div class="file-info">
+                                <i data-lucide="file-check"></i>
+                                <span id="fileNameDisplayBates">document.pdf</span>
+                            </div>
+                            <div class="progress-bar-wrapper">
+                                <div class="progress-bar" id="convProgressBates"></div>
+                            </div>
+                            <button class="btn btn-success w-100 mt-3" id="btnDownloadBates" style="display:none;">
+                                <i data-lucide="download"></i> Download Numbered PDF
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Flatten PDF Section -->
+                <section id="flatten-pdf" class="tab-content">
+                    <div class="section-header">
+                        <h2>Flatten PDF</h2>
+                    </div>
+                    <div class="converter-box">
+                        <div class="drop-zone" id="flattenDropZone" onclick="document.getElementById('flattenInput').click();">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                            </div>
+                            <i data-lucide="file-text"></i>
+                            <p>Drag & drop your PDF file here or <span>browse</span></p>
+                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Merges interactive forms &amp; drawings permanently</p>
+                            <input type="file" id="flattenInput" accept=".pdf" hidden>
+                        </div>
+
+                        <div id="conversionStatusFlatten" class="conversion-status d-none">
+                            <div class="file-info">
+                                <i data-lucide="file-check"></i>
+                                <span id="fileNameDisplayFlatten">document.pdf</span>
+                            </div>
+                            <div class="progress-bar-wrapper">
+                                <div class="progress-bar" id="convProgressFlatten"></div>
+                            </div>
+                            <button class="btn btn-success w-100 mt-3" id="btnDownloadFlatten" style="display:none;">
+                                <i data-lucide="download"></i> Download Flattened PDF
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Repair PDF Section -->
+                <section id="repair-pdf" class="tab-content">
+                    <div class="section-header">
+                        <h2>Repair PDF</h2>
+                    </div>
+                    <div class="converter-box">
+                        <div class="drop-zone" id="repairDropZone" onclick="document.getElementById('repairInput').click();">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                            </div>
+                            <i data-lucide="wrench"></i>
+                            <p>Drag & drop your damaged PDF file here or <span>browse</span></p>
+                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Attempts to rebuild unreadable or corrupt PDF structure</p>
+                            <input type="file" id="repairInput" accept=".pdf" hidden>
+                        </div>
+
+                        <div id="conversionStatusRepair" class="conversion-status d-none">
+                            <div class="file-info">
+                                <i data-lucide="file-check"></i>
+                                <span id="fileNameDisplayRepair">document.pdf</span>
+                            </div>
+                            <div class="progress-bar-wrapper">
+                                <div class="progress-bar" id="convProgressRepair"></div>
+                            </div>
+                            <button class="btn btn-success w-100 mt-3" id="btnDownloadRepair" style="display:none;">
+                                <i data-lucide="download"></i> Download Repaired PDF
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Measurement Tools Section -->
+                <section id="measurement-tools" class="tab-content">
+                    <div class="section-header">
+                        <h2>Measurement Tools</h2>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn btn-primary" id="btnUploadMeasure" onclick="document.getElementById('measureInput').click();">
+                                <i data-lucide="upload-cloud"></i> Upload PDF
+                            </button>
+                            <input type="file" id="measureInput" accept=".pdf" hidden>
+                        </div>
+                    </div>
+
+                    <div class="ocr-pdf-container">
+                        <!-- Empty State -->
+                        <div class="no-file-state" id="measureEmptyState" style="cursor:pointer;" onclick="document.getElementById('measureInput').click();">
+                            <div class="nebula-glow">
+                                <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
+                            </div>
+                            <i data-lucide="ruler" class="large-icon"></i>
+                            <h3>No File Selected</h3>
+                            <p>Upload a PDF drawing or document to begin measuring.</p>
+                        </div>
+
+                        <!-- Workspace (Hidden by default) -->
+                        <div class="d-none" id="measureWorkspace" style="padding: 20px; display: flex; flex-direction: column; gap: 20px;">
+                            <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center; background: var(--bg-surface); padding: 18px 20px; border-radius: 12px; border: 1px solid var(--border);">
+                                <div style="display: flex; flex-direction: column; gap: 6px;">
+                                    <label style="font-size: 12px; color: var(--text-dim); font-weight: 600; text-transform: uppercase;">Scale Configuration</label>
+                                    <select id="measureScaleSelect" class="form-input" style="width: auto; min-width: 200px;">
+                                        <option value="1">1:1 (Actual points/pixels)</option>
+                                        <option value="10">1 inch = 10 feet</option>
+                                        <option value="20" selected>1 inch = 20 feet</option>
+                                        <option value="50">1 inch = 50 feet</option>
+                                        <option value="0.01">1 mm = 1 cm (Metric)</option>
+                                        <option value="0.1">1 mm = 1 meter (Metric)</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 6px;">
+                                    <label style="font-size: 12px; color: var(--text-dim); font-weight: 600; text-transform: uppercase;">Page navigation</label>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <button class="btn btn-outline btn-sm" id="btnMeasurePrev" style="padding: 10px;"><i data-lucide="arrow-left"></i></button>
+                                        <span id="measurePageNum" style="font-size:14px; font-weight:600;">Page 1 / 1</span>
+                                        <button class="btn btn-outline btn-sm" id="btnMeasureNext" style="padding: 10px;"><i data-lucide="arrow-right"></i></button>
+                                    </div>
+                                </div>
+                                <div style="margin-left: auto; background: var(--bg-raised); border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px; text-align: right;">
+                                    <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; font-weight: 600;">Measured Distance</div>
+                                    <div id="measureOutput" style="font-size: 20px; font-weight: 700; color: var(--accent-cyan);">0.00 units</div>
+                                </div>
+                            </div>
+
+                            <!-- Canvas Container with Overlay -->
+                            <div style="display: flex; justify-content: center; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid var(--border); padding: 20px; overflow: auto; max-height: 600px; position: relative;">
+                                <div id="measureCanvasWrapper" style="position: relative; display: inline-block;">
+                                    <canvas id="measureCanvas"></canvas>
+                                    <canvas id="measureOverlayCanvas" style="position: absolute; left: 0; top: 0; cursor: crosshair;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
             </div>
         </main>
     </div>
@@ -2380,7 +2694,10 @@
     <script src="tools/auto-translate.js"></script>
 
     <!-- converters/ : ফরম্যাট কনভার্টার -->
+    <script src="ui/libs/pptxgen.bundle.js"></script>
     <script src="converters/pdf-to-word.js"></script>
+    <script src="converters/pdf-to-excel.js"></script>
+    <script src="converters/pdf-to-pptx.js"></script>
     <script src="converters/pdf-to-image.js"></script>
     <script src="converters/image-to-pdf.js"></script>
     <script src="converters/excel-to-pdf.js"></script>
@@ -2405,6 +2722,11 @@
     <script src="tools/find-replace.js"></script>
     <script src="tools/pdf-compare.js"></script>
     <script src="tools/multi-export.js"></script>
+    <script src="tools/auto-redact.js"></script>
+    <script src="tools/bates-numbering.js"></script>
+    <script src="tools/flatten-pdf.js"></script>
+    <script src="tools/measurement-tools.js"></script>
+    <script src="tools/repair-pdf.js"></script>
 
     <!-- Phase 1 Enhancements -->
     <script src="ui/onboarding.js"></script>

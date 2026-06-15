@@ -72,9 +72,13 @@ copy /Y "node_modules\bootstrap-icons\font\bootstrap-icons.min.css" "ui\libs\boo
 xcopy /Y /E /Q "node_modules\bootstrap-icons\font\fonts\*" "ui\libs\bootstrap-icons\font\fonts\" >nul 2>&1
 if %errorlevel%==0 (echo   [OK] bootstrap-icons) else (echo   [FAIL] bootstrap-icons)
 
+:: pptxgenjs
+copy /Y "node_modules\pptxgenjs\dist\pptxgen.bundle.js" "ui\libs\pptxgen.bundle.js" >nul 2>&1
+if %errorlevel%==0 (echo   [OK] pptxgenjs) else (echo   [FAIL] pptxgenjs)
+
 echo.
 echo [3/4] Missing packages install হচ্ছে (যদি দরকার হয়)...
-call npm install @pdf-lib/fontkit@0.0.4 docx@7.1.0 file-saver@2.0.5 jszip@3.10.1 sortablejs tesseract.js@5 lucide html2pdf.js@0.10.1 xlsx@0.18.5 jspdf@2.5.2 mammoth@1.6.0 bootstrap-icons@1.11.3 --save-dev 2>nul
+call npm install @pdf-lib/fontkit@0.0.4 docx@7.1.0 file-saver@2.0.5 jszip@3.10.1 sortablejs tesseract.js@5 lucide html2pdf.js@0.10.1 xlsx@0.18.5 jspdf@2.5.2 mammoth@1.6.0 bootstrap-icons@1.11.3 pptxgenjs@3.12.0 --save-dev 2>nul
 echo   [OK] npm install সম্পন্ন
 
 echo.
@@ -93,6 +97,7 @@ copy /Y "node_modules\mammoth\mammoth.browser.min.js" "ui\libs\mammoth.browser.m
 copy /Y "node_modules\docx\build\index.js" "ui\libs\docx.index.js" >nul 2>&1
 copy /Y "node_modules\bootstrap-icons\font\bootstrap-icons.min.css" "ui\libs\bootstrap-icons\font\bootstrap-icons.min.css" >nul 2>&1
 xcopy /Y /E /Q "node_modules\bootstrap-icons\font\fonts\*" "ui\libs\bootstrap-icons\font\fonts\" >nul 2>&1
+copy /Y "node_modules\pptxgenjs\dist\pptxgen.bundle.js" "ui\libs\pptxgen.bundle.js" >nul 2>&1
 
 echo.
 echo ================================================
