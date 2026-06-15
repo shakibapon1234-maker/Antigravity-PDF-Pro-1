@@ -1090,15 +1090,59 @@
                     <div class="section-header">
                         <h2>Auto Translation</h2>
                     </div>
-                    <div class="converter-box">
+
+                    <!-- UPLOAD STATE -->
+                    <div id="translate-upload-state" class="converter-box">
                         <div class="drop-zone" onclick="document.getElementById('translateInput').click();">
                             <div class="nebula-glow">
                                 <div class="nebula-blob" style="--blob-color: var(--tab-theme); top: 0; left: 0;"></div>
                             </div>
                             <i data-lucide="languages" style="width: 48px; height: 48px; color: var(--accent-indigo);"></i>
                             <p style="margin-top: 15px;">Upload PDF to Translate</p>
-                            <input type="file" id="translateInput" accept=".pdf" hidden onchange="alert('File selected. Connecting to Translation API...');">
+                            <input type="file" id="translateInput" accept=".pdf" hidden>
                         </div>
+                    </div>
+
+                    <!-- ACTIVE STATE (Hidden by default) -->
+                    <div id="translate-active-state" class="converter-box d-none" style="padding: 30px; text-align: left; display: flex; flex-direction: column; gap: 20px; max-width: 600px; margin: 0 auto; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:15px;">
+                            <h3 style="margin:0; font-size:16px;">Translation Details</h3>
+                            <button class="btn btn-outline btn-sm" id="btnTranslateReset">Reset</button>
+                        </div>
+
+                        <!-- File info -->
+                        <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:15px;">
+                            <i data-lucide="file-text" style="width:32px; height:32px; color:var(--accent-indigo);"></i>
+                            <div style="min-width:0; flex:1;">
+                                <div style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" id="translateDocName">file.pdf</div>
+                                <div style="color:var(--text-muted); font-size:12px;" id="translateDocMeta">0 KB • 0 pages</div>
+                            </div>
+                        </div>
+
+                        <!-- Language select -->
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            <label for="selectTargetLanguage" style="font-size:14px; font-weight:600; color:var(--text-primary);">Target Language (অনুবাদ করার ভাষা)</label>
+                            <select id="selectTargetLanguage" class="form-input" style="width:100%;">
+                                <option value="bn">🇧🇩 Bengali (বাংলা)</option>
+                                <option value="en">🇺🇸 English (ইংরেজি)</option>
+                                <option value="es">🇪🇸 Spanish (Español)</option>
+                                <option value="fr">🇫🇷 French (Français)</option>
+                                <option value="de">🇩🇪 German (Deutsch)</option>
+                                <option value="ar">🇸🇦 Arabic (العربية)</option>
+                                <option value="hi">🇮🇳 Hindi (हिन्दी)</option>
+                            </select>
+                        </div>
+
+                        <!-- Info/Mode indicator -->
+                        <div style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+                            <i data-lucide="info" style="width:14px; height:14px;"></i>
+                            <span id="translateEngineLabel">Mode: Offline (Simulation)</span>
+                        </div>
+
+                        <!-- Translate Action Button -->
+                        <button class="btn btn-primary" id="btnStartTranslation" style="width:100%; padding:12px 20px; font-weight:600; font-size:15px;">
+                            🌍 Translate & Save PDF
+                        </button>
                     </div>
                 </section>
 
@@ -2290,6 +2334,8 @@
     <script src="tools/organize-pdf.js"></script>
     <script src="tools/crop-pdf.js"></script>
     <script src="tools/unlock-pdf.js"></script>
+    <script src="tools/ai-assistant.js"></script>
+    <script src="tools/auto-translate.js"></script>
 
     <!-- converters/ : ফরম্যাট কনভার্টার -->
     <script src="converters/pdf-to-word.js"></script>

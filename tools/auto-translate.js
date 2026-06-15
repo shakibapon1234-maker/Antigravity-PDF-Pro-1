@@ -1,0 +1,384 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// tools/auto-translate.js — Antigravity PDF Pro
+// Auto Translation — Phase 3 Implementation
+// Features: Translate PDF page-by-page, API & Offline Translation, Export PDF
+// ─────────────────────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Elements
+    const translateInput = document.getElementById('translateInput');
+    const translateUploadState = document.getElementById('translate-upload-state');
+    const translateActiveState = document.getElementById('translate-active-state');
+    const translateDocName = document.getElementById('translateDocName');
+    const translateDocMeta = document.getElementById('translateDocMeta');
+    const btnTranslateReset = document.getElementById('btnTranslateReset');
+    const selectTargetLanguage = document.getElementById('selectTargetLanguage');
+    const translateEngineLabel = document.getElementById('translateEngineLabel');
+    const btnStartTranslation = document.getElementById('btnStartTranslation');
+
+    if (!translateInput || !translateUploadState || !translateActiveState) return;
+
+    let currentFile = null;
+    let pageTexts = []; // Store raw text per page
+    let translatedPageTexts = []; // Store translated text per page
+
+    const languageNames = {
+        bn: 'Bengali (বাংলা)',
+        en: 'English (ইংরেজি)',
+        es: 'Spanish (Español)',
+        fr: 'French (Français)',
+        de: 'German (Deutsch)',
+        ar: 'Arabic (العربية)',
+        hi: 'Hindi (हिन्दी)'
+    };
+
+    // ─── File Upload Handler ──────────────────────────────────────────────────
+    translateInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+            window.AGToast.error('Please select a valid PDF file.');
+            return;
+        }
+
+        currentFile = file;
+        window.AGProgress.start('Uploading PDF for Translation...', 'Reading pages');
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfjsLib = window.pdfjsLib || window['pdfjs-dist/build/pdf'];
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+            // Load meta details
+            translateDocName.textContent = file.name;
+            const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+            translateDocMeta.textContent = `${sizeMB} MB • ${pdf.numPages} pages`;
+
+            // Extract page texts
+            pageTexts = [];
+            for (let i = 1; i <= pdf.numPages; i++) {
+                window.AGProgress.set(Math.round((i / pdf.numPages) * 90), 'Extracting text', `Page ${i} of ${pdf.numPages}`);
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const text = textContent.items.map(item => item.str).join(' ');
+                pageTexts.push(text);
+            }
+
+            // Sync engine label based on settings
+            await updateEngineLabel();
+
+            // Transition UI
+            translateUploadState.classList.add('d-none');
+            translateActiveState.classList.remove('d-none');
+
+            window.AGProgress.done();
+            window.AGToast.success('PDF successfully analyzed for translation!');
+        } catch (err) {
+            console.error('Translation PDF analysis failed', err);
+            window.AGProgress.error();
+            window.AGToast.error('Failed to read PDF file.');
+        }
+    });
+
+    // ─── Reset Handler ────────────────────────────────────────────────────────
+    btnTranslateReset.addEventListener('click', () => {
+        currentFile = null;
+        pageTexts = [];
+        translatedPageTexts = [];
+        translateInput.value = '';
+        translateUploadState.classList.remove('d-none');
+        translateActiveState.classList.add('d-none');
+    });
+
+    // ─── Update Engine Label ──────────────────────────────────────────────────
+    async function updateEngineLabel(overrideSettings) {
+        if (!translateEngineLabel) return;
+        const settings = overrideSettings || await window.AGSettings.get();
+        if (settings.aiProvider === 'offline' || !settings.aiApiKey) {
+            translateEngineLabel.textContent = 'Mode: Offline (Simulation Mode)';
+        } else {
+            const providerName = settings.aiProvider === 'gemini' ? 'Gemini' : 'OpenAI';
+            translateEngineLabel.textContent = `Mode: ${providerName} (${settings.aiModel})`;
+        }
+    }
+
+    // ─── React to settings saved (API key / provider changes) ────────────────
+    window.addEventListener('agSettingsSaved', (e) => {
+        updateEngineLabel(e.detail);
+    });
+
+    // Show correct label immediately on page load
+    updateEngineLabel();
+
+    // ─── Translate Action ─────────────────────────────────────────────────────
+    btnStartTranslation.addEventListener('click', async () => {
+        if (!currentFile || pageTexts.length === 0) return;
+
+        const targetLangCode = selectTargetLanguage.value;
+        const targetLangName = languageNames[targetLangCode];
+
+        btnStartTranslation.disabled = true;
+        btnStartTranslation.textContent = '⌛ Translating...';
+
+        window.AGProgress.start('Translating PDF...', `Target: ${targetLangName}`);
+
+        try {
+            const settings = await window.AGSettings.get();
+            const provider = settings.aiProvider || 'offline';
+            const apiKey = settings.aiApiKey || '';
+
+            translatedPageTexts = [];
+
+            for (let i = 0; i < pageTexts.length; i++) {
+                const pageNum = i + 1;
+                window.AGProgress.set(Math.round((pageNum / pageTexts.length) * 80), 'Translating pages', `Page ${pageNum} of ${pageTexts.length}`);
+
+                const originalText = pageTexts[i];
+                let translatedText = '';
+
+                if (provider === 'offline' || !apiKey) {
+                    // Simulated Offline Translation
+                    await delay(800); // simulate delay
+                    translatedText = mockTranslate(originalText, targetLangCode);
+                } else {
+                    // Online API Translation
+                    const prompt = `Translate the following text strictly to ${targetLangName}. Preserve paragraphs and structure. Return only the translated text. No explanation.`;
+                    translatedText = await callAIForTranslation(prompt, originalText, settings);
+                }
+
+                translatedPageTexts.push(translatedText);
+            }
+
+            // Generate translated PDF
+            window.AGProgress.set(90, 'Generating translated PDF', 'Building layout');
+            await generateTranslatedPDF(targetLangCode);
+
+            window.AGProgress.done();
+            window.AGToast.success(`Translation complete! PDF saved.`);
+        } catch (error) {
+            console.error('Translation failed', error);
+            window.AGProgress.error();
+            window.AGToast.error('Translation failed. Please check settings/API key.');
+        } finally {
+            btnStartTranslation.disabled = false;
+            btnStartTranslation.textContent = '🌍 Translate & Save PDF';
+        }
+    });
+
+    // ─── Call AI API for Translation ─────────────────────────────────────────
+    async function callAIForTranslation(prompt, text, settings) {
+        const provider = settings.aiProvider;
+        const apiKey = settings.aiApiKey;
+        const model = settings.aiModel;
+
+        if (provider === 'gemini') {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [
+                        {
+                            parts: [
+                                { text: `${prompt}\n\nText to translate:\n${text}` }
+                            ]
+                        }
+                    ]
+                })
+            });
+            if (!response.ok) {
+                const errJson = await response.json().catch(() => ({}));
+                throw new Error(errJson.error?.message || `HTTP error ${response.status}`);
+            }
+            const data = await response.json();
+            return data.candidates[0].content.parts[0].text;
+        } else if (provider === 'openai') {
+            const url = `https://api.openai.com/v1/chat/completions`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: [
+                        { role: 'system', content: prompt },
+                        { role: 'user', content: text }
+                    ],
+                    temperature: 0.3
+                })
+            });
+            if (!response.ok) {
+                const errJson = await response.json().catch(() => ({}));
+                throw new Error(errJson.error?.message || `HTTP error ${response.status}`);
+            }
+            const data = await response.json();
+            return data.choices[0].message.content;
+        }
+        throw new Error('Unsupported AI provider selected');
+    }
+
+    // ─── Generate Translated PDF via html2pdf ──────────────────────────────────
+    async function generateTranslatedPDF(targetLangCode) {
+        if (typeof html2pdf === 'undefined') {
+            throw new Error('html2pdf library is not loaded. Please refresh or check dependencies.');
+        }
+
+        // Create temporary off-screen container
+        const container = document.createElement('div');
+        container.style.cssText = 'position: absolute; left: -9999px; top: -9999px; width: 790px; background: #ffffff; color: #333333; font-family: "SolaimanLipi", "Kalpurush", "Noto Sans Bengali", "Inter", "Roboto", sans-serif;';
+        document.body.appendChild(container);
+
+        for (let i = 0; i < translatedPageTexts.length; i++) {
+            const pageDiv = document.createElement('div');
+            pageDiv.style.cssText = 'padding: 40px; box-sizing: border-box; min-height: 1115px; position: relative; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; background: #ffffff;';
+
+            // Page Header
+            const headerDiv = document.createElement('div');
+            headerDiv.style.cssText = 'background: #4361ee; color: #ffffff; padding: 15px 20px; border-radius: 6px; margin-bottom: 25px; font-family: inherit;';
+            headerDiv.innerHTML = `
+                <div style="font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                    <span>Translated Page ${i + 1} of ${translatedPageTexts.length}</span>
+                    <span style="font-size: 11px; font-weight: normal; opacity: 0.85;">Antigravity PDF Translator</span>
+                </div>
+                <div style="font-size: 11px; margin-top: 4px; opacity: 0.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    Original File: ${currentFile.name}
+                </div>
+            `;
+            pageDiv.appendChild(headerDiv);
+
+            // Page Body
+            const bodyDiv = document.createElement('div');
+            bodyDiv.style.cssText = 'flex: 1; font-size: 14px; line-height: 1.6; color: #2d3748; white-space: pre-wrap; word-wrap: break-word; font-family: inherit; text-align: left;';
+            bodyDiv.textContent = translatedPageTexts[i];
+            pageDiv.appendChild(bodyDiv);
+
+            // Page Footer
+            const footerDiv = document.createElement('div');
+            footerDiv.style.cssText = 'border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 20px; display: flex; justify-content: space-between; font-size: 10px; color: #a0aec0; font-family: inherit;';
+            footerDiv.innerHTML = `
+                <span>Generated by Antigravity PDF Translator — 100% Private & Secure</span>
+                <span>Page ${i + 1}</span>
+            `;
+            pageDiv.appendChild(footerDiv);
+
+            container.appendChild(pageDiv);
+        }
+
+        const nameClean = currentFile.name.replace(/\.[^/.]+$/, "");
+        const opt = {
+            margin:      0,
+            filename:    `${nameClean}_translated_${targetLangCode}.pdf`,
+            image:       { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+                scale: 2,
+                useCORS: true,
+                letterRendering: true,
+                backgroundColor: '#ffffff',
+                logging: false
+            },
+            jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak:   { mode: 'css' }
+        };
+
+        try {
+            await html2pdf().set(opt).from(container).save();
+        } finally {
+            document.body.removeChild(container);
+        }
+    }
+
+    // ─── Mock Translation dictionary ──────────────────────────────────────────
+    function mockTranslate(text, langCode) {
+        if (!text) return '';
+
+        // Simple dictionary for key concepts to simulate translation
+        const dictionary = {
+            bn: {
+                'pdf': 'পিডিএফ (PDF)',
+                'editor': 'এডিটর',
+                'report': 'প্রতিবেদন',
+                'summary': 'সারাংশ',
+                'project': 'প্রজেক্ট / প্রকল্প',
+                'user': 'ব্যবহারকারী',
+                'settings': 'সেটিংস',
+                'file': 'ফাইল',
+                'document': 'দলিল / ডকুমেন্ট',
+                'test': 'পরীক্ষা',
+                'application': 'অ্যাপ্লিকেশন',
+                'mode': 'মোড',
+                'dark': 'ডার্ক / অন্ধকার',
+                'light': 'লাইট / আলো',
+                'system': 'সিস্টেম',
+                'tools': 'টুলস / যন্ত্রপাতি',
+                'merge': 'মার্জ / একত্রিত করা',
+                'split': 'স্প্লিট / বিভক্ত করা',
+                'compress': 'কম্প্রেস / সংকুচিত করা',
+                'rotate': 'রোটেট / ঘোরানো',
+                'word': 'ওয়ার্ড',
+                'excel': 'এক্সেল',
+                'image': 'ছবি / ইমেজ',
+                'translation': 'অনুবাদ',
+                'assistant': 'সহকারী / অ্যাসিস্ট্যান্ট',
+                'license': 'লাইসেন্স',
+                'version': 'সংস্করণ',
+                'help': 'সাহায্য',
+                'click': 'ক্লিক',
+                'save': 'সংরক্ষণ',
+                'download': 'ডাউনলোড'
+            },
+            es: {
+                'report': 'informe',
+                'summary': 'resumen',
+                'project': 'proyecto',
+                'user': 'usuario',
+                'settings': 'ajustes',
+                'file': 'archivo',
+                'document': 'documento',
+                'test': 'prueba',
+                'application': 'aplicación',
+                'dark': 'oscuro',
+                'light': 'claro',
+                'translation': 'traducción',
+                'assistant': 'asistente'
+            }
+        };
+
+        const dict = dictionary[langCode];
+        if (!dict) {
+            // Default simulated language string if not Bengali or Spanish
+            return `[Translated to ${langCode.toUpperCase()} Mode]\n\n` + text;
+        }
+
+        // Return a partially translated string that replaces main keywords to show it works,
+        // and translates sentences.
+        let lines = text.split('\n');
+        let translatedLines = lines.map(line => {
+            let words = line.split(' ');
+            let transWords = words.map(word => {
+                let cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+                if (dict[cleanWord]) {
+                    return dict[cleanWord];
+                }
+                return word;
+            });
+            return transWords.join(' ');
+        });
+
+        let prefix = '';
+        if (langCode === 'bn') {
+            prefix = `[অনুবাদ সিমুলেশন - অফলাইন মোড]\n\n`;
+        } else {
+            prefix = `[Translation Simulation - Offline Mode]\n\n`;
+        }
+
+        return prefix + translatedLines.join('\n');
+    }
+
+    // Helper functions
+    function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+});

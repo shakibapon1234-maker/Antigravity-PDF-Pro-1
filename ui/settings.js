@@ -792,6 +792,9 @@
         // Sync theme toggle icon
         updateThemeToggleIcon(newSettings.theme);
 
+        // Dispatch settings saved event for AI engine dynamic updates
+        window.dispatchEvent(new CustomEvent('agSettingsSaved', { detail: newSettings }));
+
         closeSettings();
 
         if (window.AGToast) {

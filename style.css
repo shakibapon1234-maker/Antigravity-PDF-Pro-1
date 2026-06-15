@@ -2736,9 +2736,7 @@ body.light-theme .draft-item.active {
 /* ── Smart Dark Mode Reader ── */
 body.smart-invert-active #canvasWrapper {
     filter: invert(1) hue-rotate(180deg) contrast(0.95) brightness(1.05);
-  width: 100%; height: auto;
-  border: 1px solid var(--border, #333); border-radius: 6px;
-  background: #fff;
+    transition: filter 0.3s ease;
 }
 
 .compare-loading {
@@ -2901,6 +2899,7 @@ body.smart-invert-active #canvasWrapper {
 body.light-theme .recent-file-item {
   background: #ffffff !important;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
 body.light-theme .archive-list .item {
   background: rgba(0, 0, 0, 0.04) !important;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
