@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const { PDFDocument, rgb, StandardFonts } = PDFLib;
-            const pdfDoc = await PDFDocument.load(currentFileData);
+            const pdfDoc = await PDFDocument.load(currentFileData.slice(0), { ignoreEncryption: true });
             progressEl.style.width = '45%';
 
             const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);

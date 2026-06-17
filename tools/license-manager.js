@@ -27,7 +27,7 @@ const LicenseManager = (() => {
     ];
 
     const LICENSE_KEY_REGEX = /^AGP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i;
-    const GRACE_PERIOD_MS   = 30 * 24 * 60 * 60 * 1000; // 30 days offline grace
+    const GRACE_PERIOD_MS   = 7 * 24 * 60 * 60 * 1000; // 7 days offline grace
     const STORE_KEY         = 'licenseData';
     const GUMROAD_API_URL   = 'https://api.gumroad.com/v2/licenses/verify';
 
@@ -94,47 +94,56 @@ const LicenseManager = (() => {
         }
     }
 
-    // ── Gumroad API Verification ─────────────────────────────────────────────
-    async function verifyWithGumroad(licenseKey) {
+    // ── Custom Server API Verification ─────────────────────────────────────────
+    async function verifyWithCustomServer(licenseKey, isActivation = false) {
         try {
-            const body = new URLSearchParams({
-                product_permalink: GUMROAD_PRODUCT_PERMALINK,
-                license_key: normalizeKey(licenseKey),
-                increment_uses_count: 'false',
+            const hwid = await window.electronAPI?.getHardwareId() || 'dev-fallback-hwid';
+            const endpoint = isActivation ? '/api/license/activate' : '/api/license/validate';
+            
+            // Check if there is a configured licensing server URL, fallback to localhost for dev/testing
+            const isDevMode = await window.electronAPI?.isDev();
+            const defaultUrl = isDevMode ? 'http://localhost:4000' : 'https://api.antigravitypdf.com';
+            const serverUrl = await window.electronAPI?.storeGet('license_server_url') || defaultUrl;
+
+            console.log(`[license] Calling licensing server: ${serverUrl}${endpoint}`);
+
+            const res = await fetch(`${serverUrl}${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    license_key: normalizeKey(licenseKey),
+                    device_id: hwid
+                })
             });
 
-            const res = await fetch(GUMROAD_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: body.toString(),
-            });
+            const data = await res.json().catch(() => ({}));
+            console.log('[license] Server response:', data);
 
             if (!res.ok) {
-                console.warn('[license] Gumroad HTTP error:', res.status);
-                return { ok: false, reason: 'server-error' };
+                console.warn('[license] Server error status:', res.status);
+                return { ok: false, reason: data.error || 'server-error' };
             }
 
-            const data = await res.json();
-            console.log('[license] Gumroad response:', data);
-
-            if (data.success) {
-                return {
-                    ok: true,
-                    purchaserEmail: data.purchase?.email || '',
-                    productName: data.purchase?.product_name || '',
-                };
+            if (isActivation) {
+                if (data.success) {
+                    return { ok: true, expiresAt: data.expires_at, purchaserEmail: data.email || '' };
+                }
+            } else {
+                if (data.valid) {
+                    return { ok: true, expiresAt: data.expires_at, purchaserEmail: data.email || '' };
+                }
             }
 
-            return { ok: false, reason: data.message || 'invalid-key' };
+            return { ok: false, reason: data.error || 'invalid-key' };
 
         } catch (err) {
-            console.warn('[license] Gumroad API call failed:', err.message);
+            console.warn('[license] Licensing Server API call failed:', err.message);
             return { ok: false, reason: 'network-error' };
         }
     }
 
     // ── Master verification logic ─────────────────────────────────────────────
-    async function verifyLicenseOnline(licenseKey) {
+    async function verifyLicenseOnline(licenseKey, isActivation = false) {
         // 1. Check format first
         if (!validateKeyFormat(licenseKey)) {
             return { ok: false, reason: 'invalid-format' };
@@ -152,8 +161,8 @@ const LicenseManager = (() => {
             return { ok: false, reason: 'no-internet' };
         }
 
-        // 4. Verify with Gumroad
-        return await verifyWithGumroad(licenseKey);
+        // 4. Verify with Custom Server
+        return await verifyWithCustomServer(licenseKey, isActivation);
     }
 
     // ── Restore on startup ───────────────────────────────────────────────────
@@ -180,14 +189,15 @@ const LicenseManager = (() => {
 
         const currentHwid = await window.electronAPI?.getHardwareId();
 
-        // No saved license → Free mode
+        // No saved license → Show Lock Screen
         if (!license || !validateKeyFormat(license.key)) {
+            showLockScreen('Please enter your license key to activate Antigravity PDF Pro.');
             return;
         }
 
-        // Hardware ID mismatch → invalid
+        // Hardware ID mismatch → invalid (show lock screen)
         if (license.hardwareId && license.hardwareId !== currentHwid) {
-            setStatus('License is bound to another device.', true);
+            showLockScreen('License is bound to another device. Please enter a valid license key for this machine.');
             return;
         }
 
@@ -274,7 +284,7 @@ const LicenseManager = (() => {
         const btnUnlock = document.getElementById('btnUnlock');
         if (btnUnlock) btnUnlock.disabled = true;
 
-        const result = await verifyLicenseOnline(normalized);
+        const result = await verifyLicenseOnline(normalized, true);
 
         if (btnUnlock) btnUnlock.disabled = false;
 

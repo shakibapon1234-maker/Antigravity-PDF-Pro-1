@@ -83,15 +83,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // Load file in pdf.js to scan coordinates
-            const pdfJsDoc = await pdfjsLib.getDocument({ data: currentFileData }).promise;
+            const pdfJsDoc = await pdfjsLib.getDocument({ data: currentFileData.slice(0) }).promise;
             const numPages = pdfJsDoc.numPages;
             progressEl.style.width = '30%';
 
+            // General phone regex matching US/Intl 10-digit and Bangladeshi 11-digit mobile numbers
             const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
-            const phoneRegex = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
+            const phoneRegex = /(?:\+?\d{1,4}[-.\s]?)?\(?\d{2,5}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,6}/g;
 
             // Map of page index (0-indexed) -> array of boxes to redact { x, y, width, height }
             const redactionMap = {};
+            let totalTextItems = 0;
 
             for (let pageIdx = 1; pageIdx <= numPages; pageIdx++) {
                 progressEl.style.width = `${30 + (pageIdx / numPages) * 30}%`;
@@ -99,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const page = await pdfJsDoc.getPage(pageIdx);
                 const content = await page.getTextContent();
 
+                totalTextItems += content.items.length;
                 if (content.items.length === 0) continue;
 
                 let fullText = "";
@@ -111,8 +114,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     itemRanges.push({ start, end, item });
                 });
 
+                // Debug log page text to DevTools console
+                console.log(`[Auto-Redact Debug] Page ${pageIdx} extracted text:`, fullText);
+
                 const matches = [];
                 let match;
+
+                // Normalize inputs for Unicode safety
+                const normalizedFullText = fullText.normalize("NFD").toLowerCase();
+                const normalizedCustom = customText ? customText.normalize("NFD").toLowerCase() : "";
 
                 if (doEmail) {
                     emailRegex.lastIndex = 0;
@@ -129,24 +139,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (customText) {
-                    let startPos = 0;
-                    while (true) {
-                        const idx = fullText.toLowerCase().indexOf(customText.toLowerCase(), startPos);
-                        if (idx === -1) break;
-                        matches.push({ start: idx, end: idx + customText.length });
-                        startPos = idx + customText.length;
+                    // Space-insensitive regex to match words even if split/spaced by layout software
+                    const escaped = customText.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                    const pattern = escaped.split('').join('\\s*');
+                    const customRegex = new RegExp(pattern, 'gi');
+                    
+                    while ((match = customRegex.exec(fullText)) !== null) {
+                        matches.push({ start: match.index, end: match.index + match[0].length });
                     }
                 }
 
                 const pageBoxes = [];
+                const matchedItemIndices = new Set(); // Track items already matched to prevent duplicates
 
+                // 1. Process sequence matches (emails, phones, concatenated phrases)
                 matches.forEach(m => {
                     const overlappingItems = itemRanges.filter(r => {
                         return r.start < m.end && r.end > m.start;
                     });
 
-                    overlappingItems.forEach(range => {
+                    overlappingItems.forEach((range, idxInOverlap) => {
                         const item = range.item;
+                        const itemIdx = content.items.indexOf(item);
+                        if (itemIdx !== -1) matchedItemIndices.add(itemIdx);
+
                         const x = item.transform[4];
                         const y = item.transform[5];
                         const fontSize = Math.round(Math.sqrt(item.transform[0]*item.transform[0] + item.transform[1]*item.transform[1]));
@@ -162,16 +178,48 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 });
 
+                // 2. Fallback: Search individual text items directly
+                if (customText) {
+                    content.items.forEach((item, itemIdx) => {
+                        if (matchedItemIndices.has(itemIdx)) return;
+                        if (!item.str || !item.str.trim()) return;
+
+                        const normalizedItemStr = item.str.normalize("NFD").toLowerCase();
+                        if (normalizedItemStr.includes(normalizedCustom)) {
+                            matchedItemIndices.add(itemIdx);
+                            const x = item.transform[4];
+                            const y = item.transform[5];
+                            const fontSize = Math.round(Math.sqrt(item.transform[0]*item.transform[0] + item.transform[1]*item.transform[1]));
+                            const width = item.width || (item.str.length * fontSize * 0.5);
+                            const height = fontSize;
+
+                            pageBoxes.push({
+                                x,
+                                y: y - 1.5,
+                                width: width + 2,
+                                height: height + 3
+                            });
+                        }
+                    });
+                }
+
                 if (pageBoxes.length > 0) {
                     redactionMap[pageIdx - 1] = pageBoxes;
                 }
+            }
+
+            if (totalTextItems === 0) {
+                alert("This PDF does not contain any selectable/searchable text. It seems to be a scanned document or image-based PDF. Please convert it using OCR first or upload a searchable PDF.");
+                statusEl.classList.add('d-none');
+                configEl.classList.remove('d-none');
+                return;
             }
 
             progressEl.style.width = '65%';
 
             // Load in pdf-lib to apply solid black cover-ups
             const { PDFDocument, rgb } = PDFLib;
-            const pdfDoc = await PDFDocument.load(currentFileData);
+            const pdfDoc = await PDFDocument.load(currentFileData.slice(0), { ignoreEncryption: true });
             const libPages = pdfDoc.getPages();
             
             let redactCount = 0;
