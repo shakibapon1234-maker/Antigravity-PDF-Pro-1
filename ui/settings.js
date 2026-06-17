@@ -16,7 +16,8 @@
         language: 'en',            // Reserved for future use
         aiProvider: 'offline',     // offline, gemini, openai
         aiApiKey: '',
-        aiModel: 'gemini-2.5-flash'
+        aiModel: 'gemini-2.5-flash',
+        customSettingsShortcut: 'Alt+S'
     };
 
     // ── In-memory cache (avoids repeated IPC calls) ───────────────────────────
@@ -573,9 +574,53 @@
                         </div>
                     </div>
 
+                    <!-- SECTION: Keyboard Shortcuts -->
+                    <div class="ag-settings-section">
+                        <div class="ag-settings-section-title">⌨️ Keyboard Shortcuts</div>
+                        
+                        <!-- Show Shortcuts List Button -->
+                        <div class="ag-settings-row">
+                            <div class="ag-settings-row-icon ag-row-icon-cyan">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><line x1="6" y1="8" x2="6" y2="8"></line><line x1="10" y1="8" x2="10" y2="8"></line><line x1="14" y1="8" x2="14" y2="8"></line><line x1="18" y1="8" x2="18" y2="8"></line><line x1="6" y1="12" x2="6" y2="12"></line><line x1="10" y1="12" x2="18" y2="12"></line><line x1="10" y1="16" x2="14" y2="16"></line></svg>
+                            </div>
+                            <div class="ag-settings-row-info">
+                                <span class="ag-settings-row-label">View Shortcuts List</span>
+                                <span class="ag-settings-row-desc">কীবোর্ড শর্টকাট সমূহের তালিকা দেখুন</span>
+                            </div>
+                            <button class="ag-folder-btn" id="agBtnShowShortcuts" style="color: #00d4ff; border-color: rgba(0,212,255,0.3); background: rgba(0,212,255,0.08);">View</button>
+                        </div>
+
+                        <!-- Custom Settings Open Shortcut -->
+                        <div class="ag-settings-row" style="flex-wrap: wrap; gap: 10px;">
+                            <div class="ag-settings-row-icon ag-row-icon-purple">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                            </div>
+                            <div class="ag-settings-row-info" style="flex: 1; min-width: 150px;">
+                                <span class="ag-settings-row-label">Custom Open Shortcut</span>
+                                <span class="ag-settings-row-desc">সেটিংস প্যানেল খোলার কাস্টম শর্টকাট</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="text" id="agCustomShortcutInput" class="ag-folder-input" readonly style="width: 100px; text-align: center; cursor: pointer; font-weight: 700; background: rgba(184, 41, 249, 0.08); border-color: rgba(184, 41, 249, 0.3); color: #d8b4fe;" title="Click Record button to assign keys">
+                                <button class="ag-folder-btn" id="agBtnRecordShortcut" style="padding: 7px 10px;">Record</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- SECTION: About -->
                     <div class="ag-settings-section">
                         <div class="ag-settings-section-title">ℹ️ About</div>
+
+                        <!-- License Key Row -->
+                        <div class="ag-settings-row" id="agSettingsLicenseRow">
+                            <div class="ag-settings-row-icon ag-row-icon-green">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            </div>
+                            <div class="ag-settings-row-info">
+                                <span class="ag-settings-row-label">License Key</span>
+                                <span class="ag-settings-row-desc" id="agSettingsLicenseDesc">Checking status...</span>
+                            </div>
+                            <button class="ag-folder-btn" id="agBtnManageLicense" style="color: #00ff88; border-color: rgba(0,255,136,0.3); background: rgba(0,255,136,0.08);">Deactivate</button>
+                        </div>
 
                         <div class="ag-settings-row">
                             <div class="ag-settings-row-icon ag-row-icon-orange">
@@ -670,6 +715,12 @@
             if (row) row.style.display = document.body.classList.contains('light-theme') ? 'none' : 'flex';
         }
 
+        // Custom Settings Open Shortcut
+        const customShortcutInput = document.getElementById('agCustomShortcutInput');
+        if (customShortcutInput) {
+            customShortcutInput.value = settings.customSettingsShortcut || 'Alt+S';
+        }
+
         // Version
         if (window.electronAPI && window.electronAPI.getVersion) {
             try {
@@ -688,6 +739,30 @@
             if (aiApiKeyInp) aiApiKeyInp.value = settings.aiApiKey || '';
             updateAiRowsVisibility(settings.aiProvider || 'offline');
             populateAiModels(settings.aiProvider || 'offline', settings.aiModel);
+        }
+
+        // License status loader
+        if (window.LicenseManager && typeof window.LicenseManager.getLicenseData === 'function') {
+            const license = await window.LicenseManager.getLicenseData();
+            const licenseDesc = document.getElementById('agSettingsLicenseDesc');
+            const manageBtn = document.getElementById('agBtnManageLicense');
+            if (licenseDesc && license && license.key) {
+                licenseDesc.textContent = 'Active: ' + license.key;
+                if (manageBtn) {
+                    manageBtn.textContent = 'Deactivate';
+                    manageBtn.style.color = '#ff5050';
+                    manageBtn.style.borderColor = 'rgba(255,80,80,0.3)';
+                    manageBtn.style.background = 'rgba(255,80,80,0.08)';
+                }
+            } else if (licenseDesc) {
+                licenseDesc.textContent = 'Not Activated';
+                if (manageBtn) {
+                    manageBtn.textContent = 'Activate';
+                    manageBtn.style.color = '#00ff88';
+                    manageBtn.style.borderColor = 'rgba(0,255,136,0.3)';
+                    manageBtn.style.background = 'rgba(0,255,136,0.08)';
+                }
+            }
         }
     }
 
@@ -735,14 +810,15 @@
 
     // ── Save handler ──────────────────────────────────────────────────────────
     async function handleSave() {
-        const folderInput    = document.getElementById('agOutputFolderInput');
-        const nameInput      = document.getElementById('agDisplayNameInput');
-        const backupToggle   = document.getElementById('agToggleAutoBackup');
-        const backupCountSel = document.getElementById('agSelectBackupCount');
-        const themeSel       = document.getElementById('agSelectTheme');
-        const aiProviderSel  = document.getElementById('agSelectAiProvider');
-        const aiApiKeyInp    = document.getElementById('agAiApiKeyInput');
-        const aiModelSel     = document.getElementById('agSelectAiModel');
+        const folderInput        = document.getElementById('agOutputFolderInput');
+        const nameInput          = document.getElementById('agDisplayNameInput');
+        const backupToggle       = document.getElementById('agToggleAutoBackup');
+        const backupCountSel     = document.getElementById('agSelectBackupCount');
+        const themeSel           = document.getElementById('agSelectTheme');
+        const aiProviderSel      = document.getElementById('agSelectAiProvider');
+        const aiApiKeyInp        = document.getElementById('agAiApiKeyInput');
+        const aiModelSel         = document.getElementById('agSelectAiModel');
+        const customShortcutInput = document.getElementById('agCustomShortcutInput');
 
         const newSettings = {
             displayName:  nameInput ? nameInput.value.trim() : '',
@@ -752,7 +828,8 @@
             theme:        themeSel ? themeSel.value : 'dark',
             aiProvider:   aiProviderSel ? aiProviderSel.value : 'offline',
             aiApiKey:     aiApiKeyInp ? aiApiKeyInp.value.trim() : '',
-            aiModel:      aiModelSel ? aiModelSel.value : 'gemini-2.5-flash'
+            aiModel:      aiModelSel ? aiModelSel.value : 'gemini-2.5-flash',
+            customSettingsShortcut: customShortcutInput ? customShortcutInput.value : 'Alt+S'
         };
 
         await saveSettings(newSettings);
@@ -882,6 +959,108 @@
         }
     }
 
+    // ── Shortcut recording and handling ──────────────────────────────────────
+    let isRecordingShortcut = false;
+
+    function startRecordingShortcut() {
+        const recordBtn = document.getElementById('agBtnRecordShortcut');
+        const inputField = document.getElementById('agCustomShortcutInput');
+        if (!recordBtn || !inputField) return;
+
+        isRecordingShortcut = true;
+        recordBtn.textContent = 'Press keys...';
+        recordBtn.style.background = 'rgba(255, 80, 80, 0.2)';
+        recordBtn.style.color = '#ff5050';
+        recordBtn.style.borderColor = 'rgba(255, 80, 80, 0.4)';
+        
+        const keyHandler = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const key = e.key;
+            if (['Control', 'Alt', 'Shift', 'Meta'].includes(key)) return;
+
+            const combo = [];
+            if (e.ctrlKey || e.metaKey) combo.push('Ctrl');
+            if (e.altKey) combo.push('Alt');
+            if (e.shiftKey) combo.push('Shift');
+            
+            let keyName = key;
+            if (key === ' ') keyName = 'Space';
+            else if (keyName.length === 1) keyName = keyName.toUpperCase();
+            
+            combo.push(keyName);
+
+            inputField.value = combo.join('+');
+            stopRecording();
+        };
+
+        const stopRecording = () => {
+            isRecordingShortcut = false;
+            recordBtn.textContent = 'Record';
+            recordBtn.style.background = '';
+            recordBtn.style.color = '';
+            recordBtn.style.borderColor = '';
+            document.removeEventListener('keydown', keyHandler, true);
+        };
+
+        document.addEventListener('keydown', keyHandler, true);
+        
+        const clickHandler = (e) => {
+            if (e.target !== recordBtn) {
+                stopRecording();
+                document.removeEventListener('click', clickHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', clickHandler), 50);
+    }
+
+    // Global keyboard listener for custom shortcut
+    document.addEventListener('keydown', (e) => {
+        const active = document.activeElement;
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
+            return;
+        }
+        
+        getSettings().then(settings => {
+            const customKey = settings.customSettingsShortcut || 'Alt+S';
+            if (matchKeyCombination(e, customKey)) {
+                e.preventDefault();
+                openSettings();
+            }
+        });
+    });
+
+    function matchKeyCombination(e, comboStr) {
+        const parts = comboStr.split('+');
+        let needsCtrl = false;
+        let needsAlt = false;
+        let needsShift = false;
+        let mainKey = '';
+
+        parts.forEach(part => {
+            const p = part.toLowerCase().trim();
+            if (p === 'ctrl' || p === 'control') needsCtrl = true;
+            else if (p === 'alt') needsAlt = true;
+            else if (p === 'shift') needsShift = true;
+            else mainKey = p;
+        });
+
+        const pressedCtrl = e.ctrlKey || e.metaKey;
+        const pressedAlt = e.altKey;
+        const pressedShift = e.shiftKey;
+        
+        let pressedKey = e.key.toLowerCase();
+        if (pressedKey === ' ') pressedKey = 'space';
+
+        return (
+            pressedCtrl === needsCtrl &&
+            pressedAlt === needsAlt &&
+            pressedShift === needsShift &&
+            pressedKey === mainKey
+        );
+    }
+
     // ── Init ──────────────────────────────────────────────────────────────────
     function init() {
         injectCSS();
@@ -903,6 +1082,36 @@
         document.getElementById('agBtnClearFolder')?.addEventListener('click', () => {
             const inp = document.getElementById('agOutputFolderInput');
             if (inp) inp.value = '';
+        });
+
+        // Keyboard Shortcuts Listeners
+        document.getElementById('agBtnShowShortcuts')?.addEventListener('click', () => {
+            closeSettings();
+            if (window.AGShortcutsHelp && typeof window.AGShortcutsHelp.open === 'function') {
+                window.AGShortcutsHelp.open();
+            }
+        });
+        document.getElementById('agBtnRecordShortcut')?.addEventListener('click', startRecordingShortcut);
+
+        // License Management Click Handler (Deactivate / Activate)
+        document.getElementById('agBtnManageLicense')?.addEventListener('click', async () => {
+            if (window.LicenseManager) {
+                const license = await window.LicenseManager.getLicenseData();
+                if (license && license.key) {
+                    if (confirm('Deactivate license on this device? This will lock the application until activated again.')) {
+                        if (window.electronAPI && window.electronAPI.storeSet) {
+                            await window.electronAPI.storeSet('licenseData', null);
+                        } else {
+                            localStorage.removeItem('licenseData');
+                        }
+                        closeSettings();
+                        window.LicenseManager.showLockScreen('License deactivated. Please enter a valid license key.');
+                    }
+                } else {
+                    closeSettings();
+                    window.LicenseManager.showLockScreen('Please enter your license key to activate Antigravity PDF Pro.');
+                }
+            }
         });
 
         // Auto-backup toggle → show/hide count row

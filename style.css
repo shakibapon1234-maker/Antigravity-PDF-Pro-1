@@ -111,6 +111,7 @@ body {
   border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
   animation: gradient-shift 2s ease infinite, neon-pulse 1.5s ease-in-out infinite alternate;
   box-shadow: 0 0 20px var(--primary-glow), 0 0 40px var(--primary-glow), 0 0 60px rgba(0,212,255,0.3);
 }
@@ -126,6 +127,7 @@ body {
 }
 
 .logo-icon svg { color: #fff; width: 18px; height: 18px; filter: drop-shadow(0 0 3px rgba(255,255,255,0.5)); }
+.logo-icon img { width: 100%; height: 100%; object-fit: cover; }
 
 .logo-section h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .logo-section h2 span { color: var(--primary); }
@@ -220,6 +222,20 @@ body {
 .nav-item[data-tab="watermark-pdf"]    { border-color: var(--accent-blue) !important; box-shadow: 0 0 10px rgba(0, 212, 255, 0.15); }
 .nav-item[data-tab="page-numbers-pdf"] { border-color: #ff9f1c !important; box-shadow: 0 0 10px rgba(255, 159, 28, 0.15); }
 .nav-item[data-tab="html-to-pdf"]      { border-color: var(--primary) !important; box-shadow: 0 0 10px rgba(184, 41, 249, 0.15); }
+.nav-item[data-tab="protect-pdf"]      { border-color: #ff4d6d !important; box-shadow: 0 0 10px rgba(255, 77, 109, 0.15); }
+.nav-item[data-tab="ocr-pdf"]          { border-color: #00ff88 !important; box-shadow: 0 0 10px rgba(0, 255, 136, 0.15); }
+.nav-item[data-tab="compare-pdf"]      { border-color: #ff9f1c !important; box-shadow: 0 0 10px rgba(255, 159, 28, 0.15); }
+.nav-item[data-tab="auto-redact"]      { border-color: #f72585 !important; box-shadow: 0 0 10px rgba(247, 37, 133, 0.15); }
+.nav-item[data-tab="bates-numbering"]  { border-color: #b5179e !important; box-shadow: 0 0 10px rgba(181, 23, 158, 0.15); }
+.nav-item[data-tab="flatten-pdf"]      { border-color: #00d4ff !important; box-shadow: 0 0 10px rgba(0, 212, 255, 0.15); }
+.nav-item[data-tab="measurement-tools"]{ border-color: #2ec4b6 !important; box-shadow: 0 0 10px rgba(46, 196, 182, 0.15); }
+.nav-item[data-tab="repair-pdf"]       { border-color: #4361ee !important; box-shadow: 0 0 10px rgba(67, 97, 238, 0.15); }
+.nav-item[data-tab="pdf-to-excel"]      { border-color: #00ff88 !important; box-shadow: 0 0 10px rgba(0, 255, 136, 0.15); }
+.nav-item[data-tab="pdf-to-pptx"]       { border-color: #ff9f1c !important; box-shadow: 0 0 10px rgba(255, 159, 28, 0.15); }
+.nav-item[data-tab="ai-assistant"]      { border-color: #00d4ff !important; box-shadow: 0 0 10px rgba(0, 212, 255, 0.15); }
+.nav-item[data-tab="auto-translate"]    { border-color: #ff4d6d !important; box-shadow: 0 0 10px rgba(255, 77, 109, 0.15); }
+.nav-item[data-tab="batch"]             { border-color: #b829f9 !important; box-shadow: 0 0 10px rgba(184, 41, 249, 0.15); }
+.nav-item[data-tab="image-to-word"]     { border-color: #7209b7 !important; box-shadow: 0 0 10px rgba(114, 9, 183, 0.15); }
 
 /* Active State Highlighting (Bolder Border & Intense Glow) */
 .nav-item.active { border-width: 2.5px !important; transform: scale(1.02); }
@@ -242,6 +258,20 @@ body {
 .nav-item.active[data-tab="watermark-pdf"]    { box-shadow: 0 0 20px rgba(0, 212, 255, 0.4) !important; }
 .nav-item.active[data-tab="page-numbers-pdf"] { box-shadow: 0 0 20px rgba(255, 159, 28, 0.4) !important; }
 .nav-item.active[data-tab="html-to-pdf"]      { box-shadow: 0 0 20px rgba(184, 41, 249, 0.4) !important; }
+.nav-item.active[data-tab="protect-pdf"]      { box-shadow: 0 0 20px rgba(255, 77, 109, 0.4) !important; }
+.nav-item.active[data-tab="ocr-pdf"]          { box-shadow: 0 0 20px rgba(0, 255, 136, 0.4) !important; }
+.nav-item.active[data-tab="compare-pdf"]      { box-shadow: 0 0 20px rgba(255, 159, 28, 0.4) !important; }
+.nav-item.active[data-tab="auto-redact"]      { box-shadow: 0 0 20px rgba(247, 37, 133, 0.4) !important; }
+.nav-item.active[data-tab="bates-numbering"]  { box-shadow: 0 0 20px rgba(181, 23, 158, 0.4) !important; }
+.nav-item.active[data-tab="flatten-pdf"]      { box-shadow: 0 0 20px rgba(0, 212, 255, 0.4) !important; }
+.nav-item.active[data-tab="measurement-tools"]{ box-shadow: 0 0 20px rgba(46, 196, 182, 0.4) !important; }
+.nav-item.active[data-tab="repair-pdf"]       { box-shadow: 0 0 20px rgba(67, 97, 238, 0.4) !important; }
+.nav-item.active[data-tab="pdf-to-excel"]      { box-shadow: 0 0 20px rgba(0, 255, 136, 0.4) !important; }
+.nav-item.active[data-tab="pdf-to-pptx"]       { box-shadow: 0 0 20px rgba(255, 159, 28, 0.4) !important; }
+.nav-item.active[data-tab="ai-assistant"]      { box-shadow: 0 0 20px rgba(0, 212, 255, 0.4) !important; }
+.nav-item.active[data-tab="auto-translate"]    { box-shadow: 0 0 20px rgba(255, 77, 109, 0.4) !important; }
+.nav-item.active[data-tab="batch"]             { box-shadow: 0 0 20px rgba(184, 41, 249, 0.4) !important; }
+.nav-item.active[data-tab="image-to-word"]     { box-shadow: 0 0 20px rgba(114, 9, 183, 0.4) !important; }
 
 
 
