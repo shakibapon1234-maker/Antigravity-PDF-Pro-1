@@ -250,6 +250,40 @@ app.post('/api/tools/decrypt-pdf', upload.single('file'), (req, res) => {
   });
 });
 
+// ─── Mock Licensing Endpoints for local testing ───────────────────────────────
+const mockLicenses = new Map();
+// Add default test license keys
+mockLicenses.set('AGP-1111-2222-3333', { email: 'dev@localhost', status: 'inactive', device_id: null, expires_at: new Date(Date.now() + 365*24*60*60*1000).toISOString() });
+mockLicenses.set('AGP-BETA-2026-FREE', { email: 'beta@localhost', status: 'inactive', device_id: null, expires_at: new Date(Date.now() + 30*24*60*60*1000).toISOString() });
+
+app.post('/api/license/activate', (req, res) => {
+  const { license_key, device_id } = req.body;
+  console.log('[mock-license] Activation request:', { license_key, device_id });
+  if (!license_key || !device_id) {
+    return res.status(400).json({ error: 'Missing license_key or device_id' });
+  }
+  const license = mockLicenses.get(license_key);
+  if (!license) {
+    return res.status(404).json({ error: 'License key not found. Use AGP-1111-2222-3333 or AGP-BETA-2026-FREE.' });
+  }
+  if (license.status === 'active' && license.device_id !== device_id) {
+    return res.status(403).json({ error: 'License is already active on another machine.' });
+  }
+  license.status = 'active';
+  license.device_id = device_id;
+  res.json({ success: true, message: 'Mock activation successful', expires_at: license.expires_at, email: license.email });
+});
+
+app.post('/api/license/validate', (req, res) => {
+  const { license_key, device_id } = req.body;
+  console.log('[mock-license] Validation request:', { license_key, device_id });
+  const license = mockLicenses.get(license_key);
+  if (!license || license.device_id !== device_id || license.status !== 'active') {
+    return res.json({ valid: false, error: 'Invalid license or device mismatch.' });
+  }
+  res.json({ valid: true, expires_at: license.expires_at, email: license.email });
+});
+
 // ─── Start server ─────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`Archive server running on http://localhost:${PORT}`);
