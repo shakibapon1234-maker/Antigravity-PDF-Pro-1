@@ -254,7 +254,7 @@ app.post('/api/tools/decrypt-pdf', upload.single('file'), (req, res) => {
 const mockLicenses = new Map();
 // Add default test license keys
 mockLicenses.set('AGP-1111-2222-3333', { email: 'dev@localhost', status: 'inactive', device_id: null, expires_at: new Date(Date.now() + 365*24*60*60*1000).toISOString() });
-mockLicenses.set('AGP-BETA-2026-FREE', { email: 'beta@localhost', status: 'inactive', device_id: null, expires_at: new Date(Date.now() + 30*24*60*60*1000).toISOString() });
+mockLicenses.set('AGP-BETA-2026-FREE', { email: 'beta@localhost', status: 'inactive', device_id: null, expires_at: new Date(Date.now() + 7*24*60*60*1000).toISOString() });
 
 app.post('/api/license/activate', (req, res) => {
   const { license_key, device_id } = req.body;
