@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "build": "electron-builder --win --x64",
+    "build": "node scripts/build.js",
     "build-nsis": "electron-builder --win nsis --x64",
     "build-msi": "electron-builder --win msi --x64",
     "build-portable": "electron-builder --win portable --x64",
