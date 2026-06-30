@@ -25,6 +25,11 @@ function openTool(tool) {
 const PREMIUM_TABS = ['ocr-pdf', 'protect-pdf', 'unlock-pdf', 'html-to-pdf'];
 
 async function switchTab(tabId) {
+    // ব্রাউজার ভার্সনে কিছু টুল ডেস্কটপ-অনলি — Electron-এ এই গেট নিষ্ক্রিয়
+    if (typeof WebGate !== 'undefined' && WebGate.interceptTabSwitch(tabId)) {
+        return;
+    }
+
     if (PREMIUM_TABS.includes(tabId) && typeof LicenseManager !== 'undefined') {
         const isPro = await LicenseManager.checkPremiumStatus();
         if (!isPro) {
