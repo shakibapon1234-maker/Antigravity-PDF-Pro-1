@@ -107,6 +107,7 @@ function updateToolUI(activeId) {
 }
 
 function deactivateAllTools() {
+    if (typeof finalizeMoveArea === 'function') finalizeMoveArea();
     const pw = document.querySelector('.pdf-page-wrapper');
     if (typeof stopFreehand === 'function') stopFreehand(pw);
     if (typeof stopRedactionMode === 'function') stopRedactionMode();

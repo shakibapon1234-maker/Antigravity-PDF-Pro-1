@@ -753,7 +753,7 @@ window.goToPage = function(pageNum) {
     if (!currentPdfObj) return;
     if (pageNum < 1 || pageNum > totalPages) return;
     currentPageNum = pageNum;
-    renderPage(currentPdfObj, currentPageNum);
+    return renderPage(currentPdfObj, currentPageNum);
 };
 
 // Listen for thumbnail click events

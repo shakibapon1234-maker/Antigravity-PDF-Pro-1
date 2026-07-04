@@ -220,7 +220,7 @@ const FindReplace = (() => {
 
     if (searchResults.length > 0) {
       currentResultIndex = 0;
-      highlightResult(0);
+      await highlightResult(0);
     } else {
       clearHighlights();
     }
@@ -268,20 +268,25 @@ const FindReplace = (() => {
   }
 
   // ─── Navigation ───────────────────────────────────────────────────────────────
-  function navigate(delta) {
+  async function navigate(delta) {
     if (searchResults.length === 0) return;
     currentResultIndex = (currentResultIndex + delta + searchResults.length) % searchResults.length;
-    highlightResult(currentResultIndex);
+    await highlightResult(currentResultIndex);
     updateCount(searchResults.length);
   }
 
-  function highlightResult(index) {
+  async function highlightResult(index) {
     const result = searchResults[index];
     if (!result) return;
 
-    // Navigate to the right page
-    document.dispatchEvent(new CustomEvent('thumbnail:goToPage', { detail: { page: result.page } }));
-    if (window.goToPage) window.goToPage(result.page);
+    // Navigate to the right page only if we are not already on it
+    const curPage = (typeof currentPageNum !== 'undefined' ? currentPageNum : 1);
+    if (result.page !== curPage) {
+      document.dispatchEvent(new CustomEvent('thumbnail:goToPage', { detail: { page: result.page } }));
+      if (window.goToPage) {
+        await window.goToPage(result.page);
+      }
+    }
 
     // Draw highlight overlay
     drawHighlight(result);
@@ -292,9 +297,9 @@ const FindReplace = (() => {
     clearHighlightCanvas();
 
     // Find the main PDF canvas
-    const mainCanvas = document.getElementById('pdf-canvas') ||
-                       document.querySelector('canvas.pdf-canvas') ||
-                       document.querySelector('#canvas-container canvas');
+    const mainCanvas = document.querySelector('#canvasWrapper canvas') ||
+                       document.querySelector('.pdf-page-wrapper canvas') ||
+                       document.getElementById('pdf-canvas');
     if (!mainCanvas) return;
 
     const overlay = document.createElement('canvas');
@@ -316,13 +321,13 @@ const FindReplace = (() => {
     searchHighlightCanvas = overlay;
 
     const ctx = overlay.getContext('2d');
-    const scaleX = mainCanvas.width / (mainCanvas.offsetWidth || mainCanvas.width);
+    const scale = (typeof pdfScale !== 'undefined' ? pdfScale : 1.0);
 
     // Draw all results faintly
     ctx.fillStyle = 'rgba(255, 220, 0, 0.3)';
     searchResults.forEach(r => {
       if (r.page === result.page) {
-        ctx.fillRect(r.x, r.y - r.height, r.width, r.height + 2);
+        ctx.fillRect(r.x * scale, (r.y - r.height) * scale, r.width * scale, (r.height + 2) * scale);
       }
     });
 
@@ -330,8 +335,8 @@ const FindReplace = (() => {
     ctx.fillStyle = 'rgba(255, 140, 0, 0.6)';
     ctx.strokeStyle = 'rgba(255, 100, 0, 0.9)';
     ctx.lineWidth = 1.5;
-    ctx.fillRect(result.x, result.y - result.height, result.width, result.height + 2);
-    ctx.strokeRect(result.x, result.y - result.height, result.width, result.height + 2);
+    ctx.fillRect(result.x * scale, (result.y - result.height) * scale, result.width * scale, (result.height + 2) * scale);
+    ctx.strokeRect(result.x * scale, (result.y - result.height) * scale, result.width * scale, (result.height + 2) * scale);
 
     // Scroll to result
     overlay.scrollIntoView({ behavior: 'smooth', block: 'center' });

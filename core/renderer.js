@@ -302,6 +302,7 @@ async function renderPage(pdf, pageNum) {
         pageWrapper.addEventListener('mouseup',   (e) => handlePageMouseUp(e, pageWrapper));
 
         if (window.lucide) safeCreateIcons();
+        updatePageIndicator();
         console.log('[renderer] renderPage successfully completed all steps.');
 
     } catch (err) {

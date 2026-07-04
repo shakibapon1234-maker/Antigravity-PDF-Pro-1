@@ -2052,6 +2052,9 @@ let activeTableDrag = null;  // টেবিল ড্র্যাগ স্ট�
 let activeCellResize = null; // সেল রিসাইজ স্টেট
 
 function startMoveAreaSelection(e, container) {
+    if (moveAreaSelection) {
+        finalizeMoveArea();
+    }
     moveAreaActive = true;
     const rect = container.getBoundingClientRect();
     moveAreaStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
