@@ -321,9 +321,44 @@ document.addEventListener('editor:pageChanged', (e) => {
   // IDs of file inputs that should NOT trigger thumbnail loading
   // (e.g. the watermark image picker, signature upload, etc.)
   const SKIP_INPUT_IDS = new Set([
-    'wmImageInput',         // watermark image
-    'signatureImageInput',  // signature upload
-    'stampImageInput',      // stamp image
+    // ── Main editor: renderer.js calls ThumbnailSidebar.loadDocument directly ──
+    'generalFileInput',
+    // ── PDF tools: handled by Strategy B (function wrapping) ──────────────────
+    'converterInput',        // PDF to Word
+    'pdfExcelInput',         // PDF to Excel
+    'pdfPptxInput',          // PDF to PPT
+    'aiInput',               // AI PDF
+    'translateInput',        // PDF translate
+    'ptiFileInput',          // PDF to image
+    'orgFileInput',          // Organize PDF
+    'cropFileInput',         // Crop PDF
+    'unlockFileInput',       // Unlock PDF
+    'watermarkFileInput',    // Watermark PDF
+    'pageNumbersFileInput',  // Page numbers PDF
+    'protectFileInput',      // Protect PDF
+    'ocrPdfFileInput',       // OCR PDF
+    'redactInput',           // Redact
+    'batesInput',            // Bates numbering
+    'flattenInput',          // Flatten
+    'repairInput',           // Repair
+    'measureInput',          // Measure
+    // ── Compare tool: loads its own docs internally ───────────────────────────
+    'compare-file-a',
+    'compare-file-b',
+    // ── Non-PDF / image inputs ────────────────────────────────────────────────
+    'wmImageInput',
+    'signatureImageInput',
+    'stampImageInput',
+    'sigUploadInput',
+    'itwInput',
+    'itwFileInput',
+    'itpFileInput',
+    'icFileInput',
+    'excelFileInput',
+    'e2wFileInput',
+    'w2eFileInput',
+    'htmlFileInput',
+    'archiveFileInput',
   ]);
 
   // ── Helper: render PDF bytes into ThumbnailSidebar ──────────────────────────
@@ -345,7 +380,10 @@ document.addEventListener('editor:pageChanged', (e) => {
   document.addEventListener('change', function(e) {
     const el = e.target;
     if (!el || el.tagName !== 'INPUT' || el.type !== 'file') return;
-    if (SKIP_INPUT_IDS.has(el.id)) return;          // non-PDF input → skip
+    // Skip inputs with no id — these are anonymous temporary inputs created by
+    // the main editor upload button; renderer.js handles thumbnails for those.
+    if (!el.id) return;
+    if (SKIP_INPUT_IDS.has(el.id)) return;          // known non-PDF input → skip
 
     const file = el.files && el.files[0];
     if (file) feedThumbsFromFile(file);

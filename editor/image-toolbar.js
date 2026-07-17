@@ -28,7 +28,7 @@ function addImageToPdf(dataUrl, fileName, initialRect = null) {
         const img = document.createElement('img');
         img.src = dataUrl;
         img.draggable = false;
-        img.style.cssText = `width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;${initialRect && initialRect.opacity !== undefined ? `opacity:${initialRect.opacity};` : ''}${initialRect && initialRect.rotation ? `transform:rotate(${initialRect.rotation}deg);` : ''}`;
+        img.style.cssText = `width:100%;height:100%;object-fit:fill;display:block;pointer-events:none;${initialRect && initialRect.opacity !== undefined ? `opacity:${initialRect.opacity};` : ''}${initialRect && initialRect.rotation ? `transform:rotate(${initialRect.rotation}deg);` : ''}`;
         wrap.appendChild(img);
         container.appendChild(wrap);
 
@@ -297,27 +297,50 @@ function attachImageLayerToolbar(wrap, imageId) {
         .forEach(el => toolbar.appendChild(el));
     wrap.appendChild(toolbar);
 
-    // ── Resize handle (bottom-right) ──────────────────────────────────────────
+    // ── Resize handles (8 directions) ─────────────────────────────────────────
+    // We keep one "primary" reference for show/hide toggling
     const resizeHandle = document.createElement('div');
     resizeHandle.className = 'image-resize-handle';
-    resizeHandle.title = 'Resize';
-    resizeHandle.style.cssText = `
-        position: absolute; right: -7px; bottom: -7px;
-        width: 14px; height: 14px;
-        background: #7c3aed; border: 2px solid white;
-        border-radius: 50%; cursor: nwse-resize; z-index: 2;
-        display: none; box-shadow: 0 0 5px rgba(0,0,0,0.4);
-    `;
-    wrap.appendChild(resizeHandle);
+
+    const handleDefs = [
+        { dir: 'se', style: 'right:-7px;bottom:-7px;cursor:nwse-resize;border-radius:50%;' },
+        { dir: 'sw', style: 'left:-7px;bottom:-7px;cursor:nesw-resize;border-radius:50%;' },
+        { dir: 'ne', style: 'right:-7px;top:-7px;cursor:nesw-resize;border-radius:50%;' },
+        { dir: 'nw', style: 'left:-7px;top:-7px;cursor:nwse-resize;border-radius:50%;' },
+        { dir: 'e',  style: 'right:-7px;top:50%;transform:translateY(-50%);cursor:ew-resize;border-radius:3px;' },
+        { dir: 'w',  style: 'left:-7px;top:50%;transform:translateY(-50%);cursor:ew-resize;border-radius:3px;' },
+        { dir: 's',  style: 'bottom:-7px;left:50%;transform:translateX(-50%);cursor:ns-resize;border-radius:3px;' },
+        { dir: 'n',  style: 'top:-7px;left:50%;transform:translateX(-50%);cursor:ns-resize;border-radius:3px;' },
+    ];
+
+    const allHandles = [];
+    handleDefs.forEach(hd => {
+        const h = document.createElement('div');
+        h.className = 'image-resize-handle';
+        h.dataset.dir = hd.dir;
+        h.title = 'Resize';
+        h.style.cssText = `
+            position:absolute; ${hd.dir === 'e' || hd.dir === 'w' ? 'width:14px;height:10px;' : hd.dir === 'n' || hd.dir === 's' ? 'width:10px;height:14px;' : 'width:14px;height:14px;'}
+            background:#7c3aed; border:2px solid white;
+            ${hd.style} z-index:3;
+            display:none; box-shadow:0 0 5px rgba(0,0,0,0.4);
+        `;
+        wrap.appendChild(h);
+        allHandles.push(h);
+        if (hd.dir === 'se') {
+            // reuse the primary reference for legacy show/hide code
+            Object.assign(resizeHandle, h);
+            Object.defineProperty(resizeHandle, 'style', { get: () => h.style, configurable: true });
+        }
+    });
 
     // ── Select / deselect ─────────────────────────────────────────────────────
     function selectThisImage() {
         // Deselect all other images
         document.querySelectorAll('.pdf-image-wrapper').forEach(el => {
             el.style.outline = 'none';
-            const h = el.querySelector('.image-resize-handle');
+            el.querySelectorAll('.image-resize-handle').forEach(h => h.style.display = 'none');
             const t = el.querySelector('.image-toolbar');
-            if (h) h.style.display = 'none';
             if (t) t.style.display = 'none';
         });
         // Deselect shapes
@@ -330,7 +353,7 @@ function attachImageLayerToolbar(wrap, imageId) {
         });
 
         wrap.style.outline = '2px solid #7c3aed';
-        resizeHandle.style.display = 'block';
+        allHandles.forEach(h => h.style.display = 'block');
         toolbar.style.display = 'flex';
 
         if (typeof selectedTextItem !== 'undefined') selectedTextItem = wrap;
@@ -338,7 +361,7 @@ function attachImageLayerToolbar(wrap, imageId) {
 
     // Show toolbar when image is clicked / drag-started
     wrap.addEventListener('mousedown', (e) => {
-        if (e.target === resizeHandle) return;
+        if (allHandles.includes(e.target)) return;
         if (toolbar.contains(e.target)) return;
         selectThisImage();
     });
@@ -461,50 +484,77 @@ function attachImageLayerToolbar(wrap, imageId) {
         wrap.remove();
     }));
 
-    // ── Resize (drag bottom-right handle) ────────────────────────────────────
-    resizeHandle.addEventListener('mousedown', (e) => {
-        e.stopPropagation(); e.preventDefault();
-        const resStartX = e.clientX;
-        const resStartY = e.clientY;
-        const resOrigW  = wrap.offsetWidth;
-        const resOrigH  = wrap.offsetHeight;
+    // ── Resize (directional, free — no aspect-ratio lock) ────────────────────
+    allHandles.forEach(handle => {
+        handle.addEventListener('mousedown', (e) => {
+            e.stopPropagation(); e.preventDefault();
+            const dir       = handle.dataset.dir;   // 'n','s','e','w','ne','nw','se','sw'
+            const startX    = e.clientX;
+            const startY    = e.clientY;
+            const origW     = wrap.offsetWidth;
+            const origH     = wrap.offsetHeight;
+            const origLeft  = parseFloat(wrap.style.left) || 0;
+            const origTop   = parseFloat(wrap.style.top)  || 0;
 
-        let snapshotCaptured = false;
+            let snapshotCaptured = false;
 
-        const onResizeMove = (ev) => {
-            const dx = ev.clientX - resStartX;
-            const newW = Math.max(30, resOrigW + dx);
-            const newH = newW * (resOrigH / resOrigW);
-            wrap.style.width  = newW + 'px';
-            wrap.style.height = newH + 'px';
+            const onResizeMove = (ev) => {
+                const dx = ev.clientX - startX;
+                const dy = ev.clientY - startY;
 
-            if (!snapshotCaptured && typeof captureUndoSnapshot === 'function') {
-                captureUndoSnapshot('Resize image');
-                snapshotCaptured = true;
-            }
-        };
+                let newW = origW, newH = origH, newL = origLeft, newT = origTop;
 
-        const onResizeUp = () => {
-            document.removeEventListener('mousemove', onResizeMove);
-            document.removeEventListener('mouseup', onResizeUp);
-
-            if (typeof imageEdits !== 'undefined' && typeof pdfScale !== 'undefined') {
-                const ed   = imageEdits.find(s => s.id === imageId);
-                const cont = wrap.closest('.pdf-page-wrapper');
-                if (ed && cont) {
-                    const pageHPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
-                        ? window._pdfPageNaturalSize.height
-                        : cont.offsetHeight / pdfScale;
-                    ed.width  = wrap.offsetWidth  / pdfScale;
-                    ed.height = wrap.offsetHeight / pdfScale;
-                    ed.x      = parseFloat(wrap.style.left) / pdfScale;
-                    ed.y      = pageHPts - parseFloat(wrap.style.top) / pdfScale - ed.height;
+                // Horizontal
+                if (dir.includes('e')) {
+                    newW = Math.max(20, origW + dx);
                 }
-            }
-        };
+                if (dir.includes('w')) {
+                    newW = Math.max(20, origW - dx);
+                    newL = origLeft + (origW - newW);
+                }
 
-        document.addEventListener('mousemove', onResizeMove);
-        document.addEventListener('mouseup', onResizeUp);
+                // Vertical
+                if (dir.includes('s')) {
+                    newH = Math.max(20, origH + dy);
+                }
+                if (dir.includes('n')) {
+                    newH = Math.max(20, origH - dy);
+                    newT = origTop + (origH - newH);
+                }
+
+                wrap.style.width  = newW + 'px';
+                wrap.style.height = newH + 'px';
+                wrap.style.left   = newL + 'px';
+                wrap.style.top    = newT + 'px';
+
+                if (!snapshotCaptured && typeof captureUndoSnapshot === 'function') {
+                    captureUndoSnapshot('Resize image');
+                    snapshotCaptured = true;
+                }
+            };
+
+            const onResizeUp = () => {
+                document.removeEventListener('mousemove', onResizeMove);
+                document.removeEventListener('mouseup', onResizeUp);
+
+                if (typeof imageEdits !== 'undefined' && typeof pdfScale !== 'undefined') {
+                    const ed   = imageEdits.find(s => s.id === imageId);
+                    const cont = wrap.closest('.pdf-page-wrapper');
+                    if (ed && cont) {
+                        const pageHPts = (window._pdfPageNaturalSize && window._pdfPageNaturalSize.height)
+                            ? window._pdfPageNaturalSize.height
+                            : cont.offsetHeight / pdfScale;
+                        ed.width  = wrap.offsetWidth  / pdfScale;
+                        ed.height = wrap.offsetHeight / pdfScale;
+                        ed.x      = parseFloat(wrap.style.left) / pdfScale;
+                        ed.y      = pageHPts - parseFloat(wrap.style.top) / pdfScale - ed.height;
+                    }
+                }
+            };
+
+            document.addEventListener('mousemove', onResizeMove);
+            document.addEventListener('mouseup', onResizeUp);
+        });
     });
 
     // ── Deselect when clicking elsewhere ─────────────────────────────────────
@@ -512,7 +562,7 @@ function attachImageLayerToolbar(wrap, imageId) {
         if (e.target.closest && e.target.closest('.pdf-image-wrapper')) return;
         if (e.target.closest && e.target.closest('.image-toolbar')) return;
         wrap.style.outline = 'none';
-        resizeHandle.style.display = 'none';
+        allHandles.forEach(h => h.style.display = 'none');
         toolbar.style.display = 'none';
     });
 }
