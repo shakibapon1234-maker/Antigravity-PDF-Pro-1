@@ -1176,6 +1176,11 @@ body.eraser-active #canvasWrapper { cursor: none !important; }
 
 .file-info svg { color: var(--accent-green); width: 18px; height: 18px; }
 
+.pdf-page-count {
+  color: var(--text-dim); font-size: 12px; font-weight: 600;
+  padding-left: 10px; border-left: 1px solid var(--border);
+}
+
 .progress-bar-wrapper { background: var(--bg-raised); border-radius: 20px; height: 6px; overflow: hidden; }
 
 .progress-bar {

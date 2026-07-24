@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusEl = document.getElementById('conversionStatusFlatten');
     const progressEl = document.getElementById('convProgressFlatten');
     const nameDisplay = document.getElementById('fileNameDisplayFlatten');
+    const pageCountDisplay = document.getElementById('pageCountDisplayFlatten');
     const btnDownload = document.getElementById('btnDownloadFlatten');
 
     if (!fileInput) return;
@@ -48,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         nameDisplay.textContent = file.name;
+        if (pageCountDisplay) pageCountDisplay.textContent = 'Reading pages…';
         statusEl.classList.remove('d-none');
         progressEl.style.width = '20%';
         if (btnDownload) btnDownload.style.display = 'none';
@@ -58,6 +60,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const { PDFDocument } = PDFLib;
             const pdfDoc = await PDFDocument.load(arrayBuffer);
+            const pageCount = pdfDoc.getPageCount();
+            if (pageCountDisplay) {
+                pageCountDisplay.textContent = `${pageCount} ${pageCount === 1 ? 'page' : 'pages'}`;
+            }
             progressEl.style.width = '60%';
 
             // Flatten form fields
@@ -83,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.error('Flatten PDF error:', err);
             statusEl.classList.add('d-none');
+            if (pageCountDisplay) pageCountDisplay.textContent = '';
             alert('Failed to flatten PDF: ' + err.message);
         }
     }

@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusEl = document.getElementById('conversionStatusRepair');
     const progressEl = document.getElementById('convProgressRepair');
     const nameDisplay = document.getElementById('fileNameDisplayRepair');
+    const pageCountDisplay = document.getElementById('pageCountDisplayRepair');
     const btnDownload = document.getElementById('btnDownloadRepair');
 
     if (!fileInput) return;
@@ -48,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         nameDisplay.textContent = file.name;
+        if (pageCountDisplay) pageCountDisplay.textContent = 'Reading pages…';
         statusEl.classList.remove('d-none');
         progressEl.style.width = '20%';
         if (btnDownload) btnDownload.style.display = 'none';
@@ -62,6 +64,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const pdfDoc = await PDFDocument.load(arrayBuffer, {
                 ignoreEncryption: true
             });
+            const pageCount = pdfDoc.getPageCount();
+            if (pageCountDisplay) {
+                pageCountDisplay.textContent = `${pageCount} ${pageCount === 1 ? 'page' : 'pages'}`;
+            }
             progressEl.style.width = '80%';
 
             const pdfBytes = await pdfDoc.save();
@@ -84,6 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.error('Repair PDF error:', err);
             statusEl.classList.add('d-none');
+            if (pageCountDisplay) pageCountDisplay.textContent = '';
             alert('Failed to repair PDF (file may be completely unreadable): ' + err.message);
         }
     }
