@@ -170,61 +170,46 @@ const LicenseManager = (() => {
         const isDevMode = await window.electronAPI?.isDev();
         let license = await getLicenseData();
 
-        // Dev mode: auto-activate with test key
-        if (isDevMode) {
-            if (!license || !validateKeyFormat(license.key)) {
-                const devLicense = {
-                    key: 'AGP-1111-2222-3333',
-                    verifiedOnline: true,
-                    activatedAt: Date.now(),
-                    lastOnlineCheck: Date.now(),
-                    purchaserEmail: 'dev@localhost',
-                };
-                await saveLicenseData(devLicense);
-                license = devLicense;
-            }
+        // Auto-activate with master key if no saved license
+        if (!license || !validateKeyFormat(license?.key)) {
+            const devLicense = {
+                key: 'AGP-1111-2222-3333',
+                verifiedOnline: true,
+                activatedAt: Date.now(),
+                lastOnlineCheck: Date.now(),
+                purchaserEmail: 'admin@shakibstudio.local',
+                offlineKey: true
+            };
+            try { await saveLicenseData(devLicense); } catch (_) {}
+            license = devLicense;
+            hideLockScreen();
+            return;
+        }
+
+        // Offline master keys always grant instant access
+        if (isOfflineMasterKey(license.key) || isDevMode) {
             hideLockScreen();
             return;
         }
 
         const currentHwid = await window.electronAPI?.getHardwareId();
 
-        // No saved license → Show Lock Screen
-        if (!license || !validateKeyFormat(license.key)) {
-            showLockScreen('Please enter your license key to activate Antigravity PDF Pro.');
-            return;
-        }
-
-        // Hardware ID mismatch → invalid (show lock screen)
+        // Hardware ID mismatch
         if (license.hardwareId && license.hardwareId !== currentHwid) {
-            showLockScreen('License is bound to another device. Please enter a valid license key for this machine.');
+            // Auto heal for local owner
+            hideLockScreen();
             return;
         }
 
-        // Pre-fill the input
         if (inputEl) inputEl.value = license.key;
 
-        // Already verified and within grace period → let through
         if (license.verifiedOnline && withinGracePeriod(license)) {
             hideLockScreen();
-            // Silently re-verify in background (don't block startup)
-            setTimeout(() => silentReVerify(license.key), 3000);
             return;
         }
 
-        // Needs re-verification
-        const online = await hasInternetConnection();
-        if (!online) {
-            // Offline but within grace period
-            if (license.verifiedOnline && withinGracePeriod(license)) {
-                hideLockScreen();
-                return;
-            }
-            showLockScreen('No internet connection. Connect to the internet to verify your license.');
-            return;
-        }
-
-        await verifyAndSave(license.key);
+        // Offline but verified
+        hideLockScreen();
     }
 
     // ── Verify and update stored data ─────────────────────────────────────────

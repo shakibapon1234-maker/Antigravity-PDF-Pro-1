@@ -6,6 +6,7 @@ Sentry.init({
   debug: false,
 });
 
+try { require('electron').app.setAppUserModelId('com.antigravity.pdf-pro'); } catch(_) {}
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell, Tray, nativeImage } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
@@ -204,6 +205,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     title: 'Antigravity PDF Pro',
+    icon: path.join(__dirname, 'assets', 'icon.ico'),
     backgroundColor: '#0f0f23',
     show: false, // show after load to avoid flash
     webPreferences: {
