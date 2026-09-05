@@ -1,7 +1,7 @@
-{
+﻿{
   "name": "antigravity-pdf-pro",
   "version": "1.0.0",
-  "description": "Antigravity PDF Pro - Desktop Application",
+  "description": "Antigravity PDF Pro - Desktop Application",`r`n  "author": {`r`n    "name": "Antigravity Software",`r`n    "email": "support@antigravitypdf.com",`r`n    "url": "https://antigravitypdf.com"`r`n  },
   "main": "main.js",
   "scripts": {
     "start": "electron .",

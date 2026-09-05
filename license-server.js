@@ -11,10 +11,100 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const crypto = require('crypto');
 const path = require('path');
+const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+/**
+ * ⚠️  SECURITY: Change ADMIN_SECRET_TOKEN before deploying to production!
+ *    Set it as an environment variable:  ADMIN_SECRET_TOKEN=your-secret-here
+ *    Never commit the real token to GitHub.
+ */
 const ADMIN_SECRET_TOKEN = process.env.ADMIN_SECRET_TOKEN || 'AG-ADMIN-SUPER-SECRET-2026';
+
+/**
+ * ─── EMAIL DELIVERY via Resend.com ─────────────────────────────────────────
+ * Sign up free at https://resend.com — 100 emails/day on free tier.
+ * Set RESEND_API_KEY as environment variable on Railway.
+ * Set FROM_EMAIL to your verified sender email on Resend.
+ */
+const RESEND_API_KEY = process.env.RESEND_API_KEY || null;
+const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@antigravitypdf.com';
+
+/**
+ * Sends the license key to the customer's email using Resend.com API.
+ * @param {string} toEmail - Customer's email address
+ * @param {string} licenseKey - The generated license key (e.g. AGP-XXXX-XXXX-XXXX)
+ */
+function sendLicenseEmail(toEmail, licenseKey) {
+  if (!RESEND_API_KEY) {
+    console.log(`[email] RESEND_API_KEY not set. Skipping email. License key for ${toEmail}: ${licenseKey}`);
+    return;
+  }
+
+  const emailBody = {
+    from: FROM_EMAIL,
+    to: [toEmail],
+    subject: 'Your Antigravity PDF Pro License Key',
+    html: `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0e0e1b; color: #c8d0e8; padding: 40px; border-radius: 16px;">
+        <h1 style="color: #b829f9; margin-bottom: 8px;">Antigravity PDF Pro</h1>
+        <p style="color: #6a7090; margin-bottom: 32px;">Thank you for your purchase!</p>
+
+        <p>Your lifetime license key is ready. Copy it below and paste it into the app's activation window:</p>
+
+        <div style="background: #16162a; border: 2px solid #b829f9; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
+          <code style="font-size: 1.4rem; color: #00d4ff; letter-spacing: 3px; font-weight: bold;">${licenseKey}</code>
+        </div>
+
+        <h3 style="color: #ffffff; margin-top: 32px;">How to activate:</h3>
+        <ol style="line-height: 2;">
+          <li>Download the app from <a href="https://github.com/shakibapon1234-maker/Antigravity-PDF-Pro-1/releases/latest" style="color: #b829f9;">GitHub Releases</a></li>
+          <li>Install and open Antigravity PDF Pro</li>
+          <li>Click <strong>"Activate License"</strong> and paste your key above</li>
+          <li>Enjoy lifetime access! ✨</li>
+        </ol>
+
+        <p style="margin-top: 32px; font-size: 0.9rem; color: #6a7090;">
+          Need help? Email us at <a href="mailto:support@antigravitypdf.com" style="color: #b829f9;">support@antigravitypdf.com</a>
+        </p>
+      </div>
+    `
+  };
+
+  const postData = JSON.stringify(emailBody);
+  const options = {
+    hostname: 'api.resend.com',
+    port: 443,
+    path: '/emails',
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(postData)
+    }
+  };
+
+  const req = https.request(options, (res) => {
+    let data = '';
+    res.on('data', chunk => data += chunk);
+    res.on('end', () => {
+      if (res.statusCode === 200 || res.statusCode === 201) {
+        console.log(`[email] License key sent successfully to ${toEmail}`);
+      } else {
+        console.error(`[email] Failed to send email. Status: ${res.statusCode}. Response: ${data}`);
+      }
+    });
+  });
+
+  req.on('error', (e) => {
+    console.error(`[email] Email request error: ${e.message}`);
+  });
+
+  req.write(postData);
+  req.end();
+}
 
 // Initialize SQLite database
 const DB_FILE = path.join(__dirname, 'licenses.db');
@@ -90,6 +180,9 @@ app.post('/api/license/generate', (req, res) => {
         console.error('[license] Key generation error:', err.message);
         return res.status(500).json({ error: 'Failed to generate key.' });
       }
+      // Send license key to customer's email
+      sendLicenseEmail(email, licenseKey);
+
       res.json({
         success: true,
         license_key: licenseKey,
@@ -266,13 +359,62 @@ app.post('/api/checkout/webhook/stripe', (req, res) => {
             return res.status(500).end();
           }
           console.log(`[webhook] Swapped purchase to license key: ${licenseKey} for ${email}`);
-          // SendEmailHelper.send(email, licenseKey); // Deliver to customer inbox
+          sendLicenseEmail(email, licenseKey); // Deliver key to customer inbox automatically
         }
       );
     }
   }
 
   res.json({ received: true });
+});
+
+
+/**
+ * ─── API ROUTE: LIST ALL LICENSES (Admin Only) ────────────────────────────
+ * Returns all license records for admin dashboard.
+ */
+app.get('/api/license/list', (req, res) => {
+  const adminToken = req.headers['authorization'];
+  if (adminToken !== `Bearer ${ADMIN_SECRET_TOKEN}`) {
+    return res.status(401).json({ error: 'Unauthorized admin access.' });
+  }
+
+  db.all(`SELECT id, license_key, email, status, device_id, activated_at, expires_at FROM licenses ORDER BY id DESC`, [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database query failed.' });
+    }
+    res.json({ licenses: rows, total: rows.length });
+  });
+});
+
+/**
+ * ─── API ROUTE: BAN LICENSE (Admin Only) ──────────────────────────────────
+ * Permanently bans a license key, preventing any future activation.
+ */
+app.post('/api/license/ban', (req, res) => {
+  const adminToken = req.headers['authorization'];
+  if (adminToken !== `Bearer ${ADMIN_SECRET_TOKEN}`) {
+    return res.status(401).json({ error: 'Unauthorized admin access.' });
+  }
+
+  const { license_key } = req.body;
+  if (!license_key) {
+    return res.status(400).json({ error: 'License key is required.' });
+  }
+
+  db.run(
+    `UPDATE licenses SET status = 'banned', device_id = NULL WHERE license_key = ?`,
+    [license_key.toUpperCase()],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'Failed to ban license.' });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'License key not found.' });
+      }
+      res.json({ success: true, message: `License key ${license_key} has been banned.` });
+    }
+  );
 });
 
 app.listen(PORT, () => {

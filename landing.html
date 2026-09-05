@@ -806,6 +806,44 @@
       color: var(--text-muted);
     }
 
+
+    /* Bangladesh Local Payment Section */
+    .bkash-section { padding: 60px 0; }
+    .bkash-card {
+      background: linear-gradient(135deg, rgba(230, 0, 82, 0.08), rgba(14, 14, 27, 0.9));
+      border: 1px solid rgba(230, 0, 82, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 48px 56px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+    .bkash-left h2 {
+      font-size: 2rem; margin-bottom: 12px;
+      background: linear-gradient(90deg, #ff2d79, #ff7eb3);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .bkash-left p { color: var(--text-dim); font-size: 1rem; line-height: 1.7; margin-bottom: 20px; }
+    .bkash-price-tag {
+      display: inline-flex; align-items: baseline; gap: 8px;
+      background: rgba(230, 0, 82, 0.1); border: 1px solid rgba(230, 0, 82, 0.25);
+      border-radius: 12px; padding: 12px 24px; margin-bottom: 24px;
+    }
+    .bkash-price-tag .bdt-amount { font-size: 2.4rem; font-weight: 800; color: #fff; font-family: var(--font-headings); }
+    .bkash-price-tag .bdt-label { color: var(--text-dim); font-size: 0.95rem; }
+    .bkash-steps { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .bkash-steps li { display: flex; align-items: flex-start; gap: 14px; color: var(--text-dim); font-size: 0.95rem; line-height: 1.5; }
+    .step-num { min-width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #e60052, #ff7eb3); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; flex-shrink: 0; }
+    .payment-logos { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+    .payment-logo-badge { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 18px; font-weight: 700; font-size: 0.9rem; }
+    .payment-logo-badge.bkash { border-color: rgba(230, 0, 82, 0.4); color: #ff4d94; }
+    .payment-logo-badge.nagad { border-color: rgba(255, 100, 0, 0.4); color: #ff8c42; }
+    .payment-logo-badge.rocket { border-color: rgba(128, 0, 255, 0.4); color: #a855f7; }
+    .btn-bkash { display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #e60052, #c0003e); color: #fff; padding: 14px 28px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; text-decoration: none; box-shadow: 0 8px 24px rgba(230, 0, 82, 0.35); border: 1px solid rgba(255,255,255,0.15); transition: all 0.25s; }
+    .btn-bkash:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(230, 0, 82, 0.5); }
+    @media (max-width: 992px) { .bkash-card { grid-template-columns: 1fr; padding: 36px 28px; } }
+
     /* FAQ Section */
     .faq {
       padding: 80px 0;
@@ -1325,7 +1363,7 @@
               No credit card required
             </li>
           </ul>
-          <a href="#download" class="btn-buy outline">Download Free Trial</a>
+          <a href="https://github.com/shakibapon1234-maker/Antigravity-PDF-Pro-1/releases/latest" target="_blank" rel="noopener" class="btn-buy outline" id="pricing-trial-btn">Download Free Trial</a>
         </div>
 
         <!-- Plan 2: Pro License -->
@@ -1401,6 +1439,53 @@
     </div>
   </section>
 
+
+  <!-- Bangladesh Local Payment Section -->
+  <section id="bangladesh-payment" class="bkash-section">
+    <div class="container">
+      <div class="bkash-card">
+        <div class="bkash-left">
+          <h2>&#x1F1E7;&#x1F1E9; বাংলাদেশি পেমেন্ট অপশন</h2>
+          <p>বিদেশি কার্ড বা PayPal ছাড়াও আপনি সহজেই <strong>বিকাশ, নগদ বা রকেট</strong> দিয়ে পেমেন্ট করে তাৎক্ষণিক লাইসেন্স কি পেতে পারেন।</p>
+
+          <div class="bkash-price-tag">
+            <span class="bdt-amount">৳ ১,১৯৯</span>
+            <span class="bdt-label">/ এককালীন (Lifetime Pro)</span>
+          </div>
+
+          <div class="payment-logos">
+            <div class="payment-logo-badge bkash">&#x1F4B3; bKash</div>
+            <div class="payment-logo-badge nagad">&#x1F4B3; Nagad</div>
+            <div class="payment-logo-badge rocket">&#x1F4B3; Rocket</div>
+          </div>
+
+          <a href="mailto:support@antigravitypdf.com?subject=bKash%20Payment%20-%20Lifetime%20Pro&body=Hello%2C%20I%20want%20to%20buy%20Lifetime%20Pro.%0A%0AMy%20Name%3A%20%0AMy%20Email%3A%20%0APayment%20Method%3A%20" class="btn-bkash" id="bkash-contact-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            ইমেইলে যোগাযোগ করুন
+          </a>
+        </div>
+
+        <div class="bkash-right">
+          <h3 style="font-size:1.2rem; margin-bottom:20px; color:var(--text);">কীভাবে কিনবেন — ৩টি সহজ ধাপ</h3>
+          <ul class="bkash-steps">
+            <li>
+              <div class="step-num">1</div>
+              <div>উপরের বাটনে ক্লিক করুন এবং ইমেইল পাঠান। অথবা সরাসরি <strong>support@antigravitypdf.com</strong> তে মেইল করুন।</div>
+            </li>
+            <li>
+              <div class="step-num">2</div>
+              <div>আমরা আপনাকে বিকাশ/নগদ/রকেট নম্বর পাঠাব। পেমেন্ট করুন এবং Transaction ID ইমেইলে জানান।</div>
+            </li>
+            <li>
+              <div class="step-num">3</div>
+              <div>পেমেন্ট নিশ্চিত হলে <strong>১-২ ঘণ্টার মধ্যে</strong> আপনার ইমেইলে <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;">AGP-XXXX-XXXX-XXXX</code> ফরম্যাটে লাইসেন্স কি পাঠানো হবে।</div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- FAQ Section -->
   <section id="faq" class="faq">
     <div class="container">
@@ -1457,6 +1542,30 @@
             <p>Yes, absolutely. If you buy a new computer, you can deactivate the license in the app's settings section, or contact our support team to reset your active device limit. The Lifetime Pro supports 1 active PC at a time, while the Office Pack supports 3 active PCs.</p>
           </div>
         </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <h3>&#x1F1E7;&#x1F1E9; বাংলাদেশ থেকে বিকাশ/নগদ দিয়ে কিনতে পারব?</h3>
+            <div class="faq-toggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </div>
+          <div class="faq-answer">
+            <p>হ্যাঁ, অবশ্যই। আপনি বিকাশ, নগদ বা রকেটের মাধ্যমে মাত্র ৳১,১৯৯ দিয়ে Lifetime Pro License কিনতে পারবেন। <strong>support@antigravitypdf.com</strong> তে ইমেইল করুন অথবা উপরের "বাংলাদেশি পেমেন্ট অপশন" সেকশনের নির্দেশনা অনুসরণ করুন। পেমেন্ট নিশ্চিত হওয়ার ১-২ ঘণ্টার মধ্যে লাইসেন্স কি পাঠানো হবে।</p>
+          </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <h3>Does Windows show a SmartScreen warning when I install it?</h3>
+            <div class="faq-toggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </div>
+          <div class="faq-answer">
+            <p>Some Windows versions may show a SmartScreen warning for new independent publishers. This is completely normal. Simply click <strong>"More info" &rarr; "Run anyway"</strong> to proceed. The app does not touch any system files and is entirely safe. We are actively working toward a code-signing certificate to permanently remove this warning.</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -1473,8 +1582,7 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             Buy Lifetime Access ($9.99)
           </a>
-          <!-- Replace this href with your final built installer release path (e.g. Github Releases or static CDN) -->
-          <a href="#" class="btn-outline" onclick="alert('The setup build is ready in your workspace! Compile the project using CREATE_DISTRIBUTION.bat to generate your production setup.exe installer.'); return false;">
+          <a href="https://github.com/shakibapon1234-maker/Antigravity-PDF-Pro-1/releases/latest" target="_blank" rel="noopener" class="btn-outline" id="download-trial-btn">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             Download Free Trial (.exe)
           </a>
@@ -1503,9 +1611,10 @@
         <div class="footer-links">
           <h4>Legal & Secure</h4>
           <ul>
-            <li><a href="#" onclick="alert('Antigravity PDF Pro operates strictly on-device. No document analytics or texts are processed outside your machine.'); return false;">Privacy Policy</a></li>
-            <li><a href="#" onclick="alert('This lifetime license guarantees access to all current features. Commercial licensing keys are generated instantly via Gumroad.'); return false;">Terms of Use</a></li>
-            <li><a href="mailto:support@antigravitypdf.com">Developer Support</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Use</a></li>
+            <li><a href="mailto:support@antigravitypdf.com" id="footer-support-link">Developer Support</a></li>
+            <li><a href="#bangladesh-payment">&#x1F1E7;&#x1F1E9; বিকাশ / নগদ পেমেন্ট</a></li>
           </ul>
         </div>
       </div>
