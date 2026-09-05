@@ -47,7 +47,7 @@ Project root-এ একটি নতুন ফাইল তৈরি করু�
 
 ### Option A — GitHub থেকে (সবচেয়ে সহজ):
 1. Railway dashboard-এ **"New Project"** → **"Deploy from GitHub repo"** ক্লিক করুন
-2. `Antigravity-PDF-Pro-1` repository select করুন
+2. `SwiftPDF-Pro-1` repository select করুন
 3. Railway স্বয়ংক্রিয়ভাবে build করবে
 
 ### Option B — Railway CLI দিয়ে:
@@ -68,7 +68,7 @@ Railway Dashboard → আপনার project → **Variables** tab:
 |---|---|---|
 | `ADMIN_SECRET_TOKEN` | `your-secret-password-here` | Admin panel login |
 | `RESEND_API_KEY` | `re_xxxxxxxxxxxx` | Email পাঠানো |
-| `FROM_EMAIL` | `noreply@antigravitypdf.com` | Email sender |
+| `FROM_EMAIL` | `noreply@swiftpdfpro.com` | Email sender |
 | `PORT` | (Railway নিজেই set করে) | Server port |
 
 ⚠️ **ADMIN_SECRET_TOKEN** কখনো GitHub-এ commit করবেন না!
@@ -88,7 +88,7 @@ Railway Dashboard → আপনার project → **Variables** tab:
 
 Deploy হলে Railway একটি URL দেবে যেমন:
 ```
-https://antigravity-pdf-pro-production.up.railway.app
+https://swiftpdf-pro-production.up.railway.app
 ```
 
 এই URL টি:

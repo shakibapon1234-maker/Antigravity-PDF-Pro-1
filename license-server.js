@@ -1,5 +1,5 @@
 /**
- * Antigravity PDF Pro — Production Licensing Server
+ * SwiftPDF Pro — Production Licensing Server
  * ────────────────────────────────────────────────
  * Handles software key generation, activation (device lock), 
  * validation, deactivation, and payment webhooks.
@@ -30,12 +30,12 @@ const ADMIN_SECRET_TOKEN = process.env.ADMIN_SECRET_TOKEN || 'AG-ADMIN-SUPER-SEC
  * Set FROM_EMAIL to your verified sender email on Resend.
  */
 const RESEND_API_KEY = process.env.RESEND_API_KEY || null;
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@antigravitypdf.com';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@swiftpdfpro.com';
 
 /**
  * Sends the license key to the customer's email using Resend.com API.
  * @param {string} toEmail - Customer's email address
- * @param {string} licenseKey - The generated license key (e.g. AGP-XXXX-XXXX-XXXX)
+ * @param {string} licenseKey - The generated license key (e.g. SWP-XXXX-XXXX-XXXX)
  */
 function sendLicenseEmail(toEmail, licenseKey) {
   if (!RESEND_API_KEY) {
@@ -46,10 +46,10 @@ function sendLicenseEmail(toEmail, licenseKey) {
   const emailBody = {
     from: FROM_EMAIL,
     to: [toEmail],
-    subject: 'Your Antigravity PDF Pro License Key',
+    subject: 'Your SwiftPDF Pro License Key',
     html: `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0e0e1b; color: #c8d0e8; padding: 40px; border-radius: 16px;">
-        <h1 style="color: #b829f9; margin-bottom: 8px;">Antigravity PDF Pro</h1>
+        <h1 style="color: #b829f9; margin-bottom: 8px;">SwiftPDF Pro</h1>
         <p style="color: #6a7090; margin-bottom: 32px;">Thank you for your purchase!</p>
 
         <p>Your lifetime license key is ready. Copy it below and paste it into the app's activation window:</p>
@@ -60,14 +60,14 @@ function sendLicenseEmail(toEmail, licenseKey) {
 
         <h3 style="color: #ffffff; margin-top: 32px;">How to activate:</h3>
         <ol style="line-height: 2;">
-          <li>Download the app from <a href="https://github.com/shakibapon1234-maker/Antigravity-PDF-Pro-1/releases/latest" style="color: #b829f9;">GitHub Releases</a></li>
-          <li>Install and open Antigravity PDF Pro</li>
+          <li>Download the app from <a href="https://github.com/shakibapon1234-maker/SwiftPDF-Pro-1/releases/latest" style="color: #b829f9;">GitHub Releases</a></li>
+          <li>Install and open SwiftPDF Pro</li>
           <li>Click <strong>"Activate License"</strong> and paste your key above</li>
           <li>Enjoy lifetime access! ✨</li>
         </ol>
 
         <p style="margin-top: 32px; font-size: 0.9rem; color: #6a7090;">
-          Need help? Email us at <a href="mailto:support@antigravitypdf.com" style="color: #b829f9;">support@antigravitypdf.com</a>
+          Need help? Email us at <a href="mailto:support@swiftpdfpro.com" style="color: #b829f9;">support@swiftpdfpro.com</a>
         </p>
       </div>
     `
@@ -142,13 +142,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// Helper: Generate a secure license key format AGP-XXXX-XXXX-XXXX
+// Helper: Generate a secure license key format SWP-XXXX-XXXX-XXXX
 function generateLicenseKey() {
   const parts = [];
   for (let i = 0; i < 3; i++) {
     parts.push(crypto.randomBytes(2).toString('hex').toUpperCase());
   }
-  return `AGP-${parts.join('-')}`;
+  return `SWP-${parts.join('-')}`;
 }
 
 /**

@@ -1,7 +1,7 @@
 ﻿{
-  "name": "antigravity-pdf-pro",
+  "name": "swiftpdf-pro",
   "version": "1.0.0",
-  "description": "Antigravity PDF Pro - Desktop Application",`r`n  "author": {`r`n    "name": "Antigravity Software",`r`n    "email": "support@antigravitypdf.com",`r`n    "url": "https://antigravitypdf.com"`r`n  },
+  "description": "SwiftPDF Pro - Desktop Application",`r`n  "author": {`r`n    "name": "SwiftPDF Pro",`r`n    "email": "support@swiftpdfpro.com",`r`n    "url": "https://swiftpdfpro.com"`r`n  },
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -18,8 +18,8 @@
     "test:e2e": "playwright test"
   },
   "build": {
-    "appId": "com.antigravity.pdf-pro",
-    "productName": "Antigravity PDF Pro",
+    "appId": "com.swiftpdf.pro",
+    "productName": "SwiftPDF Pro",
     "copyright": "Copyright © 2026 Antigravity",
     "directories": {
       "output": "dist"
@@ -83,22 +83,22 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Antigravity PDF Pro",
+      "shortcutName": "SwiftPDF Pro",
       "artifactName": "Install App.exe",
       "installerIcon": "assets/icon.ico",
       "uninstallerIcon": "assets/icon.ico",
       "installerHeaderIcon": "assets/icon.ico",
       "deleteAppDataOnUninstall": false,
       "runAfterFinish": true,
-      "menuCategory": "Antigravity",
+      "menuCategory": "SwiftPDF",
       "include": "installer.nsh"
     },
     "msi": {
-      "artifactName": "Antigravity-PDF-Pro-${version}-x64.msi",
+      "artifactName": "SwiftPDF-Pro-${version}-x64.msi",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "menuCategory": "Antigravity",
-      "shortcutName": "Antigravity PDF Pro",
+      "menuCategory": "SwiftPDF",
+      "shortcutName": "SwiftPDF Pro",
       "upgradeCode": "12345678-1234-1234-1234-123456789012",
       "oneClick": false,
       "perMachine": false

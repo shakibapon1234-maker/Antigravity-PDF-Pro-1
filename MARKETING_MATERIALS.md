@@ -1,4 +1,4 @@
-# 📢 Marketing Materials — Antigravity PDF Pro
+# 📢 Marketing Materials — SwiftPDF Pro
 
 ---
 
@@ -55,7 +55,7 @@
 😩 SmallPDF, IlovePDF-এ ফাইল upload করতে ভয় লাগে?
 💸 Adobe Acrobat-এর মাসিক সাবস্ক্রিপশন অনেক বেশি?
 
-আমার তৈরি Antigravity PDF Pro try করুন:
+আমার তৈরি SwiftPDF Pro try করুন:
 
 🔒 ১০০% Offline — আপনার ফাইল আপনার PC-তেই থাকে
 ⚡ ২৫+ PDF Tools — Edit, Convert, OCR, Merge, Sign সব একসাথে
@@ -74,7 +74,7 @@ Free Trial download করুন: [GitHub Releases URL]
 
 **Description:**
 ```
-Antigravity PDF Pro is a Windows desktop app that brings professional PDF 
+SwiftPDF Pro is a Windows desktop app that brings professional PDF 
 editing capabilities without ever uploading your files to the cloud.
 
 🔒 Privacy First: Every operation — OCR, conversion, editing — runs locally 
@@ -100,7 +100,7 @@ Built by a solo developer. Your feedback shapes the roadmap!
 
 ## 📧 Email Template (বিকাশ পেমেন্টের পর)
 
-**Subject:** আপনার Antigravity PDF Pro License Key 🎉
+**Subject:** আপনার SwiftPDF Pro License Key 🎉
 
 ```
 প্রিয় [নাম],
@@ -109,11 +109,11 @@ Built by a solo developer. Your feedback shapes the roadmap!
 
 আপনার লাইসেন্স কি:
 ┌─────────────────────────────────┐
-│  AGP-XXXX-XXXX-XXXX             │
+│  SWP-XXXX-XXXX-XXXX             │
 └─────────────────────────────────┘
 
 অ্যাপটি ডাউনলোড করুন:
-https://github.com/shakibapon1234-maker/Antigravity-PDF-Pro-1/releases/latest
+https://github.com/shakibapon1234-maker/SwiftPDF-Pro-1/releases/latest
 
 অ্যাক্টিভেশন:
 ১. অ্যাপ install করুন ও খুলুন
@@ -121,8 +121,8 @@ https://github.com/shakibapon1234-maker/Antigravity-PDF-Pro-1/releases/latest
 ৩. উপরের কি-টি paste করুন
 ৪. Done! সব features unlock হয়ে যাবে
 
-কোনো সমস্যা হলে: support@antigravitypdf.com
+কোনো সমস্যা হলে: support@swiftpdfpro.com
 
 শুভেচ্ছায়,
-Antigravity PDF Pro Team
+SwiftPDF Pro Team
 ```

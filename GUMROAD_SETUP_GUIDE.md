@@ -1,6 +1,6 @@
 # 💳 Gumroad Product Setup Guide
 
-> **লক্ষ্য:** Gumroad-এ Antigravity PDF Pro-এর product তৈরি করা যাতে আন্তর্জাতিক কাস্টমাররা card/PayPal দিয়ে কিনতে পারে।
+> **লক্ষ্য:** Gumroad-এ SwiftPDF Pro-এর product তৈরি করা যাতে আন্তর্জাতিক কাস্টমাররা card/PayPal দিয়ে কিনতে পারে।
 
 ---
 
@@ -19,7 +19,7 @@
 ### Product Details:
 | Field | Value |
 |---|---|
-| **Product Name** | Antigravity PDF Pro — Lifetime License |
+| **Product Name** | SwiftPDF Pro — Lifetime License |
 | **Price** | $9.99 |
 | **Summary** | Premium 100% Offline PDF Editor for Windows. One-time payment. No subscriptions. |
 | **Description** | (নিচে দেওয়া text copy করুন) |
@@ -34,10 +34,10 @@
 ✅ Free lifetime updates
 
 --- HOW TO ACTIVATE ---
-After purchase, you'll receive a license key (AGP-XXXX-XXXX-XXXX) via email.
+After purchase, you'll receive a license key (SWP-XXXX-XXXX-XXXX) via email.
 Download the app from GitHub, install it, and paste your key on first launch.
 
-Download Link: https://github.com/shakibapon1234-maker/Antigravity-PDF-Pro-1/releases/latest
+Download Link: https://github.com/shakibapon1234-maker/SwiftPDF-Pro-1/releases/latest
 ```
 
 ---
@@ -59,7 +59,7 @@ Download Link: https://github.com/shakibapon1234-maker/Antigravity-PDF-Pro-1/rel
 
 `landing.html` এ এই লাইনগুলো খুঁজুন:
 ```html
-href="https://gumroad.com/l/antigravity-pdf-pro"
+href="https://gumroad.com/l/swiftpdf-pro"
 ```
 
 Gumroad product তৈরি হলে আপনি একটি URL পাবেন যেমন:
@@ -67,7 +67,7 @@ Gumroad product তৈরি হলে আপনি একটি URL পাব�
 https://shakibapon.gumroad.com/l/pdf-pro
 ```
 
-এই URL দিয়ে সব `gumroad.com/l/antigravity-pdf-pro` replace করুন।
+এই URL দিয়ে সব `gumroad.com/l/swiftpdf-pro` replace করুন।
 
 ---
 
